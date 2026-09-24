@@ -57,9 +57,22 @@ and the evidence makes overcounting detectable.
 
 ```bash
 npm install
-npm run build:program   # anchor build, then regenerate sdk/generated.ts
+npm run build:program   # anchor build --arch v0, then regenerate sdk/generated.ts
 npm test
 ```
+
+`build:program` targets SBPF v0 because Anchor 1.2 defaults to v3, which
+devnet does not accept yet.
+
+## Deployed
+
+| Cluster | Program |
+| --- | --- |
+| devnet | [`EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU`](https://explorer.solana.com/address/EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU?cluster=devnet) |
+
+`npx tsx scripts/devnet-smoke.ts` runs one whole campaign against it: a test
+token, create, fund, a channel, a real tagged transaction found by its
+reference and verified, then settle and claim.
 
 ## Status
 
