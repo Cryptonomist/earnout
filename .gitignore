@@ -13,3 +13,8 @@ test-ledger
 !.env.example
 keys/
 *.keypair.json
+
+# next
+.next
+next-env.d.ts
+*.tsbuildinfo

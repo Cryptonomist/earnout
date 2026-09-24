@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* EARNOUT: paper and ink.
+ *
+ * The product is a receipt for marketing spend, so the site is printed
+ * matter: paper for the page, a whiter slip for anything that is a record,
+ * ink for text. Two colours carry meaning and nothing else. Green is PAID:
+ * money that reached someone who earned it. Rust is NOT PAID: a wallet that
+ * left, a bot cluster, budget that went back. Neither is decoration, and
+ * neither is used for links or buttons, which are ink. */
+
+:root {
+  --paper: #f4f2eb;
+  --card: #fffdf6;
+  --ink: #16150f;
+  --muted: #625e53;
+  --faint: #a29d8f;
+  --line: #e0dbcd;
+  --paid: #0b7349;
+  --paid-soft: #dbeee2;
+  --unpaid: #a9412b;
+  --unpaid-soft: #f4e0d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f0f0d;
+    --card: #191915;
+    --ink: #edebe3;
+    --muted: #a3a095;
+    --faint: #5f5c54;
+    --line: #2c2b26;
+    --paid: #4bd495;
+    --paid-soft: #13291e;
+    --unpaid: #ee8069;
+    --unpaid-soft: #2e1914;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-paid: var(--paid);
+  --color-paid-soft: var(--paid-soft);
+  --color-unpaid: var(--unpaid);
+  --color-unpaid-soft: var(--unpaid-soft);
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-serif: var(--font-instrument), Georgia, serif;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* A slip torn off a roll: a zigzag along the bottom edge. */
+.torn {
+  --tooth: 14px;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+}
+
+/* The dotted rule a receipt printer makes. */
+.rule {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, var(--faint) 50%, transparent 0);
+  background-size: 6px 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
