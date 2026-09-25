@@ -84,34 +84,51 @@ export function memoIx(memo: string): Instruction {
   return { programAddress: MEMO_PROGRAM, accounts: [], data: new TextEncoder().encode(memo) } as Instruction;
 }
 
+/** Everything needed to tag one transaction for one campaign. */
+export type Tag = { campaign: Address; identity: Address; reference: Address; signature: Uint8Array };
+
 /** The two instructions a partner appends to a user's conversion
  * transaction: the tag, then the identifier memo. */
-export function tagInstructions(p: {
-  campaign: Address;
-  identity: Address;
-  reference: Address;
-  signature: Uint8Array;
-}): Instruction[] {
+export function tagInstructions(t: Tag): Instruction[] {
   return [
-    tagIx({ campaign: p.campaign, identity: p.identity, reference: p.reference }),
-    memoIx(identifierMemo(p.identity, p.reference, p.signature)),
+    tagIx({ campaign: t.campaign, identity: t.identity, reference: t.reference }),
+    memoIx(identifierMemo(t.identity, t.reference, t.signature)),
   ];
 }
 
-/* A tag token is how a signed reference travels from our link to a partner's
- * page: `<reference>.<signature>`, both base58, short enough for a URL. */
-
-export function encodeTagToken(reference: Address, signature: Uint8Array): string {
-  return `${reference}.${toB58(signature)}`;
+/** Whether the tag's signature is the identity's, over the reference. A
+ * partner can check this before appending a tag it found in a URL. */
+export async function verifyTag(t: Tag): Promise<boolean> {
+  try {
+    const key = await getPublicKeyFromAddress(t.identity);
+    return await verifySignature(key, t.signature as SignatureBytes, refBytes(t.reference));
+  } catch {
+    return false;
+  }
 }
 
-export function decodeTagToken(token: string): { reference: Address; signature: Uint8Array } | null {
-  const [ref, sig, ...rest] = token.split(".");
-  if (!ref || !sig || rest.length) return null;
+/* A tag token is how a signed reference travels from an Earnout link to a
+ * partner's page, in the `eo` query parameter:
+ *
+ *   e1.<campaign>.<identity>.<reference>.<signature>
+ *
+ * all base58. It carries everything `tagInstructions` needs, so a partner
+ * needs no configuration and no RPC call to tag a transaction. The version
+ * prefix leaves room to change the format without guessing. */
+
+const TOKEN_VERSION = "e1";
+
+export function encodeTagToken(t: Tag): string {
+  return [TOKEN_VERSION, t.campaign, t.identity, t.reference, toB58(t.signature)].join(".");
+}
+
+export function decodeTagToken(token: string): Tag | null {
+  const parts = token.split(".");
+  if (parts.length !== 5 || parts[0] !== TOKEN_VERSION) return null;
   try {
-    const signature = fromB58(sig);
+    const signature = fromB58(parts[4]);
     if (signature.length !== 64) return null;
-    return { reference: address(ref), signature };
+    return { campaign: address(parts[1]), identity: address(parts[2]), reference: address(parts[3]), signature };
   } catch {
     return null;
   }

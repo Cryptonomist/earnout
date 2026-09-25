@@ -22,6 +22,7 @@ import {
   parseIdentifierMemos,
   signReference,
   verifiedReferences,
+  verifyTag,
 } from "../sdk/identity.ts";
 
 const CAMPAIGN_A = address("7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU");
@@ -134,19 +135,53 @@ describe("identity memo", () => {
 });
 
 describe("tag token", () => {
-  it("round-trips a reference and signature", async () => {
+  async function signedTag() {
     const identity = await generateKeyPair();
     const reference = address(Keypair.generate().publicKey.toBase58());
-    const signature = await signReference(identity, reference);
-    const token = encodeTagToken(reference, signature);
+    return {
+      campaign: CAMPAIGN_A,
+      identity: await getAddressFromPublicKey(identity.publicKey),
+      reference,
+      signature: await signReference(identity, reference),
+    };
+  }
 
-    const back = decodeTagToken(token);
-    expect(back?.reference).to.equal(reference);
-    expect(Buffer.from(back!.signature).equals(Buffer.from(signature))).to.equal(true);
+  it("round-trips everything a partner needs to tag a transaction", async () => {
+    const tag = await signedTag();
+    const token = encodeTagToken(tag);
+    expect(token.startsWith("e1.")).to.equal(true);
+
+    const back = decodeTagToken(token)!;
+    expect([back.campaign, back.identity, back.reference]).to.deep.equal([tag.campaign, tag.identity, tag.reference]);
+    expect(Buffer.from(back.signature).equals(Buffer.from(tag.signature))).to.equal(true);
+    expect(await verifyTag(back)).to.equal(true);
   });
 
-  it("rejects anything else", () => {
-    for (const t of ["", "abc", "a.b.c", `${CAMPAIGN_A}.`, `${CAMPAIGN_A}.3yZe7d`]) {
+  it("fits comfortably in a URL", async () => {
+    expect(encodeTagToken(await signedTag()).length).to.be.below(260);
+  });
+
+  it("fails verification when any part is swapped", async () => {
+    const tag = await signedTag();
+    const other = await signedTag();
+    expect(await verifyTag({ ...tag, reference: other.reference })).to.equal(false);
+    expect(await verifyTag({ ...tag, identity: other.identity })).to.equal(false);
+    expect(await verifyTag({ ...tag, signature: other.signature })).to.equal(false);
+  });
+
+  it("rejects anything else", async () => {
+    const good = encodeTagToken(await signedTag());
+    const parts = good.split(".");
+    for (const t of [
+      "",
+      "abc",
+      "a.b.c.d.e",
+      good.replace(/^e1\./, "e2."),
+      parts.slice(0, 4).join("."),
+      `${good}.extra`,
+      [...parts.slice(0, 4), "3yZe7d"].join("."),
+      [parts[0], "not-an-address", ...parts.slice(2)].join("."),
+    ]) {
       expect(decodeTagToken(t), t).to.equal(null);
     }
   });

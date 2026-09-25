@@ -264,15 +264,18 @@ function Trust() {
 }
 
 const SNIPPET = `// sdk/ in github.com/Cryptonomist/earnout
-import { decodeTagToken, tagInstructions } from "./earnout/sdk";
+import { captureTag, pendingTag, tagInstructions, clearTag } from "./earnout/sdk";
 
-// The link sent the user here with ?eo=<ref>.<sig>
-const tag = decodeTagToken(params.get("eo") ?? "");
+captureTag(); // on page load: keeps ?eo= and cleans the URL
 
+// when the user deposits
+const tag = pendingTag();
 const instructions = [
   ...yourDepositInstructions,
-  ...(tag ? tagInstructions({ campaign, identity, ...tag }) : []),
-];`;
+  ...(tag ? tagInstructions(tag) : []),
+];
+// ...send, confirm, then
+clearTag();`;
 
 function Developers() {
   return (

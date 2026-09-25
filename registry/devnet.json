@@ -1,0 +1,14 @@
+{
+  "demo-alice": {
+    "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+    "channel": 0,
+    "destination": "/demo",
+    "label": "demo-alice"
+  },
+  "demo-bob": {
+    "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+    "channel": 1,
+    "destination": "/demo",
+    "label": "demo-bob"
+  }
+}

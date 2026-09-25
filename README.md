@@ -44,6 +44,51 @@ advertiser gets the full evidence and can check every entry against the chain.
 The settler is trusted to count honestly; the program holds it to the budget
 and the evidence makes overcounting detectable.
 
+## Links
+
+`earnout.dev/r/<slug>` is a channel's link. Each click mints a fresh
+reference, encrypted to the campaign and signed by the Earnout identity, and
+redirects to the partner with it in `?eo=`:
+
+```
+e1.<campaign>.<identity>.<reference>.<signature>
+```
+
+The token carries everything needed to tag a transaction, so a partner needs
+no configuration and no RPC call. Slugs live in `registry/<cluster>.json`;
+destinations come only from there, never from the request. If a campaign has
+ended or the service is misconfigured, the link still redirects, untagged.
+
+Try it on devnet: `/r/demo-alice` or `/r/demo-bob` lands on `/demo`, which
+plays the partner.
+
+### For partner apps
+
+```ts
+import { captureTag, pendingTag, tagInstructions, clearTag } from "./earnout/sdk";
+
+captureTag();                 // on page load: keeps ?eo=, cleans the URL
+
+const tag = pendingTag();     // when the user deposits
+const ixs = [...yourInstructions, ...(tag ? tagInstructions(tag) : [])];
+// send, confirm, then
+clearTag();
+```
+
+Last click wins, and a tag is kept for seven days. Nothing in the client
+throws; blocked storage just means no tag.
+
+### Running the link service
+
+Copy `.env.example` to `.env.local` and fill it in. To create a campaign with
+the Earnout identity and register its slugs:
+
+```bash
+npx tsx --env-file=.env.local scripts/create-campaign.ts \
+  --payout 5 --fund 500 --retention 600 --ends-in-days 60 \
+  --destination /demo --channel demo-alice --channel demo-bob
+```
+
 ## Layout
 
 | Path | What |
@@ -51,6 +96,10 @@ and the evidence makes overcounting detectable.
 | `programs/earnout` | The Anchor program (Anchor 1.2.0) |
 | `sdk/` | TypeScript SDK on `@solana/kit`: instruction builders, account decoders, the Action Identity memo, tag tokens |
 | `sdk/reference.ts` | The reference cipher (server only) |
+| `sdk/client.ts` | The partner's browser helper: capture, keep and clear a tag |
+| `src/app` | The site: landing page, `/r/[slug]` links, `/demo` partner page |
+| `src/server` | Link resolution, the registry, the one chain read a link needs |
+| `registry/` | Slug to campaign and channel, per cluster |
 | `tests/` | LiteSVM tests against the built binary, and SDK tests checked against `@solana/actions` |
 
 ## Build and test
@@ -77,8 +126,8 @@ reference and verified, then settle and claim.
 ## Status
 
 Built for the Colosseum Crypto World's Fair hackathon (September to October
-2026). Program and SDK are in place; the link service, indexer, settler and
-dashboard are next.
+2026). The program, SDK and link service are in place; tagged deposits on the
+demo page, the indexer and settler, and the dashboard are next.
 
 ## License
 
