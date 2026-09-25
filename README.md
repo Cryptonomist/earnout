@@ -78,6 +78,15 @@ clearTag();
 Last click wins, and a tag is kept for seven days. Nothing in the client
 throws; blocked storage just means no tag.
 
+The tag costs about 72,000 compute units, almost all of it the memo (Memo v2
+checks every byte is valid UTF-8); `tag` itself is about 1,100. If you set a
+compute unit limit, add that much.
+
+On `/demo`, a wallet signs a 0.01 devnet SOL deposit with the tag on it; the
+page sends it through `/api/rpc` itself (so a wallet left on mainnet cannot
+misroute it), then finds it by its reference and checks the memo's
+signature, as the settler will.
+
 ### Running the link service
 
 Copy `.env.example` to `.env.local` and fill it in. To create a campaign with

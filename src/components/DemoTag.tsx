@@ -1,19 +1,22 @@
 "use client";
 
 /* The partner side of a link, live: capture the token on arrival, show what
- * was kept, and check its signature in the browser. */
+ * was kept and check its signature in the browser, make the deposit with
+ * the tag on it, and show what the settler will find. */
 
 import { useEffect, useState } from "react";
 import { captureTag, clearTag, pendingTagEntry } from "../../sdk/client";
 import { verifyTag, type Tag } from "../../sdk/identity";
+import { DemoDeposit, type DepositResult } from "./DemoDeposit";
+import { DEMO, explorerAddress, explorerTx } from "@/lib/demo";
 
 type State =
   | { phase: "loading" }
   | { phase: "none" }
-  | { phase: "kept"; tag: Tag; savedAt: number; expiresAt: number; justArrived: boolean; valid: boolean | null };
+  | { phase: "kept"; tag: Tag; savedAt: number; expiresAt: number; justArrived: boolean; valid: boolean | null }
+  | { phase: "deposited"; tag: Tag; result: DepositResult };
 
 const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-const explorer = (a: string) => `https://explorer.solana.com/address/${a}?cluster=devnet`;
 
 /* Capture once per page load. The first capture takes the token out of the
  * URL, so a second one (React runs effects twice in development) would
@@ -36,22 +39,8 @@ export function DemoTag() {
   }, []);
 
   if (state.phase === "loading") return <div className="mt-10 h-64 animate-pulse rounded-2xl border border-line" />;
-
-  if (state.phase === "none") {
-    return (
-      <section className="mt-10 rounded-2xl border border-line bg-card p-7">
-        <h2 className="text-xl font-semibold tracking-tight">No Earnout tag on this device.</h2>
-        <p className="mt-2 leading-7 text-muted">Come in through one of the demo campaign&apos;s links:</p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          {["demo-alice", "demo-bob"].map((slug) => (
-            <a key={slug} href={`/r/${slug}`} className="rounded-full bg-ink px-5 py-2.5 font-mono text-sm text-paper hover:opacity-90">
-              earnout.dev/r/{slug}
-            </a>
-          ))}
-        </div>
-      </section>
-    );
-  }
+  if (state.phase === "none") return <NoTag />;
+  if (state.phase === "deposited") return <Deposited tag={state.tag} result={state.result} />;
 
   const { tag, savedAt, expiresAt, justArrived, valid } = state;
   return (
@@ -77,12 +66,12 @@ export function DemoTag() {
 
         <dl className="mt-6 divide-y divide-line border-y border-line font-mono text-sm">
           <Row label="Campaign">
-            <a href={explorer(tag.campaign)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+            <a href={explorerAddress(tag.campaign)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
               {short(tag.campaign)}
             </a>
           </Row>
           <Row label="Signed by">
-            <a href={explorer(tag.identity)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+            <a href={explorerAddress(tag.identity)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
               {short(tag.identity)}
             </a>
           </Row>
@@ -119,11 +108,75 @@ export function DemoTag() {
             </span>
           </li>
         </ol>
-        <p className="mt-5 text-sm leading-6 text-muted">
-          Making a tagged devnet deposit from this page is the next piece being built.
-        </p>
       </section>
+
+      <DemoDeposit tag={tag} onDeposited={(result) => setState({ phase: "deposited", tag, result })} />
     </>
+  );
+}
+
+function NoTag() {
+  return (
+    <section className="mt-10 rounded-2xl border border-line bg-card p-7">
+      <h2 className="text-xl font-semibold tracking-tight">No Earnout tag on this device.</h2>
+      <p className="mt-2 leading-7 text-muted">Come in through one of the demo campaign&apos;s links:</p>
+      <div className="mt-5 flex flex-wrap gap-3">
+        {["demo-alice", "demo-bob"].map((slug) => (
+          <a key={slug} href={`/r/${slug}`} className="rounded-full bg-ink px-5 py-2.5 font-mono text-sm text-paper hover:opacity-90">
+            earnout.dev/r/{slug}
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
+  const checks: [boolean, string][] = [
+    [true, "The deposit confirmed on devnet, with the tag inside it."],
+    [result.foundByReference, "Found on chain by its reference alone, the settler's first lookup."],
+    [result.signedByIdentity, "Its memo carries a valid signature from the Earnout identity."],
+    [true, "The tag was cleared from this device. A reference only ever counts once."],
+  ];
+  return (
+    <section className="mt-10 rounded-2xl border border-ink bg-card p-7">
+      <h2 className="text-2xl font-semibold tracking-tight">
+        Deposit made. <span className="font-serif font-normal italic">Now it has to stay.</span>
+      </h2>
+      <ul className="mt-6 space-y-3">
+        {checks.map(([ok, text]) => (
+          <li key={text} className="flex gap-3 leading-7">
+            <span className={`font-mono ${ok ? "text-paid" : "text-unpaid"}`} aria-hidden="true">
+              {ok ? "✓" : "✗"}
+            </span>
+            <span>{text}</span>
+          </li>
+        ))}
+      </ul>
+
+      <dl className="mt-6 divide-y divide-line border-y border-line font-mono text-sm">
+        <Row label="Transaction">
+          <a href={explorerTx(result.signature)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+            {short(result.signature)}
+          </a>
+        </Row>
+        <Row label="Wallet">{short(result.wallet)}</Row>
+        <Row label="Reference">{short(tag.reference)}</Row>
+        {result.memo && (
+          <div className="py-3">
+            <dt className="text-muted">Memo on chain</dt>
+            <dd className="mt-1 text-xs break-all">{result.memo}</dd>
+          </div>
+        )}
+      </dl>
+
+      <p className="mt-6 leading-7 text-muted">
+        Next, the retention window: {DEMO.retentionMinutes} minutes for this demo, 30 days or more in a real campaign. When
+        it closes, the settler checks this wallet is still active and not part of a bot cluster. If it passes, the creator
+        whose link you used is owed {DEMO.payout} test tokens, settled on-chain for them to claim. If it does not, they get
+        nothing and the budget stays with the campaign.
+      </p>
+    </section>
   );
 }
 
