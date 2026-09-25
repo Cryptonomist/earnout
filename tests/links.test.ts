@@ -133,7 +133,7 @@ describe("registry file", () => {
     const fs = await import("node:fs");
     const { parseRegistry } = await import("../src/server/registry.ts");
     const raw = JSON.parse(fs.readFileSync("registry/devnet.json", "utf8"));
-    const reg = parseRegistry(raw);
+    const reg = parseRegistry(raw.links);
     for (const [slug, e] of Object.entries(reg)) {
       expect(slug, slug).to.match(/^[a-z0-9][a-z0-9-]{0,63}$/);
       expect(e.destination.startsWith("/") || e.destination.startsWith("https://"), slug).to.equal(true);

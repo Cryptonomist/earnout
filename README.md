@@ -98,6 +98,41 @@ npx tsx --env-file=.env.local scripts/create-campaign.ts \
   --destination /demo --channel demo-alice --channel demo-bob
 ```
 
+## Settler
+
+`scripts/settle.ts` turns tagged transactions into on-chain payouts. Each
+pass, for every campaign in `registry/<cluster>.json`:
+
+1. **Find** new transactions touching the campaign's address.
+2. **Screen** each tag: the campaign's identity, a memo signature that
+   verifies, a reference that opens under the campaign's key to a real
+   channel, the first use of that reference, inside the campaign dates and
+   the click's attribution window, carrying the campaign's qualifying action
+   (for the demo: at least 0.01 SOL into the treasury), from a wallet that
+   is not the advertiser or a channel's payee, and that has not converted
+   before.
+3. **Wait** out the retention window, then check the wallet stayed (for the
+   demo: still holds 0.005 SOL; `token-balance` checks a position instead).
+4. **Flag** wallets funded by a channel's payee, and clusters of more than N
+   converting wallets funded by one quiet source. Busy sources (faucets,
+   exchanges, a thousand transactions or more) are ignored.
+5. **Settle** each channel's qualified conversions as its next numbered
+   batch, oldest first, as far as the uncommitted budget goes, with a Merkle
+   root of the conversion signatures as evidence.
+
+Settling is exactly once: a batch is recorded as pending before it is sent,
+the program refuses a batch number twice, and the next pass reads the
+channel's batch count to see whether it landed. State lives in
+`var/settler/<cluster>/<campaign>.json`, gitignored, because which wallet came
+through which channel is exactly what the chain is kept from knowing.
+
+```bash
+npx tsx --env-file=.env.local scripts/settle.ts --dry-run   # decide, send nothing
+npx tsx --env-file=.env.local scripts/settle.ts             # one pass
+npx tsx --env-file=.env.local scripts/settle.ts --watch 60  # a pass a minute
+npx tsx scripts/claim.ts --slug demo-alice --signer <payee keyfile>
+```
+
 ## Layout
 
 | Path | What |
@@ -108,7 +143,9 @@ npx tsx --env-file=.env.local scripts/create-campaign.ts \
 | `sdk/client.ts` | The partner's browser helper: capture, keep and clear a tag |
 | `src/app` | The site: landing page, `/r/[slug]` links, `/demo` partner page |
 | `src/server` | Link resolution, the registry, the one chain read a link needs |
-| `registry/` | Slug to campaign and channel, per cluster |
+| `registry/` | Per cluster: slugs to campaign and channel, and each campaign's settler rules |
+| `settler/` | Parsing, screening, retention and cluster checks, batch planning, evidence |
+| `scripts/` | Create a campaign, settle, claim, move a payee, the devnet smoke test |
 | `tests/` | LiteSVM tests against the built binary, and SDK tests checked against `@solana/actions` |
 
 ## Build and test
@@ -135,8 +172,9 @@ reference and verified, then settle and claim.
 ## Status
 
 Built for the Colosseum Crypto World's Fair hackathon (September to October
-2026). The program, SDK and link service are in place; tagged deposits on the
-demo page, the indexer and settler, and the dashboard are next.
+2026). The whole loop runs on devnet: a click on `/r/demo-alice`, a tagged
+deposit on `/demo`, the retention window, a settlement on chain and the
+creator's claim. The dashboard is next.
 
 ## License
 

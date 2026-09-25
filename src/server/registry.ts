@@ -1,6 +1,7 @@
 /* Which slug is which channel. Kept in the repo for the pilots, one file per
  * cluster; campaigns created from the dashboard will move this to a
- * database. Written by scripts/create-campaign.ts. */
+ * database. Written by scripts/create-campaign.ts. The same file's
+ * `campaigns` section holds the settler's rules; see settler/config.ts. */
 
 import { address } from "@solana/kit";
 import devnet from "../../registry/devnet.json";
@@ -21,7 +22,7 @@ export function parseRegistry(raw: Record<string, RawEntry>): Registry {
   return out;
 }
 
-const BY_CLUSTER: Record<string, Registry> = { devnet: parseRegistry(devnet) };
+const BY_CLUSTER: Record<string, Registry> = { devnet: parseRegistry(devnet.links) };
 
 export function registry(): Registry {
   return BY_CLUSTER[process.env.EARNOUT_CLUSTER ?? "devnet"] ?? {};

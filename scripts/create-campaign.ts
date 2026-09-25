@@ -18,7 +18,10 @@
  *
  * The identity comes from EARNOUT_IDENTITY_KEYPAIR, so the link service can
  * sign for this campaign. The deploy wallet (~/.config/solana/id.json) pays,
- * advertises and settles. Slugs are appended to registry/devnet.json. */
+ * advertises and settles. Slugs are appended to registry/devnet.json, with
+ * a default settler rule for the campaign: a deposit of at least 0.01 SOL to
+ * the wallet, and at least 0.005 SOL still held when the window closes. Edit
+ * the rule there for a real partner. */
 
 import fs from "node:fs";
 import os from "node:os";
@@ -50,7 +53,7 @@ import {
   getMintToInstruction,
 } from "@solana-program/token";
 import * as eo from "../sdk/index.ts";
-import { loadSecrets, type Registry } from "../src/server/links.ts";
+import { loadSecrets, type LinkEntry } from "../src/server/links.ts";
 
 const { values } = parseArgs({
   options: {
@@ -91,7 +94,11 @@ async function send(label: string, ixs: Instruction[], payer: KeyPairSigner) {
 async function main() {
   const slugs = values.channel as string[];
   if (!slugs.length) throw new Error("Give at least one --channel <slug>");
-  const registry = JSON.parse(fs.readFileSync(REGISTRY, "utf8")) as Registry;
+  const file = JSON.parse(fs.readFileSync(REGISTRY, "utf8")) as {
+    campaigns: Record<string, unknown>;
+    links: Record<string, LinkEntry>;
+  };
+  const registry = file.links;
   for (const s of slugs) {
     if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(s)) throw new Error(`Bad slug: ${s}`);
     if (Object.hasOwn(registry, s)) throw new Error(`Slug already registered: ${s}`);
@@ -160,7 +167,14 @@ async function main() {
   slugs.forEach((slug, channel) => {
     registry[slug] = { campaign, channel, destination: values.destination!, label: slug };
   });
-  fs.writeFileSync(REGISTRY, JSON.stringify(registry, null, 2) + "\n");
+  file.campaigns[campaign] = {
+    name: slugs[0],
+    conversion: { kind: "sol-transfer", to: wallet.address, minLamports: "10000000" },
+    retention: { kind: "sol-balance", minLamports: "5000000" },
+    attributionWindowSecs: 7 * 86_400,
+    sybil: { maxWalletsPerFunder: 3 },
+  };
+  fs.writeFileSync(REGISTRY, JSON.stringify(file, null, 2) + "\n");
 
   console.log(`\nCampaign  ${campaign}`);
   console.log(`Mint      ${mint}`);

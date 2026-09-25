@@ -1,14 +1,29 @@
 {
-  "demo-alice": {
-    "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
-    "channel": 0,
-    "destination": "/demo",
-    "label": "demo-alice"
+  "campaigns": {
+    "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt": {
+      "name": "Demo partner",
+      "conversion": {
+        "kind": "sol-transfer",
+        "to": "HoYb6BCszJUY89WhKt2itTpxtLHMJKuoEwXwQPdbhtVu",
+        "minLamports": "10000000"
+      },
+      "retention": { "kind": "sol-balance", "minLamports": "5000000" },
+      "attributionWindowSecs": 604800,
+      "sybil": { "maxWalletsPerFunder": 3 }
+    }
   },
-  "demo-bob": {
-    "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
-    "channel": 1,
-    "destination": "/demo",
-    "label": "demo-bob"
+  "links": {
+    "demo-alice": {
+      "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+      "channel": 0,
+      "destination": "/demo",
+      "label": "demo-alice"
+    },
+    "demo-bob": {
+      "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+      "channel": 1,
+      "destination": "/demo",
+      "label": "demo-bob"
+    }
   }
 }
