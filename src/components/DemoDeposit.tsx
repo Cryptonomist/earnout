@@ -25,6 +25,7 @@ import { tagInstructions, verifiedReferences, type Tag } from "../../sdk/identit
 import { clearTag } from "../../sdk/client";
 import { DEMO } from "@/lib/demo";
 import { confirmSignature, describeError, rpc, shortAddress, sleep, sol, type BrowserRpc } from "@/lib/browser-rpc";
+import { Faucet } from "./Faucet";
 import { ChooseWallet, useDevnetWallet } from "./Wallet";
 
 export type DepositResult = {
@@ -142,7 +143,13 @@ function Deposit({
         </span>
       </div>
 
-      {tooLow && <Faucet wallet={account.address} onFunded={refreshBalance} />}
+      {tooLow && (
+        <Faucet
+          wallet={account.address}
+          onFunded={refreshBalance}
+          need="The deposit needs about 0.0101 devnet SOL, and this wallet has less."
+        />
+      )}
 
       <button
         onClick={() => void deposit()}
@@ -160,71 +167,6 @@ function Deposit({
         <p className="mt-3 font-mono text-xs text-muted">sent {shortAddress(phase.signature)}, waiting for confirmation</p>
       )}
       {phase.kind === "error" && <p className="mt-3 text-sm leading-6 text-unpaid">{phase.message}</p>}
-    </div>
-  );
-}
-
-/* The demo faucet: one click for 0.02 devnet SOL, and the Solana faucet as
- * the fallback whenever it says no. */
-function Faucet({ wallet, onFunded }: { wallet: string; onFunded: () => Promise<void> }) {
-  const [state, setState] = useState<{ kind: "idle" | "asking" } | { kind: "done" } | { kind: "refused"; message: string }>({
-    kind: "idle",
-  });
-
-  async function ask() {
-    setState({ kind: "asking" });
-    try {
-      const res = await fetch("/api/faucet", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ wallet }),
-      });
-      const body = (await res.json()) as { ok: boolean; message?: string };
-      if (!body.ok) {
-        setState({ kind: "refused", message: body.message ?? "The demo faucet said no." });
-        return;
-      }
-      setState({ kind: "done" });
-      for (let i = 0; i < 5; i++) {
-        await onFunded();
-        await sleep(1_500);
-      }
-    } catch {
-      setState({ kind: "refused", message: "The demo faucet did not answer." });
-    }
-  }
-
-  return (
-    <div className="mt-4 rounded-xl border border-line p-4 text-sm leading-6">
-      <p>The deposit needs about 0.0101 devnet SOL, and this wallet has less.</p>
-      {state.kind === "done" ? (
-        <p className="mt-2">
-          <span className="text-paid" aria-hidden="true">
-            ✓{" "}
-          </span>
-          0.02 devnet SOL is on its way.
-        </p>
-      ) : (
-        <button
-          onClick={() => void ask()}
-          disabled={state.kind === "asking"}
-          className="mt-3 rounded-full border border-ink px-4 py-2 font-medium hover:bg-ink hover:text-paper disabled:opacity-50"
-        >
-          {state.kind === "asking" ? "Sending devnet SOL..." : "Get 0.02 devnet SOL"}
-        </button>
-      )}
-      {state.kind === "refused" && <p className="mt-2 text-unpaid">{state.message}</p>}
-      <p className="mt-3 text-muted">
-        Or use the{" "}
-        <a href={DEMO.faucet} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-          Solana faucet
-        </a>
-        , then{" "}
-        <button onClick={() => void onFunded()} className="underline underline-offset-2">
-          check again
-        </button>
-        .
-      </p>
     </div>
   );
 }

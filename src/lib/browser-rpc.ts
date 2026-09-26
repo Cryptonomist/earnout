@@ -22,12 +22,18 @@ export async function confirmSignature(client: BrowserRpc, signature: string): P
   throw new Error("Not confirmed after a minute. It may still land; check the explorer.");
 }
 
-/** A sentence a person can act on, from whatever a wallet or RPC threw. */
+/** A sentence a person can act on, from whatever a wallet or RPC threw.
+ * Kit errors keep the useful part (the server's message, the program logs)
+ * in `context`, not the message, so that is read too. */
 export function describeError(e: unknown): string {
-  const text = e instanceof Error ? `${e.message} ${String((e as { cause?: unknown }).cause ?? "")}` : String(e);
+  const err = e as { message?: string; cause?: unknown; context?: Record<string, unknown> };
+  const context = err?.context ? JSON.stringify(err.context) : "";
+  const text = `${err?.message ?? String(e)} ${String(err?.cause ?? "")} ${context}`;
   if (/reject|denied|declin|cancel/i.test(text)) return "You declined in your wallet. Nothing was sent.";
-  if (/insufficient|debit an account/i.test(text)) return "Not enough devnet SOL for this and its fee.";
+  if (/AccountNotFound|debit an account|insufficient (funds|lamports)|InsufficientFunds|-32002/i.test(text)) {
+    return "This wallet does not have enough devnet SOL for the rent and fee.";
+  }
   if (/blockhash/i.test(text)) return "That took too long and the transaction expired. Try again.";
   if (/429|too many/i.test(text)) return "Devnet is rate-limiting right now. Wait a few seconds and try again.";
-  return e instanceof Error ? e.message : "Something went wrong. Try again.";
+  return err?.message ?? "Something went wrong. Try again.";
 }

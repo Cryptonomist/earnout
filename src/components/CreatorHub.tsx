@@ -26,8 +26,12 @@ import {
 } from "@solana/kit";
 import { unlinkXIx } from "../../sdk/program";
 import { fetchXLink } from "../../sdk/read";
-import { confirmSignature, describeError, rpc, shortAddress } from "@/lib/browser-rpc";
+import { confirmSignature, describeError, rpc, shortAddress, sol } from "@/lib/browser-rpc";
+import { Faucet } from "./Faucet";
 import { CHAIN, ChooseWallet, useDevnetWallet } from "./Wallet";
+
+/** Rent for the link's two accounts plus a fee, with room: about 0.0035. */
+const LINK_MIN_LAMPORTS = 5_000_000n;
 
 type Profile = { handle: string; xId: string; avatar: string | null } | null;
 
@@ -95,8 +99,17 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
   const [link, setLink] = useState<LinkState>({ kind: "loading" });
   const [busy, setBusy] = useState<Busy>({ kind: "idle" });
   const [channels, setChannels] = useState<ChannelRow[] | null>(null);
+  const [balance, setBalance] = useState<bigint | null>(null);
+
+  const refreshBalance = () =>
+    rpc()
+      .getBalance(address(account.address), { commitment: "confirmed" })
+      .send()
+      .then((r) => setBalance(r.value))
+      .catch(() => setBalance(null));
 
   async function refresh() {
+    void refreshBalance();
     if (!identity) return setLink({ kind: "none" });
     try {
       const l = await fetchXLink(rpc(), address(identity), address(account.address));
@@ -170,6 +183,7 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
 
   const working = busy.kind === "working";
   const alreadyThis = link.kind === "linked" && profile && link.xId === profile.xId && link.current;
+  const tooLow = balance !== null && balance < LINK_MIN_LAMPORTS;
 
   return (
     <div>
@@ -177,10 +191,21 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
         <span>
           {wallet.name} {shortAddress(account.address)}
         </span>
-        <button onClick={() => void disconnect()} className="text-muted underline decoration-line underline-offset-2 hover:text-ink">
-          disconnect
-        </button>
+        <span className="text-muted">
+          {balance === null ? "" : `${sol(balance)} devnet SOL`}
+          <button onClick={() => void disconnect()} className="ml-4 underline decoration-line underline-offset-2 hover:text-ink">
+            disconnect
+          </button>
+        </span>
       </div>
+
+      {tooLow && !alreadyThis && (
+        <Faucet
+          wallet={account.address}
+          onFunded={refreshBalance}
+          need="Linking writes two small accounts on devnet: about 0.0035 devnet SOL in rent and fee, and this wallet has less."
+        />
+      )}
 
       <div className="mt-5 leading-7">
         {link.kind === "loading" && <p className="text-muted">Checking this wallet on devnet...</p>}
@@ -199,7 +224,7 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
       {profile && !alreadyThis && (
         <button
           onClick={() => void linkNow()}
-          disabled={working}
+          disabled={working || tooLow}
           className="mt-4 rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90 disabled:opacity-50"
         >
           {working ? busy.what : link.kind === "linked" ? `Link @${profile.handle} instead` : `Link @${profile.handle} to this wallet`}
