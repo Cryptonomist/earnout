@@ -7,7 +7,7 @@
  * chain, so their hash goes on chain: the creating transaction carries it in
  * a memo, and the site records the rules only if they hash to what the memo
  * says (api/campaigns). Nothing here can be changed later, which is the
- * point: a creator who reads the disclosure page is reading the terms the
+ * point: a KOL who reads the disclosure page is reading the terms the
  * advertiser is bound to. */
 
 import { useRouter } from "next/navigation";
@@ -311,7 +311,7 @@ export function NewCampaign(p: Props) {
 
         <Card n={3} title="The money">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="A creator earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
+            <Field label="A KOL earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
               <input value={form.price} onChange={(e) => set("price", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
             </Field>
             <Field label="Fund now" hint="Empty to fund later; top-ups are always open">
@@ -333,7 +333,7 @@ export function NewCampaign(p: Props) {
             <Create wallet={connected.wallet} account={connected.account} form={form} rules={checked.rules} payout={payout} budget={budget ?? 0n} problem={problem} {...p} />
           ) : (
             <>
-              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds creators, and gets the refund.</p>
+              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds KOLs, and gets the refund.</p>
               <ChooseWallet wallets={wallets} />
             </>
           )}
@@ -523,7 +523,7 @@ function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules |
       <div className="torn mt-3 bg-card px-6 pt-6 pb-10">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Paid partnership</p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-          <span className="font-mono">@creator</span> sent you here.
+          <span className="font-mono">@handle</span> sent you here.
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-muted">
           They are paid by {name} only if you stay: {price} for each user who is still there {duration(form.retentionSecs)} later. Nothing is

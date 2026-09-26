@@ -31,7 +31,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          Each campaign pays its creators only for users who stayed. Money is read live from Solana; the counts come from
+          Each campaign pays its KOLs only for users who stayed. Money is read live from Solana; the counts come from
           Earnout&apos;s latest check. Public while Earnout runs on devnet.
         </p>
 
@@ -53,11 +53,11 @@ export default async function DashboardPage() {
                   <>
                     <p className="mt-2 text-sm leading-6 text-muted">
                       {money(chain.payout, chain.decimals)} per user who stays {duration(chain.retentionSecs)} ·{" "}
-                      {chain.channels.length} creator{chain.channels.length === 1 ? "" : "s"}
+                      {chain.channels.length} KOL{chain.channels.length === 1 ? "" : "s"}
                     </p>
                     <dl className="mt-6 grid grid-cols-3 gap-4">
                       <Figure label="Budget" value={money(chain.funded, chain.decimals)} />
-                      <Figure label="Paid to creators" value={money(chain.committed, chain.decimals)} />
+                      <Figure label="Paid to KOLs" value={money(chain.committed, chain.decimals)} />
                       <Figure label="Users who stayed" value={String(settled)} />
                     </dl>
                   </>

@@ -80,7 +80,7 @@ export function DemoTag({ slugs }: { slugs: string[] }) {
             </a>
           </Row>
           <Row label="Reference">{short(tag.reference)}</Row>
-          <Row label="Creator">
+          <Row label="KOL">
             <span className="text-muted">sealed: only the project can read it</span>
           </Row>
           <Row label="Kept">{new Date(savedAt * 1000).toLocaleString()}</Row>
@@ -178,7 +178,7 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
       <Countdown endsAt={depositedAt + DEMO.retentionMinutes * 60_000} />
       <p className="mt-6 leading-7 text-muted">
         Next, the stay period: {DEMO.retentionMinutes} minutes for this demo, days or weeks in a real campaign. When it
-        ends, Earnout checks this wallet is still active and not part of a bot farm. If it passes, the creator whose link
+        ends, Earnout checks this wallet is still active and not part of a bot farm. If it passes, the KOL whose link
         you used is owed {DEMO.payout} test dollars, paid on-chain for them to claim. If not, they get nothing and the
         budget stays with the project.
       </p>

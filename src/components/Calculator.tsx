@@ -33,13 +33,13 @@ export function Calculator() {
   return (
     <div>
       <p className="max-w-3xl text-2xl leading-[1.6] font-medium tracking-tight sm:text-3xl">
-        My budget is <Num>{usd(budget)}</Num>. My creators bring <Num>{num(users)}</Num> users. <Num>{stay}%</Num> are still there a
+        My budget is <Num>{usd(budget)}</Num>. My KOLs bring <Num>{num(users)}</Num> users. <Num>{stay}%</Num> are still there a
         week later. I pay <Num>{usd(price)}</Num> per user who stays.
       </p>
 
       <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
         <Slider label="Budget" value={budget} display={usd(budget)} min={1_000} max={100_000} step={1_000} onChange={setBudget} />
-        <Slider label="Users the creators bring" value={users} display={num(users)} min={100} max={20_000} step={100} onChange={setUsers} />
+        <Slider label="Users the KOLs bring" value={users} display={num(users)} min={100} max={20_000} step={100} onChange={setUsers} />
         <Slider label="Share still there a week later" value={stay} display={`${stay}%`} min={1} max={100} step={1} onChange={setStay} />
         <Slider label="Price per user who stays" value={price} display={usd(price)} min={1} max={100} step={1} onChange={setPrice} />
       </div>
@@ -75,7 +75,7 @@ export function Calculator() {
           ? `Paying up front costs ${usd(upfrontPer - price, 2)} more for every user who stayed, and you only find out after the money is gone.`
           : `Here paying up front comes out cheaper, but only because you already knew ${stay}% would stay. Up front is a bet on that number; Earnout pays for the result.`}{" "}
         <span className="text-muted">
-          An illustration: nothing here changes who shows up or who stays, only what you pay for. You set the price, and creators
+          An illustration: nothing here changes who shows up or who stays, only what you pay for. You set the price, and KOLs
           see it before they send anyone.
         </span>
       </p>

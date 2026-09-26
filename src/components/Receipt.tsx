@@ -1,4 +1,4 @@
-/* The hero picture: one creator's payout, printed. The numbers are an
+/* The hero picture: one KOL's payout, printed. The numbers are an
  * example and the slip says so; they are chosen to add up. 412 users came
  * through the link, 225 had left by day 30 and 41 more were one bot farm,
  * which leaves 146 who stayed at $4.00 each. The other 266 cost nothing. */
@@ -23,7 +23,7 @@ export function Receipt() {
 
         <dl className="mt-5 space-y-0.5">
           <Row label="Campaign" value="Perps launch, wk 1" />
-          <Row label="Creator" value="@sol_sarah" />
+          <Row label="KOL" value="@sol_sarah" />
           <Row label="Must stay" value="30 days" />
         </dl>
 
@@ -52,7 +52,7 @@ export function Receipt() {
         </div>
 
         <div className="mt-4 flex items-baseline justify-between rounded-sm bg-paid-soft px-2 py-1.5 text-paid">
-          <span className="font-semibold">Paid to creator</span>
+          <span className="font-semibold">Paid to KOL</span>
           <span className="text-base font-semibold">$584.00</span>
         </div>
         <div className="mt-1.5 flex items-baseline justify-between px-2 text-unpaid">
@@ -68,7 +68,7 @@ export function Receipt() {
         </dl>
       </div>
       <figcaption className="sr-only">
-        An example payout: 412 users sent, 146 still active and not bots after 30 days, $584 paid to the creator and
+        An example payout: 412 users sent, 146 still active and not bots after 30 days, $584 paid to the KOL and
         $1,064 never spent.
       </figcaption>
     </figure>

@@ -33,11 +33,11 @@ export function BudgetMeter(p: {
   const uncommitted = p.funded - p.committed - p.refunded;
   const pct = (n: bigint) => (p.funded > 0n ? Math.max(0, (Number(n) / Number(p.funded)) * 100) : 0);
   const segments = [
-    { key: "claimed", label: "Claimed by creators", value: p.claimed, className: "bg-paid" },
+    { key: "claimed", label: "Claimed by KOLs", value: p.claimed, className: "bg-paid" },
     { key: "owed", label: "Earned, not yet claimed", value: owed, className: "bg-paid-mid" },
   ].filter((s) => s.value > 0n);
   const rows: [string, bigint, string][] = [
-    ["Claimed by creators", p.claimed, "bg-paid"],
+    ["Claimed by KOLs", p.claimed, "bg-paid"],
     ["Earned, not yet claimed", owed, "bg-paid-mid"],
     ["Still unspent", uncommitted, "bg-paid-soft border border-line"],
   ];
@@ -156,7 +156,7 @@ export function ChannelReceipt({
       </dl>
       {showCreatorLink && slug && (
         <Link href={`/c/${slug}`} className="mt-4 inline-block font-sans text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
-          Creator page for {slug}
+          KOL page for {slug}
         </Link>
       )}
     </figure>

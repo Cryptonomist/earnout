@@ -10,7 +10,7 @@ import { scorecards } from "@/server/scorecard";
 import { COOKIE_PROFILE, openProfile, xConfig } from "@/server/x-auth";
 
 export const metadata: Metadata = {
-  title: "Creators",
+  title: "KOLs",
   description: "Link your X account to your wallet and get paid for users who stay.",
 };
 
@@ -31,7 +31,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
     <>
       <SiteHeader />
       <main id="content" className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
-        <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">For creators</p>
+        <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">For KOLs</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
           Your name, <span className="font-serif font-normal italic">on the record.</span>
         </h1>
@@ -49,9 +49,9 @@ export default async function CreatorsPage({ searchParams }: Params) {
         <CreatorHub profile={profile} identity={identity} xConfigured={!!cfg} />
 
         <section className="mt-16">
-          <h2 className="text-2xl font-semibold tracking-tight">Verified creators</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Verified KOLs</h2>
           <p className="mt-2 max-w-2xl leading-7 text-muted">
-            Every creator on Earnout and their record so far. The numbers come from the chain and from Earnout&apos;s checks.
+            Every KOL on Earnout and their record so far. The numbers come from the chain and from Earnout&apos;s checks.
             Nobody edits them.
           </p>
           {cards.length ? (
@@ -59,7 +59,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-line bg-card text-muted">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Creator</th>
+                    <th className="px-4 py-3 font-medium">KOL</th>
                     <th className="px-4 py-3 text-right font-medium">Campaigns</th>
                     <th className="px-4 py-3 text-right font-medium">Users sent</th>
                     <th className="px-4 py-3 text-right font-medium">Stayed</th>

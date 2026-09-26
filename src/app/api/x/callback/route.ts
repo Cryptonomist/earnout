@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  *
  * The profile is read here and carried onward in a signed cookie, because
  * the chain is what records the link and only the wallet can sign that. So
- * this ends with a redirect to the creator hub, where the browser asks the
+ * this ends with a redirect to the KOL hub, where the browser asks the
  * wallet to sign (api/x/link builds that transaction). */
 export async function GET(req: NextRequest) {
   const cfg = xConfig();

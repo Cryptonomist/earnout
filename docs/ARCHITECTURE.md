@@ -14,14 +14,14 @@ with, what lives on chain and what does not, and why.
 | Demo partner (`src/app/demo`) | Vercel | Stands in for a partner app: a deposit with the tag on it, a guest wallet, a devnet faucet. |
 | Settler (`settler/`, `scripts/settle.ts`) | GitHub Actions, every ten minutes | Finds tagged transactions, screens them, waits out retention, flags clusters, settles batches on chain, publishes counts. |
 | Dashboard and records (`src/app/dashboard`, `src/app/creators`) | Vercel | Money read live from the chain; counts from the settler's published report; scorecards grouped by X account. |
-| Creator hub (`src/app/creators`, `src/app/api/x`) | Vercel | Sign in with X, then link that account to a wallet under two signatures. |
-| Advertiser hub (`src/app/dashboard/new`, `src/components/advertiser`) | Vercel | Create a campaign, fund it, add creators by X handle, refund. Every action is the advertiser's own signature. |
+| KOL hub (`src/app/creators`, `src/app/api/x`) | Vercel | Sign in with X, then link that account to a wallet under two signatures. |
+| Advertiser hub (`src/app/dashboard/new`, `src/components/advertiser`) | Vercel | Create a campaign, fund it, add KOLs by X handle, refund. Every action is the advertiser's own signature. |
 | Registry (`src/server/registry.ts`, `settler/registry.ts`) | The repo and Supabase | Which campaigns exist, their rules, and which slug is which channel: the pilots in a file, dashboard campaigns in `campaigns` and `links`. |
 | State | Supabase | The settler's private ledger (service role only), its public report (counts only), and the registry rows (public to read, written only from the advertiser's transactions). |
 
 ## One conversion, start to finish
 
-1. A creator's link, `/r/<slug>`, opens on a disclosure: who is paid, by
+1. A KOL's link, `/r/<slug>`, opens on a disclosure: who is paid, by
    whom, how much per user who stays, $0.00 for the click.
 2. On Continue, the server mints a **reference**: 32 bytes of ciphertext
    only the campaign's key can open (AES, keyed per campaign from one
@@ -74,7 +74,7 @@ the trust: money is enforced, judgement is auditable.
 | Reference secret | The site and the settler | Mint and open references. Changing it orphans every link already clicked. |
 | Settler key | GitHub Actions | Settle batches for campaigns that name it. Holds a little devnet SOL for fees. |
 | Advertiser wallet | The advertiser | Create and fund campaigns, add channels, refund after the deadline. |
-| Payee wallet | The creator | Claim, move payouts to another wallet linked to the same X account, unlink. |
+| Payee wallet | The KOL | Claim, move payouts to another wallet linked to the same X account, unlink. |
 | Supabase secret key | The site (registry rows) and the settler (ledger, report) | Write the registry and the ledger. The site writes a row only from a confirmed transaction the advertiser paid for. |
 
 Trust is per campaign: a campaign names its identity and its settler, and
@@ -88,13 +88,13 @@ product, so they live off chain, in the registry. To keep them honest, the
 advertiser commits to them on chain: the transaction that creates a campaign
 from the dashboard carries a memo with the SHA-256 of the rules' canonical
 form (`src/lib/rules.ts`: keys sorted, amounts as base-unit strings), and
-adding a creator carries a memo naming the campaign, the channel and its
+adding a KOL carries a memo naming the campaign, the channel and its
 slug. The site records a campaign or a link only when the transaction is
 confirmed, was paid for by the campaign's advertiser, and carries the
 matching memo (`src/server/campaign-registry.ts`). The settler trusts a row
 only while its rules still hash to the committed hash (`settler/registry.ts`),
 so a changed row is ignored rather than obeyed. Rules are final; a campaign
-whose terms could change after creators started sending people would not
+whose terms could change after KOLs started sending people would not
 have terms. Anyone can recompute the hash from a campaign page and check it
 against the transaction linked there.
 
@@ -106,15 +106,15 @@ behind each channel; every settlement's evidence root.
 
 **Deliberately not on chain:** which channel sent which wallet. The
 reference is ciphertext, so the chain cannot link a user's wallet to a
-creator. Under EU guidance a wallet address can be personal data, and a
-public wallet-to-creator map would be a liability for everyone involved.
+KOL. Under EU guidance a wallet address can be personal data, and a
+public wallet-to-KOL map would be a liability for everyone involved.
 The settler's ledger, which holds that map, lives in a private table only
 its own key can reach. Its published report carries counts and settlement
 links, never a wallet, and a test holds it to that.
 
 **Disclosure without leakage:** the disclosure page runs on earnout.dev, so
 the visitor learns who is paid while the partner learns nothing about which
-creator sent them.
+KOL sent them.
 
 ## Exactly once
 

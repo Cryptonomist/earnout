@@ -1,4 +1,4 @@
-/* A creator's record across every campaign, from counts only.
+/* A KOL's record across every campaign, from counts only.
  *
  * Each verified channel contributes what the chain says (users paid for,
  * money earned and claimed) and what the settler's public report says

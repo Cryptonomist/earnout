@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/SiteShell";
 import { explorer, money, short } from "@/server/dashboard";
 import { scorecard } from "@/server/scorecard";
 
-/* A creator's public record: what their links brought, across every
+/* A KOL's public record: what their links brought, across every
  * campaign, in counts. Nobody can edit it, and it cannot be shed by
  * changing wallets, because channels are grouped by X account. */
 
@@ -32,7 +32,7 @@ export default async function CreatorScorecard({ params }: Params) {
       <SiteHeader />
       <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <Link href="/creators" className="text-sm text-muted hover:text-ink">
-          Creators
+          KOLs
         </Link>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-2">
           <h1 className="font-mono text-4xl font-semibold tracking-tight sm:text-5xl">@{card.handle}</h1>

@@ -10,7 +10,7 @@
  * IT IS NOT A WALLET FOR ANYTHING OF VALUE. The key sits in plain
  * localStorage, readable by any script this origin runs, and is gone if the
  * browser's storage is cleared. It only ever signs for devnet, and the site
- * offers it only on the demo, never to a creator, whose wallet holds their
+ * offers it only on the demo, never to a KOL, whose wallet holds their
  * earnings and their verified X identity.
  *
  * Registration follows the Wallet Standard handshake: announce the wallet

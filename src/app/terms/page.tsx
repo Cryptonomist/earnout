@@ -28,10 +28,10 @@ export default function TermsPage() {
           Anyone with access to your browser can use it, and it is lost if you clear your browser&apos;s data.
         </Section>
 
-        <Section title="Creators and projects">
-          A creator is paid only for users Earnout counts under a campaign&apos;s published rules; users who
+        <Section title="KOLs and projects">
+          A KOL is paid only for users Earnout counts under a campaign&apos;s published rules; users who
           leave before the stay period ends, or look like a bot farm, are not paid for. Paid partnerships made
-          through Earnout are disclosed as such, and creators remain responsible for following the disclosure rules where
+          through Earnout are disclosed as such, and KOLs remain responsible for following the disclosure rules where
           they post.
         </Section>
 

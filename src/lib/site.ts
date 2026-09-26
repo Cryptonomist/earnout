@@ -1,9 +1,9 @@
 export const SITE = {
   name: "Earnout",
   url: "https://earnout.dev",
-  tagline: "Pay creators for users who stay",
+  tagline: "Pay KOLs for users who stay",
   description:
-    "Results-driven KOL marketing on Solana. Every creator gets a link; when someone joins through it and is still active later, the creator gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
+    "Results-driven KOL marketing on Solana. Every KOL gets a link; when someone joins through it and is still active later, the KOL gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
   github: "https://github.com/Cryptonomist/earnout",
   contact: "mailto:hello@earnout.dev?subject=Earnout%20pilot",
 };
@@ -24,10 +24,10 @@ export const STATS = [
     href: "https://www.theblock.co/news/business/2025-09-01-zachxbt-says-over-100-crypto-influencers-accepted-promo-deals-without-disclosing-paid-ads-368956",
   },
   {
-    figure: "$150 to $350",
-    text: "is what a crypto ad network quotes per first-time depositor.",
-    source: "Blockchain-Ads, self-reported",
-    href: "https://www.blockchain-ads.com/blockchain-advertising",
+    figure: "$500 to $50,000",
+    text: "is what a KOL charges for a post or a campaign, paid up front, whatever happens next.",
+    source: "KOLHQ, 2026 cost guide",
+    href: "https://www.kolhq.com/blog/crypto-marketing-cost",
   },
   {
     figure: "Jan 2026",

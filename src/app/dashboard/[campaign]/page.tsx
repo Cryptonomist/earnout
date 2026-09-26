@@ -140,7 +140,7 @@ export default async function CampaignPage({ params }: Params) {
         )}
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Headline numbers">
-          <StatTile label="Users sent" value={tagged === null ? "not checked yet" : String(tagged)} note="Came through a creator's link and joined" />
+          <StatTile label="Users sent" value={tagged === null ? "not checked yet" : String(tagged)} note="Came through a KOL's link and joined" />
           <StatTile
             label="Stayed and paid for"
             value={String(settled)}
@@ -155,9 +155,9 @@ export default async function CampaignPage({ params }: Params) {
         </section>
 
         <section className="mt-14">
-          <h2 className="text-2xl font-semibold tracking-tight">Creators</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">KOLs</h2>
           <p className="mt-2 max-w-2xl leading-7 text-muted">
-            One receipt per creator. Which user came through which creator stays private; these are the counts.
+            One receipt per KOL. Which user came through which KOL stays private; these are the counts.
           </p>
           {chain.channels.length ? (
             <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -166,7 +166,7 @@ export default async function CampaignPage({ params }: Params) {
               ))}
             </div>
           ) : (
-            <p className="mt-4 leading-7 text-muted">No creators yet. The project adds them by X handle above; each one gets a link and a receipt here.</p>
+            <p className="mt-4 leading-7 text-muted">No KOLs yet. The project adds them by X handle above; each one gets a link and a receipt here.</p>
           )}
         </section>
 
@@ -177,7 +177,7 @@ export default async function CampaignPage({ params }: Params) {
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-line bg-card text-muted">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Creator</th>
+                    <th className="px-4 py-3 font-medium">KOL</th>
                     <th className="px-4 py-3 font-medium">Payout</th>
                     <th className="px-4 py-3 text-right font-medium">Users</th>
                     <th className="px-4 py-3 text-right font-medium">Paid</th>
@@ -211,7 +211,7 @@ export default async function CampaignPage({ params }: Params) {
             <p className="mt-4 leading-7 text-muted">No payouts yet.</p>
           )}
           <p className="mt-4 text-sm leading-6 text-muted">
-            Each proof is stored on-chain with the creator&apos;s account. The project holds the list of users behind it and
+            Each proof is stored on-chain with the KOL&apos;s account. The project holds the list of users behind it and
             can check every one against the chain.
           </p>
         </section>

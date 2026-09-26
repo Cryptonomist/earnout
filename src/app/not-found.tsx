@@ -11,7 +11,7 @@ export default function NotFound() {
           No receipt <span className="font-serif font-normal italic">for that.</span>
         </h1>
         <p className="mt-4 max-w-xl text-lg leading-8 text-muted">
-          That page, link or creator does not exist here. If you followed a creator&apos;s link, it may have been retired.
+          That page, link or KOL does not exist here. If you followed a KOL&apos;s link, it may have been retired.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/" className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90">

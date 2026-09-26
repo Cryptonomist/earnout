@@ -14,13 +14,13 @@ export default function PrivacyPage() {
         <p className="mt-4 text-muted">Last updated 26 September 2026. Earnout runs on Solana devnet during its hackathon build.</p>
 
         <Section title="On Solana, which is public">
-          A tagged transaction shows that a wallet joined a campaign. It does not show which creator sent it: the
-          reference is encrypted, and only the campaign can read it. Payouts show how many users each creator was
+          A tagged transaction shows that a wallet joined a campaign. It does not show which KOL sent it: the
+          reference is encrypted, and only the campaign can read it. Payouts show how many users each KOL was
           paid for, and payouts show which wallet received them.
         </Section>
 
         <Section title="On our servers">
-          Earnout keeps a private ledger of which wallet came through which creator and whether it stayed. It never
+          Earnout keeps a private ledger of which wallet came through which KOL and whether it stayed. It never
           publishes that; the dashboard shows counts only. The project may be given the list behind a payout so they
           can check it against the chain. We keep no accounts, names or emails for people who join.
         </Section>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Signing in with X">
-          A creator who links an X account lets us read their public profile (id, handle, picture) once, to write
+          A KOL who links an X account lets us read their public profile (id, handle, picture) once, to write
           &quot;this wallet belongs to this X account&quot; on chain. We ask for no permission to post, read messages or act
           for them later, and keep no X token.
         </Section>

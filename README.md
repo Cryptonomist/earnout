@@ -2,7 +2,7 @@
 
 Marketing budgets that pay out only for users who stay.
 
-Crypto projects spend on creators, newsletters, quests and partner apps with
+Crypto projects spend on KOLs, newsletters, quests and partner apps with
 no way to tie that spend to what happens on-chain, and they pay for farmers
 who leave the day rewards land. Earnout pays each channel only for wallets it
 provably sent that are still around when the retention window closes.
@@ -14,7 +14,7 @@ the Colosseum Crypto World's Fair, September to October 2026.
 
 No wallet or devnet SOL needed.
 
-1. Open a creator's link: **[earnout.dev/r/cryptonomist](https://earnout.dev/r/cryptonomist)**.
+1. Open a KOL's link: **[earnout.dev/r/cryptonomist](https://earnout.dev/r/cryptonomist)**.
    It discloses who is paid, by whom and for what before anything happens.
    Continue.
 2. On the demo partner page, choose **Use a guest wallet**, then **Get 0.02
@@ -22,24 +22,24 @@ No wallet or devnet SOL needed.
    signed, single-use tag, and the page shows how the settler will find it.
 3. Watch the **[campaign dashboard](https://earnout.dev/dashboard)**. After
    the 10-minute window the settler checks you stayed, settles on chain, and
-   the creator's receipt shows one more user paid for. Their public record is
+   the KOL's receipt shows one more user paid for. Their public record is
    at **[earnout.dev/creators/CRYPT0NOMIST](https://earnout.dev/creators/CRYPT0NOMIST)**.
 
 Two demo channels already show what the settler catches: users who left
 before the window closed, and a four-wallet farm flagged as one cluster, none
 of them paid for.
 
-To become a creator yourself: **[earnout.dev/creators](https://earnout.dev/creators)**,
+To become a KOL yourself: **[earnout.dev/creators](https://earnout.dev/creators)**,
 sign in with X, link a wallet. Every channel is a verified X account, and a
-creator's record follows that account whatever wallet it pays to.
+KOL's record follows that account whatever wallet it pays to.
 
 To run a campaign yourself: **[earnout.dev/dashboard/new](https://earnout.dev/dashboard/new)**.
 Pick what counts as a conversion and what "stayed" means, set a price per
 user who stays, fund the vault with test dollars from the faucet, and sign
-once. On the campaign's page, add creators by X handle (each gets a link),
+once. On the campaign's page, add KOLs by X handle (each gets a link),
 top up the budget, and take the refund when settlement closes. The rules are
 hashed into the transaction that creates the campaign, so nobody, including
-the advertiser, can change them once creators start sending people.
+the advertiser, can change them once KOLs start sending people.
 
 For how the pieces fit, trust boundaries and what is on chain versus off,
 see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -48,7 +48,7 @@ see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 1. An advertiser funds a **campaign** in USDC: a price per conversion, a
    retention window, an end date. Budget sits in a program-owned vault.
-2. Each **channel** (a creator, a newsletter, a partner app) gets a link. The
+2. Each **channel** (a KOL, a newsletter, a partner app) gets a link. The
    link hands out a single-use **reference** signed by the campaign's Action
    Identity.
 3. The user's conversion transaction (a deposit, a swap, a mint) carries that
@@ -93,12 +93,12 @@ program still has no admin key.
 
 The X account is written onto the channel for good (`ChannelIdentity`). The
 payout wallet can move (`set_payee`), but only to a wallet linked to the same
-account, and one X account is one wallet at a time (`XClaim`), so a creator's
+account, and one X account is one wallet at a time (`XClaim`), so a KOL's
 record follows them and a bad one cannot be shed by changing wallets.
 Channels made before verification existed have no identity and are shown as
 unverified.
 
-Creators link at `/creators`: sign in with X (read-only, PKCE, nothing
+KOLs link at `/creators`: sign in with X (read-only, PKCE, nothing
 stored on a server; the profile rides in a cookie the server signs for
 fifteen minutes), connect a wallet, and link. `/api/x/link` builds the
 `link_x` transaction and signs it as the Earnout identity; the wallet
@@ -173,14 +173,14 @@ npx tsx --env-file=.env.local scripts/create-campaign.ts \
 ## Campaigns from the dashboard
 
 `/dashboard/new` creates a campaign from the browser, and `/dashboard/<campaign>`
-manages it: fund, add a creator by X handle, refund after the deadline. The
+manages it: fund, add a KOL by X handle, refund after the deadline. The
 wallet that signs is the advertiser, and the guest wallet works, so a judge
 can run the whole loop without installing anything.
 
 The rules (what counts as a conversion, what "stayed" means, the attribution
 window, the cluster limit) live off chain, so their hash goes on chain. The
 transaction that creates the campaign carries `earnout:rules:v1:<sha256>` in
-a memo, over the canonical form in `src/lib/rules.ts`; adding a creator
+a memo, over the canonical form in `src/lib/rules.ts`; adding a KOL
 carries `earnout:link:v1:<campaign>:<channel>:<slug>`. The site records a
 campaign or a link only from a confirmed transaction the advertiser paid for
 whose memo matches (`src/server/campaign-registry.ts`), and the settler
@@ -247,8 +247,8 @@ npx tsx scripts/claim.ts --slug demo-alice --signer <payee keyfile>
 `/dashboard` lists campaigns; `/dashboard/<campaign>` shows one: headline
 numbers, the budget (claimed, owed, uncommitted), a receipt per channel, and
 every settlement with its evidence root and transaction. Connect the
-advertiser's wallet there to fund it, add creators and refund. `/c/<slug>`
-is a creator's page: their link, their receipt, and a claim button for the
+advertiser's wallet there to fund it, add KOLs and refund. `/c/<slug>`
+is a KOL's page: their link, their receipt, and a claim button for the
 channel's payout wallet.
 
 Money on these pages is read from Solana on each render, so it cannot drift
@@ -306,8 +306,8 @@ reference and verified, then settle and claim.
 
 Built for the Colosseum Crypto World's Fair hackathon (September to October
 2026). The whole loop runs on devnet: a campaign created from the dashboard,
-a creator added by X handle, a click on their link, a tagged deposit on
-`/demo`, the retention window, a settlement on chain, the creator's claim and
+a KOL added by X handle, a click on their link, a tagged deposit on
+`/demo`, the retention window, a settlement on chain, the KOL's claim and
 the advertiser's refund.
 
 ## License

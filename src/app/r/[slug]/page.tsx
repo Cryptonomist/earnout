@@ -7,7 +7,7 @@ import { campaignChain, campaignMeta, duration, linkFor, money } from "@/server/
 /* Every Earnout link discloses, before anything else happens: who is paid,
  * by whom, for what, and that nothing is paid for a click. The visitor
  * learns it here, on Earnout's own page; the partner app learns nothing
- * about which creator sent them, so the sealed channel stays sealed. The
+ * about which KOL sent them, so the sealed channel stays sealed. The
  * tagged redirect (./go) is only minted when they choose to continue. */
 
 export const revalidate = 60;
@@ -63,7 +63,7 @@ export default async function DisclosurePage({ params }: Params) {
         </p>
 
         <dl className="torn mt-8 bg-card px-6 pt-5 pb-10 font-mono text-[13px] leading-6">
-          <Row label="Creator">
+          <Row label="KOL">
             {handle ? (
               <>
                 <Link href={`/creators/${handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
@@ -93,7 +93,7 @@ export default async function DisclosurePage({ params }: Params) {
         </a>
 
         <p className="mt-6 text-sm leading-6 text-muted">
-          Every Earnout link says who is paid, and for what, before you decide. Your wallet is never tied to the creator
+          Every Earnout link says who is paid, and for what, before you decide. Your wallet is never tied to the KOL
           on-chain. Only the project can see which link you used.{" "}
           <Link href="/" className="underline decoration-line underline-offset-2 hover:text-ink">
             About Earnout

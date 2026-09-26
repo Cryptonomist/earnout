@@ -24,10 +24,10 @@ export default async function DemoPage() {
           This page plays <span className="font-serif font-normal italic">the project.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-          Think of it as a DeFi app running an Earnout campaign. You are the user here: you arrived through a creator&apos;s
+          Think of it as a DeFi app running an Earnout campaign. You are the user here: you arrived through a KOL&apos;s
           link, and this is what the app keeps, and what it will add to your deposit.
         </p>
-        {/* Every registered link that lands here, so a new creator's shows up too. */}
+        {/* Every registered link that lands here, so a new KOL's shows up too. */}
         <DemoTag
           slugs={Object.entries(links)
             .filter(([, e]) => e.destination === "/demo")

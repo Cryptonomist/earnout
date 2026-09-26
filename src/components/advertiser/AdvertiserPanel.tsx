@@ -1,12 +1,12 @@
 "use client";
 
-/* The advertiser's controls on their campaign page: fund it, add a creator
+/* The advertiser's controls on their campaign page: fund it, add a KOL
  * by X handle, and take the refund once the deadline has passed. Anyone can
  * see the page; only the advertiser's wallet can sign any of this, and the
  * program checks the same thing, so nobody signs a transaction that is
  * bound to fail.
  *
- * Adding a creator is one transaction: the channel, plus a memo naming its
+ * Adding a KOL is one transaction: the channel, plus a memo naming its
  * link slug, which the site records once the transaction has landed
  * (api/campaigns/links). A channel that got its account but not its link
  * can be named later with a memo alone. */
@@ -67,7 +67,7 @@ export function AdvertiserPanel(p: PanelProps) {
           <p className="leading-7">
             <span className="font-semibold">Your campaign?</span>{" "}
             <span className="text-muted">
-              Connect the advertiser wallet ({shortAddress(p.advertiser)}) to fund it, add creators, or take the refund.
+              Connect the advertiser wallet ({shortAddress(p.advertiser)}) to fund it, add KOLs, or take the refund.
             </span>
           </p>
           {!open && (
@@ -195,7 +195,7 @@ function Fund(p: PanelProps & { signer: Signer; tokens: bigint | null; refresh: 
   return (
     <div className="rounded-xl bg-card p-5">
       <h3 className="font-semibold tracking-tight">Add to the budget</h3>
-      <p className="mt-2 text-sm leading-6 text-muted">Top-ups are open until payouts close. Money leaves two ways: to a creator who earned it, or back to you.</p>
+      <p className="mt-2 text-sm leading-6 text-muted">Top-ups are open until payouts close. Money leaves two ways: to a KOL who earned it, or back to you.</p>
       <div className="mt-3 flex gap-2">
         <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 font-mono text-[15px] outline-none focus:border-ink" />
         <button
@@ -215,7 +215,7 @@ function Fund(p: PanelProps & { signer: Signer; tokens: bigint | null; refresh: 
   );
 }
 
-// ── add a creator ────────────────────────────────────────────────────────────
+// ── add a KOL ────────────────────────────────────────────────────────────
 
 type Found = { found: true; handle: string; xId: string; wallet: string } | { found: false; handle: string };
 
@@ -278,9 +278,9 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
 
   return (
     <div className="rounded-xl bg-card p-5">
-      <h3 className="font-semibold tracking-tight">Add a creator</h3>
+      <h3 className="font-semibold tracking-tight">Add a KOL</h3>
       {p.source === "file" ? (
-        <p className="mt-2 text-sm leading-6 text-muted">This pilot campaign is managed from the repository; its creators are added with scripts/add-channel.ts.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">This pilot campaign is managed from the repository; its KOLs are added with scripts/add-channel.ts.</p>
       ) : (
         <>
           <p className="mt-2 text-sm leading-6 text-muted">
@@ -323,7 +323,7 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
                 </div>
               </label>
               {!SLUG.test(slug) && <p className="mt-1 text-xs text-unpaid">Lowercase letters, digits and dashes, starting with a letter or digit.</p>}
-              {tooLittleSol && <Faucet wallet={p.signer.address} onFunded={p.refresh} need="Adding a creator writes two small accounts on devnet: about 0.004 devnet SOL in rent and fees, and this wallet has less." />}
+              {tooLittleSol && <Faucet wallet={p.signer.address} onFunded={p.refresh} need="Adding a KOL writes two small accounts on devnet: about 0.004 devnet SOL in rent and fees, and this wallet has less." />}
               <button
                 onClick={() => void add()}
                 disabled={busy.kind === "working" || !SLUG.test(slug) || tooLittleSol}
@@ -347,7 +347,7 @@ async function registerLink(signature: string): Promise<void> {
     const res = await fetch("/api/campaigns/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ signature }) });
     if (res.ok) return;
     const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-    if (res.status !== 404 || i >= 8) throw new Error(error ?? "The creator was added but their link could not be named. Name it below.");
+    if (res.status !== 404 || i >= 8) throw new Error(error ?? "The KOL was added but their link could not be named. Name it below.");
     await sleep(1_500);
   }
 }
@@ -371,7 +371,7 @@ function Refund(p: PanelProps & { signer: Signer; refundable: bigint; onChanged:
 
   return (
     <>
-      <p className="mt-2 text-sm leading-6 text-muted">Payouts have closed. What no creator earned is yours to take back.</p>
+      <p className="mt-2 text-sm leading-6 text-muted">Payouts have closed. What no KOL earned is yours to take back.</p>
       <p className="mt-3 text-2xl font-semibold tracking-tight">{money(p.refundable, p.decimals)}</p>
       <button
         onClick={() => void refund()}
@@ -398,7 +398,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
       const tx = await sendInstructions(rpc(), p.signer, [memoIx(linkMemo(p.campaign, naming.index, naming.slug))], () => setBusy({ kind: "working", what: "Confirming on devnet..." }));
       setBusy({ kind: "working", what: "Naming the link..." });
       await registerLink(tx);
-      setBusy({ kind: "done", text: `Creator ${naming.index} is now earnout.dev/r/${naming.slug}.`, tx });
+      setBusy({ kind: "done", text: `KOL ${naming.index} is now earnout.dev/r/${naming.slug}.`, tx });
       setNaming(null);
       await sleep(2_500);
       p.onChanged();
@@ -411,7 +411,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
     <div className="mt-8 border-t border-line pt-6">
       <h3 className="font-semibold tracking-tight">Links to hand out</h3>
       {p.channels.length === 0 ? (
-        <p className="mt-2 text-sm leading-6 text-muted">No creators yet. Add one above and their link appears here.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">No KOLs yet. Add one above and their link appears here.</p>
       ) : (
         <ul className="mt-3 divide-y divide-line text-sm">
           {p.channels.map((c) => (
@@ -423,7 +423,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
                   </>
                 ) : (
                   <>
-                    creator {c.index} <span className="text-muted">{c.handle ? `@${c.handle}, ` : ""}no link yet</span>
+                    KOL {c.index} <span className="text-muted">{c.handle ? `@${c.handle}, ` : ""}no link yet</span>
                   </>
                 )}
               </span>

@@ -34,7 +34,7 @@ export const SCOPES = ["users.read", "tweet.read"];
 export const COOKIE_STATE = "eo_x_state";
 export const COOKIE_VERIFIER = "eo_x_verifier";
 
-/** Where sign-in starts and ends: the creator hub. */
+/** Where sign-in starts and ends: the KOL hub. */
 export const RETURN_PATH = "/creators";
 
 /** The callback X redirects to, which must match one registered on the app. */

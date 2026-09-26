@@ -7,7 +7,7 @@ import { ChannelReceipt, SiteHeader } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
 import { campaignChain, campaignMeta, campaignReport, duration, linkFor, money } from "@/server/dashboard";
 
-/* A creator's page: their link, their receipt, and a claim button. Anyone
+/* A KOL's page: their link, their receipt, and a claim button. Anyone
  * with the slug can see it, as anyone who sees the link could; only the
  * channel's payout wallet can claim. */
 
@@ -36,7 +36,7 @@ export default async function CreatorPage({ params }: Params) {
     <>
       <SiteHeader />
       <main id="content" className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
-        <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Creator page</p>
+        <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">KOL page</p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <h1 className="font-mono text-2xl font-semibold tracking-tight break-all sm:text-3xl">earnout.dev/r/{slug}</h1>
           <CopyLink url={url} />

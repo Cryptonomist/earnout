@@ -1,6 +1,6 @@
 "use client";
 
-/* The creator hub: sign in with X, connect a wallet, link the two on chain,
+/* The KOL hub: sign in with X, connect a wallet, link the two on chain,
  * and see the channels this wallet is paid for.
  *
  * Linking is two signatures. The server half-signs the transaction as the

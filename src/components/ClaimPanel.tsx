@@ -1,6 +1,6 @@
 "use client";
 
-/* A creator claims what settlements have committed to their channel. Only
+/* A KOL claims what settlements have committed to their channel. Only
  * the channel's payee can; the program checks, and so does this page, so
  * nobody signs a transaction that is bound to fail. */
 
@@ -104,7 +104,7 @@ function Claim(p: Props & { wallet: UiWallet; account: UiWalletAccount }) {
 
       {!isPayee ? (
         <p className="mt-4 leading-7">
-          This wallet is not the creator&apos;s payout wallet. Connect <span className="font-mono">{shortAddress(p.payee)}</span> to
+          This wallet is not the KOL&apos;s payout wallet. Connect <span className="font-mono">{shortAddress(p.payee)}</span> to
           claim.
         </p>
       ) : state.kind === "done" ? (
