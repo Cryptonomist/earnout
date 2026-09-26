@@ -177,9 +177,10 @@ export function applyRetention(
     else r.status = "qualified";
   }
 
+  const known = new Set(cfg.sybil.ignoreFunders);
   const byFunder = new Map<string, ConvRecord[]>();
   for (const r of Object.values(ledger.records)) {
-    if (r.status === "rejected" || !r.funder || r.funderBusy) continue;
+    if (r.status === "rejected" || !r.funder || r.funderBusy || known.has(r.funder)) continue;
     byFunder.set(r.funder, [...(byFunder.get(r.funder) ?? []), r]);
   }
   for (const group of byFunder.values()) {

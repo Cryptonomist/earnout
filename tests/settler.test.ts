@@ -230,6 +230,15 @@ describe("settler", () => {
     for (const t of fauceted) expect(ledger.records[t.signature].status).to.equal("qualified");
   });
 
+  it("never counts a listed funder as a cluster", async () => {
+    const faucet = await newAddress();
+    const txs = await Promise.all(Array.from({ length: 5 }, () => tagged()));
+    const ledger = await ledgerWith(...txs);
+    const listed = { ...cfg, sybil: { ...cfg.sybil, ignoreFunders: [faucet] } };
+    applyRetention(ledger, Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder: faucet, funderBusy: false }])), view, listed);
+    for (const t of txs) expect(ledger.records[t.signature].status).to.equal("qualified");
+  });
+
   it("allows up to the limit from one funder", async () => {
     const funder = await newAddress();
     const txs = await Promise.all(Array.from({ length: 3 }, () => tagged()));

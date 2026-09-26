@@ -33,6 +33,10 @@ export type CampaignConfig = {
     /** More converting wallets than this funded by one quiet source is a
      * cluster. Busy sources (faucets, exchanges) are never counted. */
     maxWalletsPerFunder: number;
+    /** Funders known to fund many unrelated wallets, never counted as a
+     * cluster: the demo's own faucet, say. Each one listed is a way around
+     * the cluster check, so a real campaign lists none it does not run. */
+    ignoreFunders: string[];
   };
 };
 
@@ -61,7 +65,7 @@ export function parseCampaigns(raw: Record<string, Raw>): CampaignConfig[] {
       conversion: conversion(c.conversion),
       retention: retention(c.retention),
       attributionWindowSecs: window,
-      sybil: { maxWalletsPerFunder: max },
+      sybil: { maxWalletsPerFunder: max, ignoreFunders: ((c.sybil?.ignoreFunders ?? []) as string[]).map((a) => address(a)) },
     };
   });
 }
