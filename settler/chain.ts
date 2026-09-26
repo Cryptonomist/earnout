@@ -148,12 +148,32 @@ export async function isBusy(rpc: Rpc, addr: string): Promise<boolean> {
   return list.length >= 1000;
 }
 
-export async function retentionFacts(rpc: Rpc, r: ConvRecord, cfg: CampaignConfig): Promise<RetentionFacts> {
+/** How many of the wallet's transactions between `after` and `until`
+ * (unix seconds) ran `program`. Reads the newest 50 and looks inside up to
+ * 25 that fall in the window: a person who came back a few times is what
+ * this is for, not a bot with hundreds. */
+export async function programActivity(rpc: Rpc, wallet: Address, program: Address, after: number, until: number): Promise<number> {
+  const list = await withRetry(() => rpc.getSignaturesForAddress(wallet, { limit: 50, commitment: "confirmed" }).send());
+  const inWindow = list
+    .filter((s) => s.err === null && s.blockTime !== null && Number(s.blockTime) > after && Number(s.blockTime) <= until)
+    .slice(0, 25);
+  let count = 0;
+  for (const s of inWindow) {
+    const tx = await fetchParsed(rpc, s.signature);
+    if (tx?.programs.has(program)) count++;
+  }
+  return count;
+}
+
+export async function retentionFacts(rpc: Rpc, r: ConvRecord, cfg: CampaignConfig, windowEnd: number): Promise<RetentionFacts> {
   const wallet = r.wallet as Address;
   let stayed: boolean;
   if (cfg.retention.kind === "sol-balance") {
     const { value } = await withRetry(() => rpc.getBalance(wallet, { commitment: "confirmed" }).send());
     stayed = value >= cfg.retention.minLamports;
+  } else if (cfg.retention.kind === "program-activity") {
+    const times = await programActivity(rpc, wallet, cfg.retention.programId, r.blockTime, windowEnd);
+    stayed = times >= cfg.retention.minTransactions;
   } else {
     const mint = cfg.retention.mint;
     const { value } = await withRetry(() =>

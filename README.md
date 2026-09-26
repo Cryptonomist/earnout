@@ -7,6 +7,35 @@ no way to tie that spend to what happens on-chain, and they pay for farmers
 who leave the day rewards land. Earnout pays each channel only for wallets it
 provably sent that are still around when the retention window closes.
 
+Live on Solana devnet at **[earnout.dev](https://earnout.dev)**. Built for
+the Colosseum Crypto World's Fair, September to October 2026.
+
+## Try it in three minutes
+
+No wallet or devnet SOL needed.
+
+1. Open a creator's link: **[earnout.dev/r/cryptonomist](https://earnout.dev/r/cryptonomist)**.
+   It discloses who is paid, by whom and for what before anything happens.
+   Continue.
+2. On the demo partner page, choose **Use a guest wallet**, then **Get 0.02
+   devnet SOL**, then **Deposit 0.01 devnet SOL**. Your deposit now carries a
+   signed, single-use tag, and the page shows how the settler will find it.
+3. Watch the **[campaign dashboard](https://earnout.dev/dashboard)**. After
+   the 10-minute window the settler checks you stayed, settles on chain, and
+   the creator's receipt shows one more user paid for. Their public record is
+   at **[earnout.dev/creators/CRYPT0NOMIST](https://earnout.dev/creators/CRYPT0NOMIST)**.
+
+Two demo channels already show what the settler catches: users who left
+before the window closed, and a four-wallet farm flagged as one cluster, none
+of them paid for.
+
+To become a creator yourself: **[earnout.dev/creators](https://earnout.dev/creators)**,
+sign in with X, link a wallet. Every channel is a verified X account, and a
+creator's record follows that account whatever wallet it pays to.
+
+For how the pieces fit, trust boundaries and what is on chain versus off,
+see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## How it works
 
 1. An advertiser funds a **campaign** in USDC: a price per conversion, a

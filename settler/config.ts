@@ -20,7 +20,11 @@ export type RetentionRule =
   | { kind: "sol-balance"; minLamports: bigint }
   /** The wallet still holds at least this much of a token (a receipt or LP
    * token, say): the position is still open. */
-  | { kind: "token-balance"; mint: Address; minAmount: bigint };
+  | { kind: "token-balance"; mint: Address; minAmount: bigint }
+  /** The wallet used this program again, at least this many times, after
+   * converting and before the window closed: it came back. For games and
+   * apps where "staying" means playing, not holding. */
+  | { kind: "program-activity"; programId: Address; minTransactions: number };
 
 export type CampaignConfig = {
   campaign: Address;
@@ -51,6 +55,11 @@ function conversion(r: Raw): ConversionRule {
 function retention(r: Raw): RetentionRule {
   if (r.kind === "sol-balance") return { kind: r.kind, minLamports: BigInt(r.minLamports) };
   if (r.kind === "token-balance") return { kind: r.kind, mint: address(r.mint), minAmount: BigInt(r.minAmount) };
+  if (r.kind === "program-activity") {
+    const min = Number(r.minTransactions ?? 1);
+    if (!(min >= 1)) throw new Error("program-activity needs minTransactions of at least 1");
+    return { kind: r.kind, programId: address(r.programId), minTransactions: min };
+  }
   throw new Error(`unknown retention rule ${r.kind}`);
 }
 

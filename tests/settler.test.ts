@@ -339,6 +339,19 @@ describe("settler", () => {
     expect(report.batches).to.deep.equal([{ channel: 0, batch: 0, conversions: 1, evidence: "ab".repeat(32), tx: "settleTx" }]);
   });
 
+  it("parses a program-activity retention rule, for apps where staying means coming back", async () => {
+    const program = await newAddress();
+    const [c] = parseCampaigns({
+      [CAMPAIGN]: {
+        conversion: { kind: "program", programId: program },
+        retention: { kind: "program-activity", programId: program, minTransactions: 2 },
+      },
+    });
+    expect(c.conversion).to.deep.equal({ kind: "program", programId: program });
+    expect(c.retention).to.deep.equal({ kind: "program-activity", programId: program, minTransactions: 2 });
+    expect(() => parseCampaigns({ [CAMPAIGN]: { conversion: { kind: "program", programId: program }, retention: { kind: "program-activity", programId: program, minTransactions: 0 } } })).to.throw("at least 1");
+  });
+
   // ── evidence ────────────────────────────────────────────────────────────
 
   it("roots evidence the same whatever order the signatures come in", () => {

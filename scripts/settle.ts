@@ -157,7 +157,7 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
   // Wallets whose window has closed.
   const now = Math.floor(Date.now() / 1000);
   const facts: Record<string, RetentionFacts> = {};
-  for (const r of Object.values(ledger.records)) if (due(r, v, now)) facts[r.signature] = await retentionFacts(rpc, r, cfg);
+  for (const r of Object.values(ledger.records)) if (due(r, v, now)) facts[r.signature] = await retentionFacts(rpc, r, cfg, r.blockTime + v.retentionSecs);
   applyRetention(ledger, facts, v, cfg);
   for (const sig of Object.keys(facts)) {
     const r = ledger.records[sig];
