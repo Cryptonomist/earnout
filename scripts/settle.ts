@@ -13,7 +13,7 @@
  * Supabase project's private `ledgers` table when SUPABASE_URL and
  * SUPABASE_SECRET_KEY are set, else in var/settler/<cluster>/ (gitignored).
  *
- * The settler key is SETTLER_KEYPAIR (a solana-keygen file), or the deploy
+ * The settler key is SETTLER_KEYPAIR_JSON, SETTLER_KEYPAIR (a keyfile), or the deploy
  * wallet at ~/.config/solana/id.json. It must be the campaign's settler. */
 
 import fs from "node:fs";
@@ -40,7 +40,7 @@ import {
 import { getSetComputeUnitPriceInstruction } from "@solana-program/compute-budget";
 import { settleIx } from "../sdk/program.ts";
 import { referenceKeys } from "../sdk/reference.ts";
-import { loadSecrets } from "../src/server/links.ts";
+import { loadReferenceSecret } from "../src/server/links.ts";
 import { loadCampaigns, type CampaignConfig } from "../settler/config.ts";
 import {
   admit,
@@ -210,10 +210,18 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
 
 // ── main ─────────────────────────────────────────────────────────────────────
 
-async function pass() {
-  const { referenceSecret } = await loadSecrets();
+/* The settler key: SETTLER_KEYPAIR_JSON (the key itself, as the scheduled
+ * runner passes it from a secret), else SETTLER_KEYPAIR (a keyfile path),
+ * else the deploy wallet. */
+function settlerKeyJson(): string {
+  if (process.env.SETTLER_KEYPAIR_JSON) return process.env.SETTLER_KEYPAIR_JSON;
   const keyFile = process.env.SETTLER_KEYPAIR ?? path.join(os.homedir(), ".config/solana/id.json");
-  const settler = await createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(fs.readFileSync(keyFile, "utf8"))));
+  return fs.readFileSync(keyFile, "utf8");
+}
+
+async function pass() {
+  const referenceSecret = loadReferenceSecret();
+  const settler = await createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(settlerKeyJson())));
   const file = JSON.parse(fs.readFileSync(path.resolve("registry", `${CLUSTER}.json`), "utf8"));
   const slugs = new Map<string, string>(
     Object.entries(file.links ?? {}).map(([slug, e]: [string, any]) => [`${e.campaign}:${e.channel}`, slug]),

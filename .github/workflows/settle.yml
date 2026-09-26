@@ -1,0 +1,52 @@
+# One settler pass every ten minutes, so conversions settle without anybody's
+# machine being on. Scheduled runs are best effort on GitHub's side: a pass
+# can start a few minutes late, which only delays a payout.
+#
+# Secrets (repository settings, never in this file):
+#   SETTLER_KEYPAIR           the dedicated settler key, a solana-keygen JSON array.
+#                             It holds a little devnet SOL for fees and can do
+#                             nothing but settle; it is not the deploy wallet.
+#   EARNOUT_REFERENCE_SECRET  opens references to find each conversion's channel
+#   SUPABASE_SECRET_KEY       the settler's private ledger and public report
+#   RPC_URL                   optional; public devnet if unset
+#
+# Only schedule and manual runs: no pull_request trigger, so code from a
+# fork never runs with these secrets.
+
+name: settle
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: settler
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Settle
+        env:
+          EARNOUT_CLUSTER: devnet
+          RPC_URL: ${{ secrets.RPC_URL || 'https://api.devnet.solana.com' }}
+          EARNOUT_REFERENCE_SECRET: ${{ secrets.EARNOUT_REFERENCE_SECRET }}
+          SUPABASE_URL: https://rglvyzffulvsyawnrenw.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SETTLER_KEYPAIR_JSON: ${{ secrets.SETTLER_KEYPAIR }}
+        run: npx tsx scripts/settle.ts

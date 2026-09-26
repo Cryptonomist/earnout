@@ -1,6 +1,6 @@
 {
   "campaigns": {
-    "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt": {
+    "4rTHzCLFQTmqws7RRd3VNjb77WAX5pT74byiZwSiS78s": {
       "name": "Demo partner",
       "description": "A pretend DeFi app on devnet. A conversion is a 0.01 SOL deposit into its treasury; a wallet stays if it still holds 0.005 SOL when the window closes. Pays in a test token standing in for USDC.",
       "conversion": {
@@ -8,20 +8,25 @@
         "to": "HoYb6BCszJUY89WhKt2itTpxtLHMJKuoEwXwQPdbhtVu",
         "minLamports": "10000000"
       },
-      "retention": { "kind": "sol-balance", "minLamports": "5000000" },
+      "retention": {
+        "kind": "sol-balance",
+        "minLamports": "5000000"
+      },
       "attributionWindowSecs": 604800,
-      "sybil": { "maxWalletsPerFunder": 3 }
+      "sybil": {
+        "maxWalletsPerFunder": 3
+      }
     }
   },
   "links": {
     "demo-alice": {
-      "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+      "campaign": "4rTHzCLFQTmqws7RRd3VNjb77WAX5pT74byiZwSiS78s",
       "channel": 0,
       "destination": "/demo",
       "label": "demo-alice"
     },
     "demo-bob": {
-      "campaign": "CuFofnP3gc2T3CKsVRLoRxSBeUHJALVRYe8TPJvY5FLt",
+      "campaign": "4rTHzCLFQTmqws7RRd3VNjb77WAX5pT74byiZwSiS78s",
       "channel": 1,
       "destination": "/demo",
       "label": "demo-bob"

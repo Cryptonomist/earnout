@@ -126,6 +126,12 @@ channel's batch count to see whether it landed. State lives in
 `var/settler/<cluster>/<campaign>.json`, gitignored, because which wallet came
 through which channel is exactly what the chain is kept from knowing.
 
+In production the settler runs from GitHub Actions every ten minutes
+(`.github/workflows/settle.yml`), one pass at a time, with three repository
+secrets: a dedicated settler key that holds a little devnet SOL for fees and
+can do nothing but settle, the reference secret, and the Supabase secret key.
+It never gets the Earnout identity or the deploy wallet.
+
 ```bash
 npx tsx --env-file=.env.local scripts/settle.ts --dry-run   # decide, send nothing
 npx tsx --env-file=.env.local scripts/settle.ts             # one pass

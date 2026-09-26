@@ -83,8 +83,14 @@ export async function loadSecrets(env: Record<string, string | undefined> = proc
   if (bytes.length !== 64) throw new Error("EARNOUT_IDENTITY_KEYPAIR must be a 64-byte keypair");
   const identity = await createKeyPairFromBytes(bytes);
 
-  if (!/^([0-9a-f]{2}){32,}$/i.test(rawSecret.trim())) throw new Error("EARNOUT_REFERENCE_SECRET must be at least 32 bytes of hex");
-  const referenceSecret = Uint8Array.from(Buffer.from(rawSecret.trim(), "hex"));
-
+  const referenceSecret = loadReferenceSecret(env);
   return { identity, identityAddress: await getAddressFromPublicKey(identity.publicKey), referenceSecret };
+}
+
+/** Just the reference secret: all the settler needs to open references. It
+ * never signs one, so it is never given the identity. */
+export function loadReferenceSecret(env: Record<string, string | undefined> = process.env): Uint8Array {
+  const raw = env.EARNOUT_REFERENCE_SECRET?.trim();
+  if (!raw || !/^([0-9a-f]{2}){32,}$/i.test(raw)) throw new Error("EARNOUT_REFERENCE_SECRET must be at least 32 bytes of hex");
+  return Uint8Array.from(Buffer.from(raw, "hex"));
 }

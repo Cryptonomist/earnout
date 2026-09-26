@@ -13,8 +13,15 @@
  *   --retention <secs>   how long a wallet must stay
  *   --ends-in-days <n>   when conversions stop counting
  *   --destination <url>  where every channel's link sends people
- *   --channel <slug>     one per channel, in order; each gets the wallet as
- *                        payee (move it later with set_payee)
+ *   --channel <slug>     one per channel, in order
+ *   --payee <address>    one per channel, in the same order; a channel with
+ *                        none is paid to the wallet (move it with set-payee.ts)
+ *   --settler <address>  the key that may settle; defaults to the wallet. Give
+ *                        a dedicated key if the settler will run anywhere but
+ *                        this machine.
+ *   --replace-slugs      repoint slugs that already exist to the new campaign
+ *                        (the old campaign stays on chain; retire it from the
+ *                        registry's campaigns by hand)
  *
  * The identity comes from EARNOUT_IDENTITY_KEYPAIR, so the link service can
  * sign for this campaign. The deploy wallet (~/.config/solana/id.json) pays,
@@ -64,6 +71,9 @@ const { values } = parseArgs({
     "ends-in-days": { type: "string", default: "60" },
     destination: { type: "string", default: "/demo" },
     channel: { type: "string", multiple: true, default: [] },
+    payee: { type: "string", multiple: true, default: [] },
+    settler: { type: "string" },
+    "replace-slugs": { type: "boolean", default: false },
   },
 });
 
@@ -101,7 +111,7 @@ async function main() {
   const registry = file.links;
   for (const s of slugs) {
     if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(s)) throw new Error(`Bad slug: ${s}`);
-    if (Object.hasOwn(registry, s)) throw new Error(`Slug already registered: ${s}`);
+    if (Object.hasOwn(registry, s) && !values["replace-slugs"]) throw new Error(`Slug already registered: ${s} (use --replace-slugs)`);
   }
 
   const { identityAddress } = await loadSecrets();
@@ -150,7 +160,7 @@ async function main() {
         retentionSecs: retention,
         endsAt,
         settleDeadline: endsAt + BigInt(retention) + 86_400n,
-        settler: wallet.address,
+        settler: values.settler ? address(values.settler) : wallet.address,
         identity: identityAddress,
       }),
       await eo.fundIx({ funder: wallet, campaign, mint, source: await walletAta(mint), amount: unit(values.fund!) }),
@@ -160,7 +170,8 @@ async function main() {
 
   const channels: Instruction[] = [];
   for (let i = 0; i < slugs.length; i++) {
-    channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, index: i, payee: wallet.address }));
+    const payee = (values.payee as string[])[i];
+    channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, index: i, payee: payee ? address(payee) : wallet.address }));
   }
   await send(`${slugs.length} channel(s)`, channels, wallet);
 
@@ -179,6 +190,7 @@ async function main() {
   console.log(`\nCampaign  ${campaign}`);
   console.log(`Mint      ${mint}`);
   console.log(`Identity  ${identityAddress}`);
+  console.log(`Settler   ${values.settler ?? wallet.address}`);
   console.log(`Ends      ${new Date(Number(endsAt) * 1000).toISOString()}`);
   for (const s of slugs) console.log(`Link      /r/${s}`);
 }
