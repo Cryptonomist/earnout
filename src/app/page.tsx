@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Calculator } from "@/components/Calculator";
 import { LiveNow } from "@/components/LiveNow";
 import { Mark } from "@/components/Logo";
@@ -159,10 +160,10 @@ function WhoIsWho() {
 function Stats() {
   return (
     <section aria-label="Why now" className="reveal border-y border-line bg-card">
-      <div className="mx-auto grid max-w-6xl gap-px px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-2 px-4 sm:px-6 lg:grid-cols-4 lg:gap-px">
         {STATS.map((s) => (
-          <figure key={s.figure} className="py-8 sm:px-5 lg:first:pl-0">
-            <div className="font-serif text-4xl tracking-tight">{s.figure}</div>
+          <figure key={s.figure} className="py-6 sm:py-8 lg:px-5 lg:first:pl-0">
+            <div className="font-serif text-3xl tracking-tight sm:text-4xl">{s.figure}</div>
             <p className="mt-2 text-sm leading-6">{s.text}</p>
             <figcaption className="mt-2 text-xs text-muted">
               <a href={s.href} className="underline decoration-line underline-offset-2 hover:decoration-ink">
@@ -216,7 +217,23 @@ function Compare() {
   ];
   return (
     <Section eyebrow="How it compares" title="Quantity is clicks, posts and sign-ups. Quality is a user who is still there.">
-      <div className="overflow-x-auto rounded-2xl border border-line">
+      {/* On a phone the table would scroll sideways and hide its point, so each row becomes a card. */}
+      <div className="space-y-3 md:hidden">
+        {COMPARE.map((r) => (
+          <div key={r.who} className={`rounded-2xl border p-5 ${r.earnout ? "border-paid bg-paid-soft" : "border-line"}`}>
+            <div className="font-semibold">{r.who}</div>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm leading-6">
+              {cols.map(([label, key]) => (
+                <Fragment key={key}>
+                  <dt className="text-muted">{label}</dt>
+                  <dd className={r.earnout ? "font-medium" : ""}>{r[key]}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto rounded-2xl border border-line md:block">
         <table className="w-full min-w-[760px] text-left text-[15px]">
           <thead className="border-b border-line bg-card text-sm text-muted">
             <tr>
@@ -346,7 +363,9 @@ function Trust() {
 }
 
 const SNIPPET = `// sdk/ in github.com/Cryptonomist/earnout
-import { captureTag, pendingTag, tagInstructions, clearTag } from "./earnout/sdk";
+import {
+  captureTag, pendingTag, tagInstructions, clearTag,
+} from "./earnout/sdk";
 
 captureTag(); // on page load: keeps ?eo= and cleans the URL
 
@@ -416,7 +435,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6 md:py-24">
+    <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 md:py-24">
       <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{eyebrow}</p>
       <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">{title}</h2>
       {children}

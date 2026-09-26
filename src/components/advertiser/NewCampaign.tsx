@@ -40,7 +40,7 @@ type Props = {
 const CREATE_MIN_LAMPORTS = 8_000_000n;
 
 const RETENTION_OPTIONS: [number, string][] = [
-  [600, "10 minutes (for a demo)"],
+  [600, "10 minutes (demo)"],
   [3_600, "1 hour"],
   [86_400, "1 day"],
   [3 * 86_400, "3 days"],

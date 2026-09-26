@@ -124,8 +124,8 @@ export default async function CampaignPage({ params }: Params) {
                 <dd>{meta.rules.sybil.maxWalletsPerFunder}</dd>
               </div>
             </dl>
-            <p className="mt-4 font-mono text-xs leading-6 text-muted break-all">
-              rules hash {meta.rulesHash}
+            <p className="mt-4 font-mono text-xs leading-6 text-muted">
+              rules hash <span className="break-all">{meta.rulesHash}</span>
               {meta.rulesTx && (
                 <>
                   , in{" "}
@@ -178,7 +178,7 @@ export default async function CampaignPage({ params }: Params) {
                 <thead className="border-b border-line bg-card text-muted">
                   <tr>
                     <th className="px-4 py-3 font-medium">Influencer</th>
-                    <th className="px-4 py-3 font-medium">Payout</th>
+                    <th className="px-4 py-3 font-medium">Round</th>
                     <th className="px-4 py-3 text-right font-medium">Users</th>
                     <th className="px-4 py-3 text-right font-medium">Paid</th>
                     <th className="px-4 py-3 font-medium">Proof</th>
@@ -189,7 +189,7 @@ export default async function CampaignPage({ params }: Params) {
                   {[...report.batches].reverse().map((b) => (
                     <tr key={`${b.channel}-${b.batch}`} className="border-b border-line last:border-0">
                       <td className="px-4 py-3 font-sans">{slugOf(b.channel) ?? `channel ${b.channel}`}</td>
-                      <td className="px-4 py-3 tabular-nums">{b.batch}</td>
+                      <td className="px-4 py-3 tabular-nums">{b.batch + 1}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{b.conversions}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{money(BigInt(b.conversions) * chain.payout, d)}</td>
                       <td className="px-4 py-3">{`${b.evidence.slice(0, 8)}...${b.evidence.slice(-4)}`}</td>

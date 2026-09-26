@@ -114,7 +114,7 @@ export function SiteFooter() {
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-6 text-muted">
-              Pay for users who stay. On-chain attribution and retention-gated payouts for Solana marketing.
+              Pay influencers for users who stay. Results-driven influencer marketing on Solana.
             </p>
           </div>
           {COLUMNS.map((col) => (

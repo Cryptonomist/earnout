@@ -105,7 +105,7 @@ export function ChannelReceipt({
     <figure className="torn bg-card px-6 pt-6 pb-11 font-mono text-[13px] leading-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.2em] text-muted">CREATOR {chain.index}</div>
+          <div className="text-[11px] tracking-[0.2em] text-muted">INFLUENCER {chain.index}</div>
           <div className="text-base font-semibold tracking-tight">{slug ?? `channel ${chain.index}`}</div>
           {chain.handle ? (
             <div className="mt-0.5 text-[12px]">
