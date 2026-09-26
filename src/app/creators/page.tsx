@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CreatorHub } from "@/components/CreatorHub";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import Link from "next/link";
+import { money } from "@/server/dashboard";
 import { loadSecrets } from "@/server/links";
+import { scorecards } from "@/server/scorecard";
 import { COOKIE_PROFILE, openProfile, xConfig } from "@/server/x-auth";
 
 export const metadata: Metadata = {
@@ -21,6 +24,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
   const identity = await loadSecrets()
     .then((s) => s.identityAddress as string)
     .catch(() => null);
+  const cards = await scorecards().catch(() => []);
 
   return (
     <>
@@ -43,6 +47,49 @@ export default async function CreatorsPage({ searchParams }: Params) {
         )}
 
         <CreatorHub profile={profile} identity={identity} xConfigured={!!cfg} />
+
+        <section className="mt-16">
+          <h2 className="text-2xl font-semibold tracking-tight">Verified creators</h2>
+          <p className="mt-2 max-w-2xl leading-7 text-muted">
+            Every creator with a channel on Earnout, and their record so far. Counts come from the settler and the chain;
+            nobody edits them.
+          </p>
+          {cards.length ? (
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="border-b border-line bg-card text-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Creator</th>
+                    <th className="px-4 py-3 text-right font-medium">Campaigns</th>
+                    <th className="px-4 py-3 text-right font-medium">Users sent</th>
+                    <th className="px-4 py-3 text-right font-medium">Stayed</th>
+                    <th className="px-4 py-3 text-right font-medium">Stay rate</th>
+                    <th className="px-4 py-3 text-right font-medium">Earned</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono tabular-nums">
+                  {cards.map((c) => (
+                    <tr key={c.xId} className="border-b border-line last:border-0">
+                      <td className="px-4 py-3">
+                        <Link href={`/creators/${c.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                          @{c.handle}
+                        </Link>{" "}
+                        <span className="text-xs text-paid">verified</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">{c.campaigns}</td>
+                      <td className="px-4 py-3 text-right">{c.tagged}</td>
+                      <td className="px-4 py-3 text-right">{c.stayed}</td>
+                      <td className="px-4 py-3 text-right">{c.stayRate === null ? "n/a" : `${Math.round(c.stayRate * 100)}%`}</td>
+                      <td className="px-4 py-3 text-right">{c.earned !== null && c.decimals !== null ? money(c.earned, c.decimals) : "mixed"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 text-muted">None yet.</p>
+          )}
+        </section>
 
         <section className="mt-16 grid gap-8 md:grid-cols-3">
           {[

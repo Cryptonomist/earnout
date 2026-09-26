@@ -217,6 +217,14 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
             </span>
             Linked to <span className="font-mono">@{link.handle}</span>
             {!link.current && <span className="text-unpaid"> (that account has since moved to another wallet)</span>}
+            {link.current && (
+              <>
+                {" "}
+                <Link href={`/creators/${link.handle}`} className="text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
+                  Your public record
+                </Link>
+              </>
+            )}
           </p>
         )}
       </div>

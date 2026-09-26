@@ -132,9 +132,9 @@ export function ChannelReceipt({
           <div className="text-base font-semibold tracking-tight">{slug ?? `channel ${chain.index}`}</div>
           {chain.handle ? (
             <div className="mt-0.5 text-[12px]">
-              <a href={`https://x.com/${chain.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+              <Link href={`/creators/${chain.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
                 @{chain.handle}
-              </a>{" "}
+              </Link>{" "}
               <span className="text-paid">verified X</span>
             </div>
           ) : (
