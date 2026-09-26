@@ -194,6 +194,13 @@ them needs `SUPABASE_SECRET_KEY` on the site's host; without it the hub is
 read-only and says so. Test dollars come from `/api/faucet/usd`, minted by
 the faucet key, which holds the test token's mint authority.
 
+To send a few test users through a link (fresh wallets, funded by the demo
+faucet key, clicking the live link and depositing with the tag):
+
+```bash
+npx tsx --env-file=.env.local scripts/convert.ts --slug hub-test-crypt0nomist --stay 2 --leave 1
+```
+
 ## Settler
 
 `scripts/settle.ts` turns tagged transactions into on-chain payouts. Each
