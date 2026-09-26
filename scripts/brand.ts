@@ -79,6 +79,18 @@ function avatar(bg: string, fill: string): string {
   );
 }
 
+/** The app icon: the same tile with no rounding at all. Platforms (X, app
+ * stores, Colosseum) apply their own corner mask, and a tile rounded here
+ * would show the page through its corners wherever their mask is squarer.
+ * The mark sits inside the inscribed circle, so a circular mask is safe. */
+function icon(bg: string, fill: string): string {
+  const s = 96;
+  return svg(
+    `0 0 ${s} ${s}`,
+    `<rect width="${s}" height="${s}" fill="${bg}"/><g transform="translate(${(s - 62) / 2} ${(s - 62) / 2}) scale(${62 / MARK})">${markSvg(fill, "i")}</g>`,
+  );
+}
+
 /** A wide banner: the logo centred on paper, for an X or Colosseum header. */
 function banner(bg: string, fill: string): string {
   const w = wordPath(MARK + GAP);
@@ -106,6 +118,8 @@ async function main() {
     "logo-inverse.svg": logo(PAPER),
     "wordmark.svg": wordmark(INK),
     "wordmark-inverse.svg": wordmark(PAPER),
+    "icon.svg": icon(INK, PAPER),
+    "icon-light.svg": icon(PAPER, INK),
     "avatar.svg": avatar(PAPER, INK),
     "avatar-dark.svg": avatar(INK, PAPER),
     "banner.svg": banner(PAPER, INK),
@@ -124,6 +138,10 @@ async function main() {
     ["logo-inverse-2048.png", "logo-inverse.svg", 2048],
     ["wordmark-2048.png", "wordmark.svg", 2048],
     ["wordmark-inverse-2048.png", "wordmark-inverse.svg", 2048],
+    ["icon-512.png", "icon.svg", 512],
+    ["icon-1024.png", "icon.svg", 1024],
+    ["icon-light-512.png", "icon-light.svg", 512],
+    ["icon-light-1024.png", "icon-light.svg", 1024],
     ["avatar-1024.png", "avatar.svg", 1024],
     ["avatar-dark-1024.png", "avatar-dark.svg", 1024],
     ["banner-1500x500.png", "banner.svg", 1500],

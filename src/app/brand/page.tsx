@@ -39,8 +39,16 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     ],
   },
   {
+    title: "App icon",
+    note: "Full bleed, no rounded corners: for X, Colosseum, app stores and anywhere else that masks icons itself. Whatever shape they cut, there is always ink underneath, and the mark sits inside the circle.",
+    items: [
+      { svg: "icon.svg", label: "App icon, dark (use this one)", bg: "checker", pngs: ["icon-512.png", "icon-1024.png"] },
+      { svg: "icon-light.svg", label: "App icon, light", bg: "checker", pngs: ["icon-light-512.png", "icon-light-1024.png"] },
+    ],
+  },
+  {
     title: "Avatars and banners",
-    note: "Square tiles for profile pictures, 1500 by 500 banners for headers.",
+    note: "Rounded tiles for places that do not mask icons themselves, and 1500 by 500 banners for headers.",
     items: [
       { svg: "avatar.svg", label: "Avatar", bg: "checker", pngs: ["avatar-1024.png"] },
       { svg: "avatar-dark.svg", label: "Avatar, dark", bg: "checker", pngs: ["avatar-dark-1024.png"] },
