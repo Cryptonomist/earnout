@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 /* The card X and Telegram show when someone shares earnout.dev: the promise
  * on the left, a slip of the receipt on the right. */
 
-export const alt = "Earnout: pay for users who stay";
+export const alt = "Earnout: pay creators for users who stay";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,11 +28,11 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1.2 }}>
           <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: INK }}>earnout</div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 92, fontWeight: 700, color: INK, lineHeight: 1.02, letterSpacing: -3 }}>
-              Pay for users who stay.
+            <div style={{ fontSize: 84, fontWeight: 700, color: INK, lineHeight: 1.02, letterSpacing: -3 }}>
+              Pay creators for users who stay.
             </div>
             <div style={{ fontSize: 30, color: MUTED, marginTop: 28, lineHeight: 1.35 }}>
-              Creator marketing on Solana. Pay only for users who join and are still there later.
+              Creator marketing on Solana. A creator is paid when someone joins through their link and is still there later.
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 24, color: MUTED }}>earnout.dev</div>

@@ -311,7 +311,7 @@ export function NewCampaign(p: Props) {
 
         <Card n={3} title="The money">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
+            <Field label="A creator earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
               <input value={form.price} onChange={(e) => set("price", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
             </Field>
             <Field label="Fund now" hint="Empty to fund later; top-ups are always open">

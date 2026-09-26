@@ -1,9 +1,9 @@
 export const SITE = {
   name: "Earnout",
   url: "https://earnout.dev",
-  tagline: "Pay for users who stay",
+  tagline: "Pay creators for users who stay",
   description:
-    "Creator marketing on Solana that pays only for users who stay. Every creator gets a link; the project pays for each user who joins through it and is still active later. Unspent budget comes back.",
+    "Creator marketing on Solana. Every creator gets a link; when someone joins through it and is still active later, the creator gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
   github: "https://github.com/Cryptonomist/earnout",
   contact: "mailto:hello@earnout.dev?subject=Earnout%20pilot",
 };

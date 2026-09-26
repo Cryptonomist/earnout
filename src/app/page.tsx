@@ -13,7 +13,7 @@ import { SITE, STATS } from "@/lib/site";
 const STEPS = [
   {
     title: "Set the deal",
-    body: "Say $5 for each new user who is still active after 7 days. Lock the budget in a Solana program.",
+    body: "Say a creator earns $5 for each new user still active after 7 days. Lock the budget in a Solana program.",
   },
   {
     title: "Give each creator a link",
@@ -83,11 +83,11 @@ function Hero() {
       <div>
         <p className="rise font-mono text-xs tracking-[0.2em] text-muted">CREATOR MARKETING ON SOLANA</p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-          Pay for users <span className="font-serif font-normal italic">who stay.</span>
+          Pay creators for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Every creator gets a link. You pay for each user who joins through it and is still active a week later. Nothing
-          for clicks. Nothing for users who leave.
+          Every creator gets a link. When someone joins your app through it and is still active a week later, the creator
+          gets paid. Nothing for clicks. Nothing for people who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
           <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
