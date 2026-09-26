@@ -127,8 +127,8 @@ export function ChannelReceipt({
         <dl className="space-y-0.5">
           <Row label="Users sent" value={String(report.tagged)} />
           <Row label="Still in the stay period" value={String(report.waiting)} />
-          <Row label="Left early" value={`-${report.gone}`} unpaid={report.gone > 0} />
-          <Row label="Flagged as bots" value={`-${report.flagged}`} unpaid={report.flagged > 0} />
+          <Row label="Left early" value={report.gone ? `-${report.gone}` : "0"} unpaid={report.gone > 0} />
+          <Row label="Flagged as bots" value={report.flagged ? `-${report.flagged}` : "0"} unpaid={report.flagged > 0} />
           {report.otherRejected > 0 && <Row label="Not counted" value={`-${report.otherRejected}`} unpaid />}
         </dl>
       ) : (

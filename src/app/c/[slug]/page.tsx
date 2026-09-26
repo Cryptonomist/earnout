@@ -55,7 +55,7 @@ export default async function CreatorPage({ params }: Params) {
                 <>Added before X verification. </>
               )}
               For {meta?.name ?? "this campaign"}: you earn {money(chain.payout, chain.decimals)} for each person who comes
-              through your link, converts, and is still there {duration(chain.retentionSecs)} later. Nobody else can see which
+              through your link, joins, and is still there {duration(chain.retentionSecs)} later. Nobody else can see which
               wallets you sent.
             </p>
 
