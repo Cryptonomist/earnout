@@ -159,11 +159,49 @@ ${text(mono, "earnout.dev", 80, 1128, 26, MUTED)}
 </svg>`;
 }
 
+/** Centred text as a path. */
+function ctext(font: Font, s: string, cx: number, y: number, size: number, fill: string, tracking = 0): string {
+  return text(font, s, cx - width(font, s, size, tracking) / 2, y, size, fill, tracking);
+}
+
+/** 16:9, for video title cards and YouTube thumbnails: the promise and the
+ * receipt, everything large enough to read in a 300-pixel-wide preview. */
+function thumb(): string {
+  const W = 1920;
+  const H = 1080;
+  const h = headline(120, 450, 168, 1040, ["Pay influencers", "for users", "who stay."]);
+  const s = 1.45;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="${PAPER}"/>
+${logo(120, 100, 64, INK)}
+${h.svg}
+${text(sans, "Results-driven influencer marketing on Solana", 120, 930, 44, MUTED)}
+${text(mono, "earnout.dev", 120, 992, 34, MUTED)}
+<g transform="scale(${s})">${receipt(1230 / s, 170 / s, 610 / s, 2)}</g>
+</svg>`;
+}
+
+/** The last frame of a video: where to go next. */
+function endCard(): string {
+  const W = 1920;
+  const H = 1080;
+  const cx = W / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="${PAPER}"/>
+${logo(cx - 118, 300, 72, INK)}
+${ctext(semi, "earnout.dev", cx, 560, 150, INK, -0.03)}
+${ctext(sans, "Pay influencers for users who stay.", cx, 650, 48, MUTED)}
+${ctext(mono, "Live on Solana devnet  ·  open source at github.com/Cryptonomist/earnout", cx, 800, 30, MUTED)}
+</svg>`;
+}
+
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const files: [string, string][] = [
     ["card-1200x800", wide()],
     ["card-1200x1200", square()],
+    ["card-1920x1080", thumb()],
+    ["end-1920x1080", endCard()],
   ];
   for (const [name, svg] of files) {
     fs.writeFileSync(path.join(OUT, `${name}.svg`), svg);

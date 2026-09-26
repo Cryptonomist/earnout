@@ -62,6 +62,8 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     items: [
       { svg: "card-1200x800.svg", label: "Card, 3:2", bg: "checker", wide: true, pngs: ["card-1200x800.png"] },
       { svg: "card-1200x1200.svg", label: "Card, square", bg: "checker", pngs: ["card-1200x1200.png"] },
+      { svg: "card-1920x1080.svg", label: "Card, 16:9, video thumbnail", bg: "checker", wide: true, pngs: ["card-1920x1080.png"] },
+      { svg: "end-1920x1080.svg", label: "Video end card", bg: "checker", wide: true, pngs: ["end-1920x1080.png"] },
     ],
   },
 ];
