@@ -25,7 +25,7 @@ export default async function DisclosurePage({ params }: Params) {
   if (!link) notFound();
   const [meta, chain] = await Promise.all([campaignMeta(link.campaign), campaignChain(link.campaign).catch(() => null)]);
   const channel = chain?.channels.find((c) => c.index === link.channel) ?? null;
-  const name = meta?.name ?? "the partner";
+  const name = meta?.name ?? "the project";
   const handle = channel?.handle ?? null;
 
   return (

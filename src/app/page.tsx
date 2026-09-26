@@ -37,6 +37,21 @@ const GUARANTEES = [
   "No admin key. No fee. Open source.",
 ];
 
+const ROLES = [
+  {
+    who: "Project",
+    text: "An app on Solana that wants more real users: a game, a DEX, a wallet. It sets the deal and locks the budget.",
+  },
+  {
+    who: "Creator",
+    text: "Someone with an audience. They share their link and get paid for the users who stay.",
+  },
+  {
+    who: "User",
+    text: "A person who clicks the link and joins the project's app. Counted, never paid, never named.",
+  },
+];
+
 const PROBLEMS = [
   {
     title: "Clicks are not users.",
@@ -60,6 +75,7 @@ export default function Home() {
       <SiteHeader />
       <main id="content">
         <Hero />
+        <WhoIsWho />
         <LiveNow />
         <Stats />
         <Problem />
@@ -86,8 +102,8 @@ function Hero() {
           Pay creators for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Every creator gets a link. When someone joins your app through it and is still active a week later, the creator
-          gets paid. Nothing for clicks. Nothing for people who leave.
+          Think of it as a sales commission. A creator shares a link to your project. When someone comes through it and is
+          still active a week later, the creator gets paid. Nothing for clicks. Nothing for people who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
           <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
@@ -101,6 +117,22 @@ function Hero() {
       </div>
       <div className="rise rise-3 lift">
         <Receipt />
+      </div>
+    </section>
+  );
+}
+
+/* The three people in every sentence on this site, named once. */
+function WhoIsWho() {
+  return (
+    <section aria-label="Who is who" className="reveal mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <div className="grid gap-6 rounded-2xl border border-line bg-card p-6 sm:grid-cols-3 sm:p-8">
+        {ROLES.map((r) => (
+          <div key={r.who}>
+            <div className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{r.who}</div>
+            <p className="mt-2 text-[15px] leading-7">{r.text}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
