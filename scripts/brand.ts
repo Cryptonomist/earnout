@@ -113,18 +113,26 @@ async function main() {
   };
   for (const [name, body] of Object.entries(files)) fs.writeFileSync(path.join(OUT, name), body);
 
-  await png("mark-512.png", files["mark.svg"], 512);
-  await png("mark-inverse-512.png", files["mark-inverse.svg"], 512);
-  await png("mark-paid-512.png", files["mark-paid.svg"], 512);
-  await png("logo-2048.png", files["logo.svg"], 2048);
-  await png("logo-inverse-2048.png", files["logo-inverse.svg"], 2048);
-  await png("avatar-1024.png", files["avatar.svg"], 1024);
-  await png("avatar-dark-1024.png", files["avatar-dark.svg"], 1024);
-  await png("banner-1500x500.png", files["banner.svg"], 1500);
-  await png("banner-dark-1500x500.png", files["banner-dark.svg"], 1500);
+  const pngs: [string, string, number][] = [
+    ["mark-512.png", "mark.svg", 512],
+    ["mark-1024.png", "mark.svg", 1024],
+    ["mark-inverse-512.png", "mark-inverse.svg", 512],
+    ["mark-inverse-1024.png", "mark-inverse.svg", 1024],
+    ["mark-paid-512.png", "mark-paid.svg", 512],
+    ["mark-paid-1024.png", "mark-paid.svg", 1024],
+    ["logo-2048.png", "logo.svg", 2048],
+    ["logo-inverse-2048.png", "logo-inverse.svg", 2048],
+    ["wordmark-2048.png", "wordmark.svg", 2048],
+    ["wordmark-inverse-2048.png", "wordmark-inverse.svg", 2048],
+    ["avatar-1024.png", "avatar.svg", 1024],
+    ["avatar-dark-1024.png", "avatar-dark.svg", 1024],
+    ["banner-1500x500.png", "banner.svg", 1500],
+    ["banner-dark-1500x500.png", "banner-dark.svg", 1500],
+  ];
+  for (const [name, source, width] of pngs) await png(name, files[source], width);
 
   const lw = wordPath(MARK + GAP);
-  console.log(`Wrote ${Object.keys(files).length} SVGs and 9 PNGs to public/brand`);
+  console.log(`Wrote ${Object.keys(files).length} SVGs and ${pngs.length} PNGs to public/brand`);
   console.log(`  wordmark: Geist SemiBold at ${SIZE.toFixed(2)} units, x-height ${X_HEIGHT}; lockup ${round(MARK + GAP + lw.width)} x ${MARK}`);
 }
 
