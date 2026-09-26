@@ -10,7 +10,7 @@ export function Mark({ className = "size-6" }: { className?: string }) {
         d="m8.25 11.25 2.5 2.5 5-5"
         fill="none"
         stroke="var(--paper)"
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
