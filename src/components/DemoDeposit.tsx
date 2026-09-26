@@ -7,12 +7,11 @@
  * wallet is set to, and a Phantom left on mainnet would lose it. */
 
 import { useEffect, useState } from "react";
-import { useConnect, useDisconnect, useWallets, type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
+import { useDisconnect, type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
 import { useWalletAccountTransactionSigner } from "@solana/react";
 import {
   address,
   appendTransactionMessageInstructions,
-  createSolanaRpc,
   createTransactionMessage,
   getBase64EncodedWireTransaction,
   getSignatureFromTransaction,
@@ -20,12 +19,13 @@ import {
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
-  type Signature,
 } from "@solana/kit";
 import { getTransferSolInstruction } from "@solana-program/system";
 import { tagInstructions, verifiedReferences, type Tag } from "../../sdk/identity";
 import { clearTag } from "../../sdk/client";
 import { DEMO } from "@/lib/demo";
+import { confirmSignature, describeError, rpc, shortAddress, sleep, sol, type BrowserRpc } from "@/lib/browser-rpc";
+import { ChooseWallet, useDevnetWallet } from "./Wallet";
 
 export type DepositResult = {
   signature: string;
@@ -35,17 +35,8 @@ export type DepositResult = {
   signedByIdentity: boolean;
 };
 
-const rpc = () => createSolanaRpc(new URL("/api/rpc", location.origin).toString());
-const sol = (l: bigint) => (Number(l) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 4 });
-const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 export function DemoDeposit({ tag, onDeposited }: { tag: Tag; onDeposited: (r: DepositResult) => void }) {
-  const wallets = useWallets().filter(
-    (w) => w.chains.includes(DEMO.chain) && w.features.includes("solana:signTransaction"),
-  );
-  const connected = wallets.flatMap((wallet) => wallet.accounts.map((account) => ({ wallet, account })))[0];
-
+  const { wallets, connected } = useDevnetWallet();
   return (
     <section className="mt-6 rounded-2xl border border-line p-7">
       <h2 className="text-lg font-semibold tracking-tight">Make the deposit</h2>
@@ -58,50 +49,6 @@ export function DemoDeposit({ tag, onDeposited }: { tag: Tag; onDeposited: (r: D
         <ChooseWallet wallets={wallets} />
       )}
     </section>
-  );
-}
-
-function ChooseWallet({ wallets }: { wallets: readonly UiWallet[] }) {
-  if (!wallets.length) {
-    return (
-      <p className="mt-5 rounded-xl bg-card p-4 text-sm leading-6">
-        No Solana wallet found in this browser. Install Phantom, Solflare or Backpack, then reload this page; your tag
-        will still be here.
-      </p>
-    );
-  }
-  return (
-    <div className="mt-5">
-      <div className="flex flex-wrap gap-3">
-        {wallets.map((w) => (
-          <ConnectButton key={w.name} wallet={w} />
-        ))}
-      </div>
-      <p className="mt-4 text-sm leading-6 text-muted">
-        Any network setting works, since this page sends to devnet itself; your wallet may just show a warning if it is
-        set to mainnet.
-      </p>
-    </div>
-  );
-}
-
-function ConnectButton({ wallet }: { wallet: UiWallet }) {
-  const [connecting, connect] = useConnect(wallet);
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <div>
-      <button
-        onClick={() => connect().catch(() => setError("Not connected"))}
-        disabled={connecting}
-        className="inline-flex items-center gap-2.5 rounded-full border border-line bg-card px-4 py-2.5 font-medium hover:border-ink disabled:opacity-60"
-      >
-        {/* Wallet icons are data URIs supplied by the wallet itself. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={wallet.icon} alt="" className="size-5 rounded" />
-        {connecting ? "Connecting..." : `Connect ${wallet.name}`}
-      </button>
-      {error && <p className="mt-1 text-xs text-unpaid">{error}</p>}
-    </div>
   );
 }
 
@@ -161,7 +108,7 @@ function Deposit({
       await client
         .sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: "base64", preflightCommitment: "confirmed" })
         .send();
-      await confirm(client, signature);
+      await confirmSignature(client, signature);
       clearTag();
 
       // Look it up the way the settler will: by its reference.
@@ -174,7 +121,7 @@ function Deposit({
         signedByIdentity: hit ? (await verifiedReferences(tag.identity, hit.memo)).includes(tag.reference) : false,
       });
     } catch (e) {
-      setPhase({ kind: "error", message: describe(e) });
+      setPhase({ kind: "error", message: describeError(e) });
     }
   }
 
@@ -185,7 +132,7 @@ function Deposit({
     <div className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 font-mono text-sm">
         <span>
-          {wallet.name} {short(account.address)}
+          {wallet.name} {shortAddress(account.address)}
         </span>
         <span className="text-muted">
           {balance === null ? "balance unknown" : `${sol(balance)} devnet SOL`}
@@ -222,28 +169,15 @@ function Deposit({
       </button>
 
       {phase.kind === "confirming" && (
-        <p className="mt-3 font-mono text-xs text-muted">sent {short(phase.signature)}, waiting for confirmation</p>
+        <p className="mt-3 font-mono text-xs text-muted">sent {shortAddress(phase.signature)}, waiting for confirmation</p>
       )}
       {phase.kind === "error" && <p className="mt-3 text-sm leading-6 text-unpaid">{phase.message}</p>}
     </div>
   );
 }
 
-type Rpc = ReturnType<typeof rpc>;
-
-async function confirm(client: Rpc, signature: string) {
-  for (let i = 0; i < 40; i++) {
-    const { value } = await client.getSignatureStatuses([signature as Signature]).send();
-    const status = value[0];
-    if (status?.err) throw new Error("The deposit failed on chain.");
-    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") return;
-    await sleep(1_500);
-  }
-  throw new Error("Not confirmed after a minute. It may still land; check the explorer.");
-}
-
 /* An RPC can take a moment to index a new transaction by address. */
-async function findByReference(client: Rpc, tag: Tag, signature: string) {
+async function findByReference(client: BrowserRpc, tag: Tag, signature: string) {
   for (let i = 0; i < 6; i++) {
     const list = await client.getSignaturesForAddress(tag.reference, { commitment: "confirmed" }).send();
     const hit = list.find((s) => s.signature === signature);
@@ -251,13 +185,4 @@ async function findByReference(client: Rpc, tag: Tag, signature: string) {
     await sleep(1_500);
   }
   return null;
-}
-
-function describe(e: unknown): string {
-  const text = e instanceof Error ? `${e.message} ${String((e as { cause?: unknown }).cause ?? "")}` : String(e);
-  if (/reject|denied|declin|cancel/i.test(text)) return "You declined in your wallet. Nothing was sent.";
-  if (/insufficient|debit an account/i.test(text)) return "Not enough devnet SOL for the deposit and its fee.";
-  if (/blockhash/i.test(text)) return "That took too long and the transaction expired. Try again.";
-  if (/429|too many/i.test(text)) return "Devnet is rate-limiting right now. Wait a few seconds and try again.";
-  return e instanceof Error ? e.message : "Something went wrong. Try again.";
 }

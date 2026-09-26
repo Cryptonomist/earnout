@@ -84,6 +84,9 @@ function Header() {
           <a href="#developers" className="hidden text-muted hover:text-ink md:inline">
             Developers
           </a>
+          <a href="/dashboard" className="hidden text-muted hover:text-ink sm:inline">
+            Dashboard
+          </a>
           <a href={SITE.github} className="hidden text-muted hover:text-ink sm:inline">
             GitHub
           </a>

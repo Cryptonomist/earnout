@@ -133,6 +133,22 @@ npx tsx --env-file=.env.local scripts/settle.ts --watch 60  # a pass a minute
 npx tsx scripts/claim.ts --slug demo-alice --signer <payee keyfile>
 ```
 
+## Dashboard
+
+`/dashboard` lists campaigns; `/dashboard/<campaign>` shows one: headline
+numbers, the budget (claimed, owed, uncommitted), a receipt per channel, and
+every settlement with its evidence root and transaction. `/c/<slug>` is a
+creator's page: their link, their receipt, and a claim button for the
+channel's payout wallet.
+
+Money on these pages is read from Solana on each render (cached for 30
+seconds), so it cannot drift from the truth. Tagged, gone and flagged counts
+come from the report the settler publishes after every pass to the earnout
+Supabase project: counts and settlement links only, never a wallet, which a
+test holds it to. The settler's own ledger lives in a private table only its
+secret key can reach; set `SUPABASE_SECRET_KEY` in `.env.local` for that
+(without it, the settler keeps a local file and publishes nothing).
+
 ## Layout
 
 | Path | What |

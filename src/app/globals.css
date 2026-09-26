@@ -17,6 +17,7 @@
   --faint: #a29d8f;
   --line: #e0dbcd;
   --paid: #0b7349;
+  --paid-mid: #5fae86;
   --paid-soft: #dbeee2;
   --unpaid: #a9412b;
   --unpaid-soft: #f4e0d8;
@@ -31,6 +32,7 @@
     --faint: #5f5c54;
     --line: #2c2b26;
     --paid: #4bd495;
+    --paid-mid: #2c8a5e;
     --paid-soft: #13291e;
     --unpaid: #ee8069;
     --unpaid-soft: #2e1914;
@@ -45,6 +47,7 @@
   --color-faint: var(--faint);
   --color-line: var(--line);
   --color-paid: var(--paid);
+  --color-paid-mid: var(--paid-mid);
   --color-paid-soft: var(--paid-soft);
   --color-unpaid: var(--unpaid);
   --color-unpaid-soft: var(--unpaid-soft);

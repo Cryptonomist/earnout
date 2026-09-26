@@ -32,6 +32,7 @@ import {
   type Ledger,
 } from "../settler/core.ts";
 import { evidenceHex, evidenceRoot } from "../settler/evidence.ts";
+import { buildReport } from "../src/lib/report.ts";
 import { parseTransaction, type ParsedTx, type RawTx } from "../settler/parse.ts";
 
 const T0 = 1_800_000_000;
@@ -313,6 +314,20 @@ describe("settler", () => {
       settled: 1,
       paid: 5_000_000n,
     });
+  });
+
+  it("publishes counts and settlement links, never a wallet or a conversion", async () => {
+    const { ledger, txs } = await qualifiedLedger([0, 1, 0]);
+    ledger.batches.push({ channel: 0, batch: 0, signatures: [txs[0].signature], evidence: "ab".repeat(32), tx: "settleTx" });
+    const report = buildReport(ledger, view, { cluster: "devnet", name: "test", slugs: new Map([[`${CAMPAIGN}:0`, "alice-link"]]) });
+    const text = JSON.stringify(report);
+    for (const t of txs) {
+      expect(text).to.not.include(t.feePayer);
+      expect(text).to.not.include(t.signature);
+    }
+    expect(report.channels[0]).to.include({ slug: "alice-link", tagged: 2, qualified: 2 });
+    expect(report.channels[1]).to.include({ slug: null, tagged: 1 });
+    expect(report.batches).to.deep.equal([{ channel: 0, batch: 0, conversions: 1, evidence: "ab".repeat(32), tx: "settleTx" }]);
   });
 
   // ── evidence ────────────────────────────────────────────────────────────

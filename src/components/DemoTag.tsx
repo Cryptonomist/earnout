@@ -176,6 +176,12 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
         whose link you used is owed {DEMO.payout} test tokens, settled on-chain for them to claim. If it does not, they get
         nothing and the budget stays with the campaign.
       </p>
+      <a
+        href={`/dashboard/${tag.campaign}`}
+        className="mt-6 inline-block rounded-full border border-line px-5 py-2.5 font-medium hover:border-ink"
+      >
+        Watch it on the campaign dashboard
+      </a>
     </section>
   );
 }

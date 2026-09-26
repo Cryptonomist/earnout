@@ -7,9 +7,11 @@
  *
  * Each pass: fold in batches that landed, read new tagged transactions and
  * screen them, check wallets whose retention window has closed, then settle
- * each channel's qualified conversions as its next batch. State lives in
- * var/settler/<cluster>/<campaign>.json (gitignored): which wallet came
- * through which channel is exactly what the chain is kept from knowing.
+ * each channel's qualified conversions as its next batch, and publish the
+ * dashboard's report. The ledger (which wallet came through which channel,
+ * exactly what the chain is kept from knowing) lives in the earnout
+ * Supabase project's private `ledgers` table when SUPABASE_URL and
+ * SUPABASE_SECRET_KEY are set, else in var/settler/<cluster>/ (gitignored).
  *
  * The settler key is SETTLER_KEYPAIR (a solana-keygen file), or the deploy
  * wallet at ~/.config/solana/id.json. It must be the campaign's settler. */
@@ -44,7 +46,6 @@ import {
   admit,
   applyRetention,
   due,
-  emptyLedger,
   planBatches,
   receipts,
   reconcile,
@@ -52,10 +53,11 @@ import {
   type Batch,
   type CampaignView,
   type ConvRecord,
-  type Ledger,
   type RetentionFacts,
 } from "../settler/core.ts";
-import { fetchParsed, firstUse, loadCampaignView, retentionFacts, signaturesSince, withRetry, type Rpc } from "../settler/chain.ts";
+import { fetchParsed, firstUse, loadCampaignView, retentionFacts, signaturesSince, withRetry } from "../settler/chain.ts";
+import { storeFromEnv } from "../settler/store.ts";
+import { buildReport } from "../src/lib/report.ts";
 
 const { values } = parseArgs({
   options: {
@@ -77,24 +79,12 @@ const sendAndConfirm = sendAndConfirmTransactionFactory({
 const log = (s = "") => console.log(s);
 const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
 
-// ── ledger files ─────────────────────────────────────────────────────────────
+// ── state ────────────────────────────────────────────────────────────────────
 
-const ledgerPath = (campaign: string) => path.join(STATE, `${campaign}.json`);
-
-function loadLedger(campaign: string): Ledger {
-  const p = ledgerPath(campaign);
-  return fs.existsSync(p) ? (JSON.parse(fs.readFileSync(p, "utf8")) as Ledger) : emptyLedger(campaign);
-}
-
-/* Written to a temporary file and renamed, so a crash never leaves half a
- * ledger. Skipped entirely on a dry run. */
-function saveLedger(ledger: Ledger) {
-  if (DRY) return;
-  fs.mkdirSync(STATE, { recursive: true });
-  const p = ledgerPath(ledger.campaign);
-  fs.writeFileSync(`${p}.tmp`, JSON.stringify(ledger, null, 2) + "\n");
-  fs.renameSync(`${p}.tmp`, p);
-}
+/* The ledger lives in Supabase when SUPABASE_URL and SUPABASE_SECRET_KEY are
+ * set, otherwise in var/settler; see settler/store.ts. A dry run reads it
+ * and writes nothing. */
+const store = storeFromEnv(CLUSTER, STATE);
 
 // ── one campaign ─────────────────────────────────────────────────────────────
 
@@ -132,7 +122,12 @@ async function sendBatch(settler: KeyPairSigner, v: CampaignView, b: Batch): Pro
 }
 
 async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: Uint8Array, slugs: Map<string, string>) {
-  const ledger = loadLedger(cfg.campaign);
+  const loaded = await store.load(cfg.campaign);
+  const ledger = loaded.ledger;
+  let version = loaded.version;
+  const saveLedger = async () => {
+    if (!DRY) version = await store.save(ledger, version);
+  };
   const v = await loadCampaignView(rpc, cfg.campaign);
   const keys = referenceKeys(secret, cfg.campaign);
   const decimals = await mintDecimals(v.mint);
@@ -168,7 +163,7 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
     const r = ledger.records[sig];
     log(`  window closed for ${short(r.wallet)}: ${r.status}${r.reason ? `, ${r.reason}` : ""}${r.funder ? ` (funded by ${short(r.funder)})` : ""}`);
   }
-  saveLedger(ledger);
+  await saveLedger();
 
   // Settle.
   const plans = planBatches(ledger, v);
@@ -182,7 +177,7 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
       log(`  settle ${who} batch ${b.batch}: ${b.signatures.length} conversion(s), ${amount(BigInt(b.signatures.length) * v.payout)}, evidence ${b.evidence.slice(0, 12)}...`);
       if (DRY) continue;
       ledger.pending[b.channel] = b;
-      saveLedger(ledger);
+      await saveLedger();
       try {
         b.tx = await sendBatch(settler, v, b);
         for (const s of b.signatures) Object.assign(ledger.records[s], { status: "settled", batch: b.batch });
@@ -198,7 +193,7 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
         if (/custom program error|Error Code|InstructionError/i.test(text)) delete ledger.pending[b.channel];
         log(`    not settled: ${(e as Error).message}`);
       }
-      saveLedger(ledger);
+      await saveLedger();
     }
   }
 
@@ -208,6 +203,9 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
     const who = slugs.get(`${cfg.campaign}:${r.channel}`) ?? `channel ${r.channel}`;
     log(`  receipt ${who}: tagged ${r.tagged}, waiting ${r.waiting}, gone ${r.gone}, flagged ${r.flagged}, other ${r.otherRejected}, qualified ${r.qualified}, settled ${r.settled}, paid ${amount(r.paid)}`);
   }
+
+  // The dashboard's copy: counts and settlement links, no wallets.
+  if (!DRY) await store.publish(buildReport(ledger, v, { cluster: CLUSTER, name: cfg.name, slugs }));
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
