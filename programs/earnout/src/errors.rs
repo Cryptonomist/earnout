@@ -32,4 +32,12 @@ pub enum EarnoutError {
     MathOverflow,
     #[msg("The vault received less than was sent")]
     ShortTransfer,
+    #[msg("An X account id cannot be zero")]
+    BadXId,
+    #[msg("An X handle is 1 to 15 letters, digits or underscores")]
+    BadHandle,
+    #[msg("That X account now belongs to a different wallet")]
+    XAccountMoved,
+    #[msg("Payouts can only move to a wallet linked to the same X account")]
+    DifferentPerson,
 }

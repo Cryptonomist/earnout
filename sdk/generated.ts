@@ -8,15 +8,20 @@ export const IX = {
   claim: new Uint8Array([62, 198, 214, 193, 213, 159, 108, 210]),
   create_campaign: new Uint8Array([111, 131, 187, 98, 160, 193, 114, 244]),
   fund: new Uint8Array([218, 188, 111, 221, 152, 113, 174, 7]),
+  link_x: new Uint8Array([111, 125, 117, 65, 106, 131, 62, 21]),
   refund: new Uint8Array([2, 96, 183, 251, 63, 208, 46, 46]),
   set_payee: new Uint8Array([99, 215, 50, 44, 239, 35, 255, 89]),
   settle: new Uint8Array([175, 42, 185, 87, 144, 131, 102, 212]),
   tag: new Uint8Array([62, 126, 95, 189, 228, 237, 42, 150]),
+  unlink_x: new Uint8Array([243, 105, 226, 108, 234, 87, 34, 183]),
 } as const;
 
 export const ACCOUNT = {
   Campaign: new Uint8Array([50, 40, 49, 11, 157, 220, 229, 192]),
   Channel: new Uint8Array([49, 159, 99, 106, 220, 87, 219, 88]),
+  ChannelIdentity: new Uint8Array([193, 95, 28, 113, 251, 209, 66, 18]),
+  XClaim: new Uint8Array([27, 114, 149, 219, 43, 55, 223, 248]),
+  XLink: new Uint8Array([104, 198, 32, 162, 101, 153, 150, 218]),
 } as const;
 
 export const EVENT = {
@@ -27,4 +32,6 @@ export const EVENT = {
   PayeeChanged: new Uint8Array([226, 239, 218, 4, 227, 219, 131, 166]),
   Refunded: new Uint8Array([35, 103, 149, 246, 196, 123, 221, 99]),
   Settled: new Uint8Array([232, 210, 40, 17, 142, 124, 145, 238]),
+  XLinked: new Uint8Array([142, 172, 70, 115, 146, 8, 112, 125]),
+  XUnlinked: new Uint8Array([0, 163, 110, 132, 174, 28, 71, 191]),
 } as const;

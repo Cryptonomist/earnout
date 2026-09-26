@@ -22,11 +22,28 @@ pub struct Funded {
 }
 
 #[event]
+pub struct XLinked {
+    pub voucher: Pubkey,
+    pub wallet: Pubkey,
+    pub x_id: u64,
+    pub handle: String,
+}
+
+#[event]
+pub struct XUnlinked {
+    pub voucher: Pubkey,
+    pub wallet: Pubkey,
+    pub x_id: u64,
+}
+
+#[event]
 pub struct ChannelAdded {
     pub campaign: Pubkey,
     pub channel: Pubkey,
     pub index: u32,
     pub payee: Pubkey,
+    pub x_id: u64,
+    pub handle: String,
 }
 
 #[event]

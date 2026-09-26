@@ -47,6 +47,21 @@
 //! There is no admin, no fee and no sweep. The settler can commit budget to
 //! channels the advertiser added, and do nothing else.
 //!
+//! ## Every channel is a verified person
+//!
+//! A channel can only be created for a wallet that has linked an X account
+//! (`link_x`), and the link is written under two signatures: the wallet's,
+//! and a voucher's, a server key saying X's own sign-in confirmed the
+//! account to whoever held the browser. Neither alone writes anything, so
+//! nobody can hang a stranger's name on their wallet or their own name on a
+//! stranger's. A campaign trusts only links its own identity vouched for,
+//! which keeps the program free of any admin key.
+//!
+//! The X account goes onto the channel for good (`ChannelIdentity`). The
+//! payout wallet can move, but only to a wallet linked to the same account,
+//! so a creator's record follows them and a bad one cannot be shed by
+//! changing wallets. One X account is one wallet at a time (`XClaim`).
+//!
 //! ## A tag never fails
 //!
 //! `tag` reads nothing and writes nothing. It rides inside somebody else's
@@ -180,6 +195,52 @@ pub mod earnout {
         Ok(())
     }
 
+    /// "This wallet is this X account." The wallet signs, and so does the
+    /// voucher, a server key saying X's own sign-in just confirmed it; see
+    /// `XLink`. Linking the same account from a new wallet moves it there.
+    pub fn link_x(ctx: Context<LinkX>, x_id: u64, handle: String) -> Result<()> {
+        require!(x_id != 0, EarnoutError::BadXId);
+        require!(is_handle(&handle), EarnoutError::BadHandle);
+
+        let l = &mut ctx.accounts.xlink;
+        l.voucher = ctx.accounts.voucher.key();
+        l.wallet = ctx.accounts.wallet.key();
+        l.x_id = x_id;
+        l.handle = handle.clone();
+        l.linked_at = Clock::get()?.unix_timestamp;
+        l.bump = ctx.bumps.xlink;
+
+        let c = &mut ctx.accounts.xclaim;
+        c.voucher = ctx.accounts.voucher.key();
+        c.x_id = x_id;
+        c.wallet = ctx.accounts.wallet.key();
+        c.bump = ctx.bumps.xclaim;
+
+        emit!(XLinked {
+            voucher: l.voucher,
+            wallet: l.wallet,
+            x_id,
+            handle,
+        });
+        Ok(())
+    }
+
+    /// Take the name off a wallet, rent back. The wallet alone decides: a
+    /// voucher vouches for a link, it does not hold it. Channels already
+    /// created for this person keep their record.
+    pub fn unlink_x(ctx: Context<UnlinkX>) -> Result<()> {
+        emit!(XUnlinked {
+            voucher: ctx.accounts.xlink.voucher,
+            wallet: ctx.accounts.xlink.wallet,
+            x_id: ctx.accounts.xlink.x_id,
+        });
+        Ok(())
+    }
+
+    /// Every channel is a verified person: the payee must carry an X link
+    /// vouched for by this campaign's identity, and the X account must still
+    /// belong to that wallet. The account is written onto the channel for
+    /// good, so a record follows the person whatever wallet they pay to.
     pub fn add_channel(ctx: Context<AddChannel>, payee: Pubkey) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let c = &mut ctx.accounts.campaign;
@@ -193,18 +254,32 @@ pub mod earnout {
         ch.payee = payee;
         ch.bump = ctx.bumps.channel;
 
+        let link = &ctx.accounts.xlink;
+        let id = &mut ctx.accounts.channel_identity;
+        id.channel = ch.key();
+        id.x_id = link.x_id;
+        id.handle = link.handle.clone();
+        id.bump = ctx.bumps.channel_identity;
+
         emit!(ChannelAdded {
             campaign: ch.campaign,
             channel: ch.key(),
             index,
             payee,
+            x_id: link.x_id,
+            handle: link.handle.clone(),
         });
         Ok(())
     }
 
     /// A payee can move its earnings to a new wallet, including what is
-    /// already committed but unclaimed.
+    /// already committed but unclaimed, as long as the new wallet is linked
+    /// to the same X account: the money can move, the person cannot.
     pub fn set_payee(ctx: Context<SetPayee>, new_payee: Pubkey) -> Result<()> {
+        require!(
+            ctx.accounts.new_xlink.x_id == ctx.accounts.channel_identity.x_id,
+            EarnoutError::DifferentPerson
+        );
         let ch = &mut ctx.accounts.channel;
         let old = ch.payee;
         ch.payee = new_payee;
@@ -339,6 +414,11 @@ pub mod earnout {
     }
 }
 
+/// X's own rule for handles: 1 to 15 of [A-Za-z0-9_].
+fn is_handle(h: &str) -> bool {
+    !h.is_empty() && h.len() <= MAX_HANDLE && h.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+}
+
 /// Send `amount` from the vault, signed for by the campaign PDA.
 fn pay_out<'info>(
     token_program: &Interface<'info, TokenInterface>,
@@ -434,6 +514,54 @@ pub struct Fund<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(x_id: u64)]
+pub struct LinkX<'info> {
+    #[account(mut)]
+    pub wallet: Signer<'info>,
+    /// The key vouching that X confirmed this account to this browser. Any
+    /// key may vouch; a campaign trusts only its own identity's links.
+    pub voucher: Signer<'info>,
+    /// `init_if_needed`: linking again is how somebody changes account.
+    #[account(
+        init_if_needed,
+        payer = wallet,
+        space = 8 + XLink::INIT_SPACE,
+        seeds = [SEED_XLINK, voucher.key().as_ref(), wallet.key().as_ref()],
+        bump
+    )]
+    pub xlink: Box<Account<'info, XLink>>,
+    /// Re-pointed rather than refused: somebody moving wallets still owns
+    /// the X account, and X's sign-in just said so.
+    #[account(
+        init_if_needed,
+        payer = wallet,
+        space = 8 + XClaim::INIT_SPACE,
+        seeds = [SEED_XCLAIM, voucher.key().as_ref(), &x_id.to_le_bytes()],
+        bump
+    )]
+    pub xclaim: Box<Account<'info, XClaim>>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UnlinkX<'info> {
+    #[account(mut)]
+    pub wallet: Signer<'info>,
+    /// CHECK: only a seed; the link's own `voucher` field is what is checked.
+    pub voucher: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        close = wallet,
+        seeds = [SEED_XLINK, voucher.key().as_ref(), wallet.key().as_ref()],
+        bump = xlink.bump,
+        has_one = wallet,
+        has_one = voucher
+    )]
+    pub xlink: Box<Account<'info, XLink>>,
+}
+
+#[derive(Accounts)]
+#[instruction(payee: Pubkey)]
 pub struct AddChannel<'info> {
     #[account(mut)]
     pub advertiser: Signer<'info>,
@@ -444,6 +572,19 @@ pub struct AddChannel<'info> {
         has_one = advertiser
     )]
     pub campaign: Box<Account<'info, Campaign>>,
+    /// The payee's link, as this campaign's identity vouched for it. A wallet
+    /// with no such link has no account here, and the instruction fails.
+    #[account(
+        seeds = [SEED_XLINK, campaign.identity.as_ref(), payee.as_ref()],
+        bump = xlink.bump
+    )]
+    pub xlink: Box<Account<'info, XLink>>,
+    #[account(
+        seeds = [SEED_XCLAIM, campaign.identity.as_ref(), &xlink.x_id.to_le_bytes()],
+        bump = xclaim.bump,
+        constraint = xclaim.wallet == payee @ EarnoutError::XAccountMoved
+    )]
+    pub xclaim: Box<Account<'info, XClaim>>,
     #[account(
         init,
         payer = advertiser,
@@ -452,19 +593,52 @@ pub struct AddChannel<'info> {
         bump
     )]
     pub channel: Box<Account<'info, Channel>>,
+    #[account(
+        init,
+        payer = advertiser,
+        space = 8 + ChannelIdentity::INIT_SPACE,
+        seeds = [SEED_CHANNEL_X, channel.key().as_ref()],
+        bump
+    )]
+    pub channel_identity: Box<Account<'info, ChannelIdentity>>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
+#[instruction(new_payee: Pubkey)]
 pub struct SetPayee<'info> {
     pub payee: Signer<'info>,
     #[account(
+        seeds = [SEED_CAMPAIGN, campaign.advertiser.as_ref(), &campaign.seed.to_le_bytes()],
+        bump = campaign.bump
+    )]
+    pub campaign: Box<Account<'info, Campaign>>,
+    #[account(
         mut,
-        seeds = [SEED_CHANNEL, channel.campaign.as_ref(), &channel.index.to_le_bytes()],
+        seeds = [SEED_CHANNEL, campaign.key().as_ref(), &channel.index.to_le_bytes()],
         bump = channel.bump,
+        has_one = campaign,
         has_one = payee
     )]
     pub channel: Box<Account<'info, Channel>>,
+    #[account(
+        seeds = [SEED_CHANNEL_X, channel.key().as_ref()],
+        bump = channel_identity.bump
+    )]
+    pub channel_identity: Box<Account<'info, ChannelIdentity>>,
+    /// The new wallet's link under this campaign's identity: it must exist,
+    /// and (checked in the handler) name the channel's X account.
+    #[account(
+        seeds = [SEED_XLINK, campaign.identity.as_ref(), new_payee.as_ref()],
+        bump = new_xlink.bump
+    )]
+    pub new_xlink: Box<Account<'info, XLink>>,
+    #[account(
+        seeds = [SEED_XCLAIM, campaign.identity.as_ref(), &new_xlink.x_id.to_le_bytes()],
+        bump = new_xclaim.bump,
+        constraint = new_xclaim.wallet == new_payee @ EarnoutError::XAccountMoved
+    )]
+    pub new_xclaim: Box<Account<'info, XClaim>>,
 }
 
 #[derive(Accounts)]

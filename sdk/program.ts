@@ -5,6 +5,7 @@
 
 import {
   AccountRole,
+  addCodecSizePrefix,
   address,
   fixCodecSize,
   getAddressCodec,
@@ -15,6 +16,7 @@ import {
   getU32Codec,
   getU64Codec,
   getU8Codec,
+  getUtf8Codec,
   type Address,
   type Instruction,
   type TransactionSigner,
@@ -68,6 +70,32 @@ export async function channelAddress(campaign: Address, index: number): Promise<
   const [a] = await getProgramDerivedAddress({
     programAddress: PROGRAM_ADDRESS,
     seeds: [enc("channel"), addressCodec.encode(campaign), le32(index)],
+  });
+  return a;
+}
+
+/** A wallet's X link, as `voucher` (a campaign's identity) sees it. */
+export async function xlinkAddress(voucher: Address, wallet: Address): Promise<Address> {
+  const [a] = await getProgramDerivedAddress({
+    programAddress: PROGRAM_ADDRESS,
+    seeds: [enc("xlink"), addressCodec.encode(voucher), addressCodec.encode(wallet)],
+  });
+  return a;
+}
+
+/** Which wallet an X account currently belongs to, per voucher. */
+export async function xclaimAddress(voucher: Address, xId: bigint): Promise<Address> {
+  const [a] = await getProgramDerivedAddress({
+    programAddress: PROGRAM_ADDRESS,
+    seeds: [enc("xclaim"), addressCodec.encode(voucher), le64(xId)],
+  });
+  return a;
+}
+
+export async function channelIdentityAddress(channel: Address): Promise<Address> {
+  const [a] = await getProgramDerivedAddress({
+    programAddress: PROGRAM_ADDRESS,
+    seeds: [enc("channel_x"), addressCodec.encode(channel)],
   });
   return a;
 }
@@ -170,26 +198,77 @@ export async function fundIx(p: {
   ]);
 }
 
+const handleCodec = addCodecSizePrefix(getUtf8Codec(), getU32Codec());
+
+/** X's rule for handles: 1 to 15 of [A-Za-z0-9_]. */
+export const isHandle = (h: string) => /^[A-Za-z0-9_]{1,15}$/.test(h);
+
+/** "This wallet is this X account." Both the wallet and the voucher sign. */
+export async function linkXIx(p: {
+  wallet: TransactionSigner;
+  voucher: TransactionSigner;
+  xId: bigint;
+  handle: string;
+}): Promise<Instruction> {
+  if (!isHandle(p.handle)) throw new Error(`Not an X handle: ${p.handle}`);
+  return ix(concat(IX.link_x, le64(p.xId), handleCodec.encode(p.handle) as Uint8Array), [
+    signer(p.wallet, WS),
+    signer(p.voucher, RS),
+    meta(await xlinkAddress(p.voucher.address, p.wallet.address), W),
+    meta(await xclaimAddress(p.voucher.address, p.xId), W),
+    meta(SYSTEM_PROGRAM, R),
+  ]);
+}
+
+export async function unlinkXIx(p: { wallet: TransactionSigner; voucher: Address }): Promise<Instruction> {
+  return ix(IX.unlink_x, [
+    signer(p.wallet, WS),
+    meta(p.voucher, R),
+    meta(await xlinkAddress(p.voucher, p.wallet.address), W),
+  ]);
+}
+
+/** Add a channel for a payee whose X link `identity` (the campaign's)
+ * vouched for. `xId` is the payee's linked X account. */
 export async function addChannelIx(p: {
   advertiser: TransactionSigner;
   campaign: Address;
+  identity: Address;
   /** The campaign's current `channels` count: the new channel's index. */
   index: number;
   payee: Address;
+  xId: bigint;
 }): Promise<Instruction> {
   const channel = await channelAddress(p.campaign, p.index);
   return ix(concat(IX.add_channel, addressCodec.encode(p.payee) as Uint8Array), [
     signer(p.advertiser, WS),
     meta(p.campaign, W),
+    meta(await xlinkAddress(p.identity, p.payee), R),
+    meta(await xclaimAddress(p.identity, p.xId), R),
     meta(channel, W),
+    meta(await channelIdentityAddress(channel), W),
     meta(SYSTEM_PROGRAM, R),
   ]);
 }
 
-export function setPayeeIx(p: { payee: TransactionSigner; channel: Address; newPayee: Address }): Instruction {
+/** Move a channel's payouts to `newPayee`. `newPayeeXId` is the X account
+ * that wallet is linked to under the campaign's identity (read it with
+ * `fetchXLink`); the program refuses unless it is the channel's own. */
+export async function setPayeeIx(p: {
+  payee: TransactionSigner;
+  campaign: Address;
+  identity: Address;
+  channel: Address;
+  newPayee: Address;
+  newPayeeXId: bigint;
+}): Promise<Instruction> {
   return ix(concat(IX.set_payee, addressCodec.encode(p.newPayee) as Uint8Array), [
     signer(p.payee, RS),
+    meta(p.campaign, R),
     meta(p.channel, W),
+    meta(await channelIdentityAddress(p.channel), R),
+    meta(await xlinkAddress(p.identity, p.newPayee), R),
+    meta(await xclaimAddress(p.identity, p.newPayeeXId), R),
   ]);
 }
 
@@ -287,8 +366,34 @@ const channelCodec = getStructCodec([
   ["bump", getU8Codec()],
 ]);
 
+const xlinkCodec = getStructCodec([
+  ["voucher", addressCodec],
+  ["wallet", addressCodec],
+  ["xId", getU64Codec()],
+  ["handle", handleCodec],
+  ["linkedAt", getI64Codec()],
+  ["bump", getU8Codec()],
+]);
+
+const xclaimCodec = getStructCodec([
+  ["voucher", addressCodec],
+  ["xId", getU64Codec()],
+  ["wallet", addressCodec],
+  ["bump", getU8Codec()],
+]);
+
+const channelIdentityCodec = getStructCodec([
+  ["channel", addressCodec],
+  ["xId", getU64Codec()],
+  ["handle", handleCodec],
+  ["bump", getU8Codec()],
+]);
+
 export type Campaign = ReturnType<typeof campaignCodec.decode>;
 export type Channel = ReturnType<typeof channelCodec.decode>;
+export type XLink = ReturnType<typeof xlinkCodec.decode>;
+export type XClaim = ReturnType<typeof xclaimCodec.decode>;
+export type ChannelIdentity = ReturnType<typeof channelIdentityCodec.decode>;
 
 function checkDiscriminator(data: Uint8Array, disc: Uint8Array, name: string) {
   if (data.length < 8 || !disc.every((b, i) => data[i] === b)) {
@@ -304,4 +409,19 @@ export function decodeCampaign(data: Uint8Array): Campaign {
 export function decodeChannel(data: Uint8Array): Channel {
   checkDiscriminator(data, ACCOUNT.Channel, "Channel");
   return channelCodec.decode(data.subarray(8));
+}
+
+export function decodeXLink(data: Uint8Array): XLink {
+  checkDiscriminator(data, ACCOUNT.XLink, "XLink");
+  return xlinkCodec.decode(data.subarray(8));
+}
+
+export function decodeXClaim(data: Uint8Array): XClaim {
+  checkDiscriminator(data, ACCOUNT.XClaim, "XClaim");
+  return xclaimCodec.decode(data.subarray(8));
+}
+
+export function decodeChannelIdentity(data: Uint8Array): ChannelIdentity {
+  checkDiscriminator(data, ACCOUNT.ChannelIdentity, "ChannelIdentity");
+  return channelIdentityCodec.decode(data.subarray(8));
 }

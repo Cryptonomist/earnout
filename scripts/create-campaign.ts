@@ -14,8 +14,9 @@
  *   --ends-in-days <n>   when conversions stop counting
  *   --destination <url>  where every channel's link sends people
  *   --channel <slug>     one per channel, in order
- *   --payee <address>    one per channel, in the same order; a channel with
- *                        none is paid to the wallet (move it with set-payee.ts)
+ *   --payee <address>    one per channel, in the same order. Every channel is a
+ *                        verified person: each payee must already have linked
+ *                        an X account at earnout.dev/creators
  *   --settler <address>  the key that may settle; defaults to the wallet. Give
  *                        a dedicated key if the settler will run anywhere but
  *                        this machine.
@@ -60,6 +61,7 @@ import {
   getMintToInstruction,
 } from "@solana-program/token";
 import * as eo from "../sdk/index.ts";
+import { fetchXLink } from "../sdk/read.ts";
 import { loadSecrets, type LinkEntry } from "../src/server/links.ts";
 
 const { values } = parseArgs({
@@ -168,10 +170,15 @@ async function main() {
     wallet,
   );
 
+  const payees = values.payee as string[];
+  if (payees.length !== slugs.length) throw new Error("Give one --payee per --channel: every channel is a verified person");
   const channels: Instruction[] = [];
   for (let i = 0; i < slugs.length; i++) {
-    const payee = (values.payee as string[])[i];
-    channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, index: i, payee: payee ? address(payee) : wallet.address }));
+    const payee = address(payees[i]);
+    const link = await fetchXLink(rpc, identityAddress, payee);
+    if (!link || !link.current) throw new Error(`${payee} has not linked an X account under ${identityAddress}; they sign in at earnout.dev/creators first`);
+    console.log(`  ${slugs[i]} is @${link.handle}`);
+    channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, identity: identityAddress, index: i, payee, xId: link.xId }));
   }
   await send(`${slugs.length} channel(s)`, channels, wallet);
 

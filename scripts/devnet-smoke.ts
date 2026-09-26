@@ -22,9 +22,7 @@ import {
   createSolanaRpc,
   createSolanaRpcSubscriptions,
   createTransactionMessage,
-  generateKeyPair,
   generateKeyPairSigner,
-  getAddressFromPublicKey,
   getBase64Encoder,
   getSignatureFromTransaction,
   pipe,
@@ -90,8 +88,9 @@ async function main() {
   const payee = await generateKeyPairSigner();
   const user = await generateKeyPairSigner();
   const mint = await generateKeyPairSigner();
-  const identity = await generateKeyPair();
-  const identityAddress = await getAddressFromPublicKey(identity.publicKey);
+  const voucher = await generateKeyPairSigner();
+  const identity = voucher.keyPair;
+  const identityAddress = voucher.address;
 
   const program = await rpc.getAccountInfo(eo.PROGRAM_ADDRESS, { encoding: "base64" }).send();
   if (!program.value?.executable) throw new Error(`No program at ${eo.PROGRAM_ADDRESS} on ${RPC_URL}`);
@@ -108,7 +107,7 @@ async function main() {
       getInitializeMint2Instruction({ mint: mint.address, decimals: 6, mintAuthority: wallet.address }),
       await getCreateAssociatedTokenIdempotentInstructionAsync({ payer: wallet, owner: wallet.address, mint: mint.address }),
       getMintToInstruction({ mint: mint.address, token: walletAta, mintAuthority: wallet, amount: 1_000n * UNIT }),
-      getTransferSolInstruction({ source: wallet, destination: payee.address, amount: 10_000_000n }),
+      getTransferSolInstruction({ source: wallet, destination: payee.address, amount: 20_000_000n }),
       getTransferSolInstruction({ source: wallet, destination: user.address, amount: 10_000_000n }),
     ],
     wallet,
@@ -135,8 +134,15 @@ async function main() {
         identity: identityAddress,
       }),
       await eo.fundIx({ funder: wallet, campaign, mint: mint.address, source: walletAta, amount: 100n * UNIT }),
-      await eo.addChannelIx({ advertiser: wallet, campaign, index: 0, payee: payee.address }),
     ],
+    wallet,
+  );
+
+  // The creator links an X account (both signatures), then gets a channel.
+  await send("creator links X", [await eo.linkXIx({ wallet: payee, voucher, xId: 424242n, handle: "smoke_creator" })], payee);
+  await send(
+    "add channel",
+    [await eo.addChannelIx({ advertiser: wallet, campaign, identity: identityAddress, index: 0, payee: payee.address, xId: 424242n })],
     wallet,
   );
   const channel = await eo.channelAddress(campaign, 0);
