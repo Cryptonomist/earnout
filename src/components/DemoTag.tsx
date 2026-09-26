@@ -9,6 +9,7 @@ import { captureTag, clearTag, pendingTagEntry } from "../../sdk/client";
 import { verifyTag, type Tag } from "../../sdk/identity";
 import { DemoDeposit, type DepositResult } from "./DemoDeposit";
 import { DEMO, explorerAddress, explorerTx } from "@/lib/demo";
+import { registerGuestWallet } from "@/lib/guest-wallet";
 
 type State =
   | { phase: "loading" }
@@ -27,6 +28,8 @@ export function DemoTag() {
   const [state, setState] = useState<State>({ phase: "loading" });
 
   useEffect(() => {
+    // The demo, and only the demo, offers a wallet that lives in the page.
+    registerGuestWallet();
     arrivedThisLoad ??= captureTag() !== null;
     const arrived = arrivedThisLoad;
     const entry = pendingTagEntry();

@@ -36,7 +36,7 @@ export type DepositResult = {
 };
 
 export function DemoDeposit({ tag, onDeposited }: { tag: Tag; onDeposited: (r: DepositResult) => void }) {
-  const { wallets, connected } = useDevnetWallet();
+  const { wallets, connected } = useDevnetWallet({ allowGuest: true });
   return (
     <section className="mt-6 rounded-2xl border border-line p-7">
       <h2 className="text-lg font-semibold tracking-tight">Make the deposit</h2>
