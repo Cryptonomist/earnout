@@ -10,6 +10,7 @@ import { verifyTag, type Tag } from "../../sdk/identity";
 import { DemoDeposit, type DepositResult } from "./DemoDeposit";
 import { DEMO, explorerAddress, explorerTx } from "@/lib/demo";
 import { registerGuestWallet } from "@/lib/guest-wallet";
+import { Countdown } from "./Countdown";
 
 type State =
   | { phase: "loading" }
@@ -135,6 +136,7 @@ function NoTag({ slugs }: { slugs: string[] }) {
 }
 
 function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
+  const [depositedAt] = useState(() => Date.now());
   const checks: [boolean, string][] = [
     [true, "The deposit confirmed on devnet, with the tag inside it."],
     [result.foundByReference, "Found on chain by its reference alone, the settler's first lookup."],
@@ -173,6 +175,7 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
         )}
       </dl>
 
+      <Countdown endsAt={depositedAt + DEMO.retentionMinutes * 60_000} />
       <p className="mt-6 leading-7 text-muted">
         Next, the retention window: {DEMO.retentionMinutes} minutes for this demo, 30 days or more in a real campaign. When
         it closes, the settler checks this wallet is still active and not part of a bot cluster. If it passes, the creator

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader, StatTile } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 import { explorer, money, short } from "@/server/dashboard";
 import { scorecard } from "@/server/scorecard";
 
@@ -29,7 +30,7 @@ export default async function CreatorScorecard({ params }: Params) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <Link href="/creators" className="text-sm text-muted hover:text-ink">
           Creators
         </Link>
@@ -123,6 +124,7 @@ export default async function CreatorScorecard({ params }: Params) {
           </p>
         </section>
       </main>
+      <SiteFooter />
     </>
   );
 }

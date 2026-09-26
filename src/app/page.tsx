@@ -1,5 +1,7 @@
 import { Calculator } from "@/components/Calculator";
-import { Logo, Mark } from "@/components/Logo";
+import { LiveNow } from "@/components/LiveNow";
+import { Mark } from "@/components/Logo";
+import { SiteFooter, SiteHeader } from "@/components/SiteShell";
 import { Receipt } from "@/components/Receipt";
 import { SITE, STATS } from "@/lib/site";
 
@@ -45,12 +47,15 @@ const PROBLEMS = [
   },
 ];
 
+export const revalidate = 60;
+
 export default function Home() {
   return (
     <>
-      <Header />
-      <main>
+      <SiteHeader />
+      <main id="content">
         <Hero />
+        <LiveNow />
         <Stats />
         <Problem />
         <HowItWorks />
@@ -60,74 +65,45 @@ export default function Home() {
         <Developers />
         <Closing />
       </main>
-      <Footer />
+      <SiteFooter />
     </>
   );
 }
 
 // ── sections ─────────────────────────────────────────────────────────────────
 
-function Header() {
-  return (
-    <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <a href="#top" aria-label="Earnout home">
-          <Logo />
-        </a>
-        <nav className="flex items-center gap-6 text-sm">
-          <a href="#how" className="hidden text-muted hover:text-ink md:inline">
-            How it works
-          </a>
-          <a href="#creators" className="hidden text-muted hover:text-ink md:inline">
-            For creators
-          </a>
-          <a href="#developers" className="hidden text-muted hover:text-ink md:inline">
-            Developers
-          </a>
-          <a href="/dashboard" className="hidden text-muted hover:text-ink sm:inline">
-            Dashboard
-          </a>
-          <a href={SITE.github} className="hidden text-muted hover:text-ink sm:inline">
-            GitHub
-          </a>
-          <a href={SITE.contact} className="rounded-full bg-ink px-4 py-2 font-medium text-paper hover:opacity-90">
-            Run a pilot
-          </a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
 function Hero() {
   return (
     <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
-        <p className="font-mono text-xs tracking-[0.2em] text-muted">ON-CHAIN ATTRIBUTION FOR SOLANA</p>
-        <h1 className="mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
+        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">ON-CHAIN ATTRIBUTION FOR SOLANA</p>
+        <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
           Pay for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
-        <p className="mt-6 max-w-xl text-lg leading-8 text-muted">
+        <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
           Give every creator, newsletter and partner app its own link. Earnout tags the transactions they bring, waits out
           your retention window, and pays only for wallets that are still there. Whatever nobody earned comes back to you.
         </p>
-        <div className="mt-9 flex flex-wrap gap-3">
-          <a href={SITE.contact} className="rounded-full bg-ink px-6 py-3 font-medium text-paper hover:opacity-90">
-            Run a pilot
+        <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
+          <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
+            Try the live demo
           </a>
-          <a href="#how" className="rounded-full border border-line px-6 py-3 font-medium hover:border-ink">
-            See how it works
+          <a href="/dashboard" className="rounded-full border border-line px-6 py-3 font-medium transition-colors hover:border-ink">
+            See a live campaign
           </a>
         </div>
+        <p className="rise rise-4 mt-4 text-sm text-muted">Three clicks, no wallet needed. Every link discloses who is paid.</p>
       </div>
-      <Receipt />
+      <div className="rise rise-3 lift">
+        <Receipt />
+      </div>
     </section>
   );
 }
 
 function Stats() {
   return (
-    <section aria-label="Why now" className="border-y border-line bg-card">
+    <section aria-label="Why now" className="reveal border-y border-line bg-card">
       <div className="mx-auto grid max-w-6xl gap-px px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         {STATS.map((s) => (
           <figure key={s.figure} className="py-8 sm:px-5 lg:first:pl-0">
@@ -312,7 +288,7 @@ function Developers() {
 
 function Closing() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+    <section className="reveal mx-auto max-w-6xl px-4 py-24 sm:px-6">
       <div className="rounded-3xl bg-ink px-6 py-16 text-center text-paper sm:px-12">
         <h2 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
           Run your next campaign <span className="font-serif font-normal italic">on results.</span>
@@ -333,25 +309,6 @@ function Closing() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="border-t border-line">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <Logo />
-        <p className="flex flex-wrap gap-x-5 gap-y-2">
-          <a href="/privacy" className="hover:text-ink">
-            Privacy
-          </a>
-          <a href="/terms" className="hover:text-ink">
-            Terms
-          </a>
-          <span>Built on Solana. © 2026 Earnout.</span>
-        </p>
-      </div>
-    </footer>
-  );
-}
-
 // ── pieces ───────────────────────────────────────────────────────────────────
 
 function Section({
@@ -366,7 +323,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6 md:py-24">
+    <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6 md:py-24">
       <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{eyebrow}</p>
       <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">{title}</h2>
       {children}

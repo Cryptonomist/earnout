@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ClaimPanel } from "@/components/ClaimPanel";
 import { CopyLink } from "@/components/CopyLink";
 import { ChannelReceipt, SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 import { campaignChain, campaignMeta, campaignReport, duration, linkFor, money } from "@/server/dashboard";
 
 /* A creator's page: their link, their receipt, and a claim button. Anyone
@@ -31,7 +32,7 @@ export default async function CreatorPage({ params }: Params) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Creator page</p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <h1 className="font-mono text-2xl font-semibold tracking-tight break-all sm:text-3xl">earnout.dev/r/{slug}</h1>
@@ -87,6 +88,7 @@ export default async function CreatorPage({ params }: Params) {
           </>
         )}
       </main>
+      <SiteFooter />
     </>
   );
 }

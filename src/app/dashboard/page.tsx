@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 import { ago, campaignChain, campaignList, campaignReport, duration, money } from "@/server/dashboard";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default async function DashboardPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Dashboard</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Campaigns</h1>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
@@ -68,6 +69,7 @@ export default async function DashboardPage() {
           })}
         </div>
       </main>
+      <SiteFooter />
     </>
   );
 }

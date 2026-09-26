@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 
 export const metadata: Metadata = {
   title: "Brand",
@@ -63,7 +64,7 @@ export default function BrandPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Brand</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">The Earnout logo</h1>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
@@ -122,6 +123,7 @@ export default function BrandPage() {
           </ul>
         </section>
       </main>
+      <SiteFooter />
     </>
   );
 }

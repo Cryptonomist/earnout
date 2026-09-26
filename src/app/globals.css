@@ -114,3 +114,76 @@ body {
   background-size: 24px 24px;
   background-position: 0 0, 12px 12px;
 }
+
+/* Motion: a rise on load for the hero, and a reveal as sections scroll
+ * into view where the browser can drive it from scroll (no script, and
+ * nothing at all when motion is reduced). */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rise-2 {
+  animation-delay: 0.08s;
+}
+.rise-3 {
+  animation-delay: 0.16s;
+}
+.rise-4 {
+  animation-delay: 0.24s;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 28%;
+  }
+}
+
+/* A live dot. */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--paid) 45%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.live-dot {
+  animation: pulse-dot 2s ease-out infinite;
+}
+
+/* The hero receipt lifts a little under the pointer. */
+.lift {
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.4s;
+}
+.lift:hover {
+  transform: rotate(0.5deg) translateY(-4px);
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  z-index: 50;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 8px 14px;
+}
+.skip-link:focus {
+  top: 12px;
+}

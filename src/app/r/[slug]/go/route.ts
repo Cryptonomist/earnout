@@ -3,8 +3,9 @@ import { campaignEndsAt } from "@/server/chain";
 import { loadSecrets, resolveLink, type Secrets } from "@/server/links";
 import { registry } from "@/server/registry";
 
-/* Every click must mint its own reference, so nothing here is cached: not
- * by Next, not by a CDN, not by the browser. */
+/* The redirect behind a link, reached from the disclosure page's Continue
+ * button. Every click must mint its own reference, so nothing here is
+ * cached: not by Next, not by a CDN, not by the browser. */
 export const dynamic = "force-dynamic";
 
 const HEADERS = {

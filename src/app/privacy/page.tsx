@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 
 export const metadata: Metadata = { title: "Privacy", description: "What Earnout keeps, where, and why." };
 
@@ -7,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-14 leading-7 sm:px-6">
+      <main id="content" className="mx-auto max-w-3xl px-4 py-14 leading-7 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Privacy</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight">What Earnout keeps</h1>
         <p className="mt-4 text-muted">Last updated 26 September 2026. Earnout runs on Solana devnet during its hackathon build.</p>
@@ -46,6 +47,7 @@ export default function PrivacyPage() {
           </a>
         </Section>
       </main>
+      <SiteFooter />
     </>
   );
 }

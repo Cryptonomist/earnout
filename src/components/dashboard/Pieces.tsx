@@ -2,33 +2,10 @@
  * browser except the hover values, which are CSS. */
 
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
 import type { ChannelReport } from "@/lib/report";
 import { explorer, money, short, type ChannelChain } from "@/server/dashboard";
 
-export function SiteHeader() {
-  return (
-    <header className="border-b border-line">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" aria-label="Earnout home">
-          <Logo />
-        </Link>
-        <nav className="flex items-center gap-5 text-sm">
-          <Link href="/dashboard" className="text-muted hover:text-ink">
-            Dashboard
-          </Link>
-          <Link href="/creators" className="text-muted hover:text-ink">
-            Creators
-          </Link>
-          <Link href="/demo" className="text-muted hover:text-ink">
-            Demo
-          </Link>
-          <span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted">devnet</span>
-        </nav>
-      </div>
-    </header>
-  );
-}
+export { SiteHeader } from "@/components/SiteShell";
 
 export function StatTile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (

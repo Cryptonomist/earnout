@@ -85,7 +85,7 @@ const transfer = (from: KeyPairSigner, to: Address, amount: bigint) =>
 
 /** Click the live link, as a person would, and keep the token it hands out. */
 async function click(slug: string) {
-  const res = await fetch(`${values.base}/r/${slug}`, { redirect: "manual" });
+  const res = await fetch(`${values.base}/r/${slug}/go`, { redirect: "manual" });
   const location = res.headers.get("location");
   if (res.status !== 302 || !location) throw new Error(`/r/${slug} answered ${res.status}`);
   const tag = decodeTagToken(new URL(location).searchParams.get(TAG_PARAM) ?? "");

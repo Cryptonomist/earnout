@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CreatorHub } from "@/components/CreatorHub";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 import Link from "next/link";
 import { money } from "@/server/dashboard";
 import { loadSecrets } from "@/server/links";
@@ -29,7 +30,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">For creators</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
           Your name, <span className="font-serif font-normal italic">on the record.</span>
@@ -104,6 +105,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
           ))}
         </section>
       </main>
+      <SiteFooter />
     </>
   );
 }

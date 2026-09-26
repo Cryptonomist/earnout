@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BudgetMeter, ChannelReceipt, SiteHeader, StatTile } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 import {
   ago,
   campaignChain,
@@ -39,10 +40,11 @@ export default async function CampaignPage({ params }: Params) {
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <h1 className="text-3xl font-semibold tracking-tight">{meta.name}</h1>
           <p className="mt-4 text-unpaid">Could not read this campaign from Solana just now. Try again in a moment.</p>
         </main>
+        <SiteFooter />
       </>
     );
   }
@@ -166,6 +168,7 @@ export default async function CampaignPage({ params }: Params) {
           read from Solana devnet within the last 30 seconds. Amounts are a devnet test token standing in for USDC.
         </p>
       </main>
+      <SiteFooter />
     </>
   );
 }

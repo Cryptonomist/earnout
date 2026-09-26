@@ -76,9 +76,11 @@ npx tsx --env-file=.env.local scripts/add-channel.ts \
 
 ## Links
 
-`earnout.dev/r/<slug>` is a channel's link. Each click mints a fresh
-reference, encrypted to the campaign and signed by the Earnout identity, and
-redirects to the partner with it in `?eo=`:
+`earnout.dev/r/<slug>` is a channel's link. It opens on a disclosure: who is
+paid, by whom, how much per user who stays, and that nothing is paid for a
+click. Only when the visitor continues (`/r/<slug>/go`) is a fresh reference
+minted, encrypted to the campaign and signed by the Earnout identity, and
+the visitor redirected to the partner with it in `?eo=`:
 
 ```
 e1.<campaign>.<identity>.<reference>.<signature>

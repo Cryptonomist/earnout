@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/dashboard/Pieces";
+import { SiteFooter } from "@/components/SiteShell";
 
 export const metadata: Metadata = { title: "Terms", description: "The terms for using Earnout while it runs on devnet." };
 
@@ -7,7 +8,7 @@ export default function TermsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-14 leading-7 sm:px-6">
+      <main id="content" className="mx-auto max-w-3xl px-4 py-14 leading-7 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Terms</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight">Terms of use</h1>
         <p className="mt-4 text-muted">Last updated 26 September 2026.</p>
@@ -48,6 +49,7 @@ export default function TermsPage() {
           </a>
         </Section>
       </main>
+      <SiteFooter />
     </>
   );
 }
