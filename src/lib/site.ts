@@ -3,7 +3,7 @@ export const SITE = {
   url: "https://earnout.dev",
   tagline: "Pay creators for users who stay",
   description:
-    "Creator marketing on Solana. Every creator gets a link; when someone joins through it and is still active later, the creator gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
+    "Results-driven KOL marketing on Solana. Every creator gets a link; when someone joins through it and is still active later, the creator gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
   github: "https://github.com/Cryptonomist/earnout",
   contact: "mailto:hello@earnout.dev?subject=Earnout%20pilot",
 };

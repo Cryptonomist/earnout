@@ -44,7 +44,7 @@ const ROLES = [
   },
   {
     who: "Creator",
-    text: "Someone with an audience. They share their link and get paid for the users who stay.",
+    text: "A KOL, an influencer, anyone with an audience. They share their link and get paid for the users who stay.",
   },
   {
     who: "User",
@@ -97,7 +97,7 @@ function Hero() {
   return (
     <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
-        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">CREATOR MARKETING ON SOLANA</p>
+        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN KOL MARKETING ON SOLANA</p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
           Pay creators for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
