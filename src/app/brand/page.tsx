@@ -56,6 +56,14 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
       { svg: "banner-dark.svg", label: "Banner, dark", bg: "checker", wide: true, pngs: ["banner-dark-1500x500.png"] },
     ],
   },
+  {
+    title: "Cards",
+    note: "The promise and a receipt, for update cards, link previews and posts. Everything that matters sits in the middle, so a crop to square or to 16:9 keeps the words.",
+    items: [
+      { svg: "card-1200x800.svg", label: "Card, 3:2", bg: "checker", wide: true, pngs: ["card-1200x800.png"] },
+      { svg: "card-1200x1200.svg", label: "Card, square", bg: "checker", pngs: ["card-1200x1200.png"] },
+    ],
+  },
 ];
 
 const sizeOf = (png: string) => png.replace(/^.*?-(\d+(?:x\d+)?)\.png$/, "$1");
