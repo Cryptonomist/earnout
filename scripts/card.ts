@@ -141,7 +141,7 @@ ${logo(72, 64, 44, INK)}
 ${h.svg}
 ${text(sans, "Results-driven influencer marketing on Solana", 72, 690, 30, MUTED)}
 ${text(mono, "earnout.dev", 72, 736, 24, MUTED)}
-${receipt(740, 120, 390, 2)}
+${receipt(728, 120, 412, 2)}
 </svg>`;
 }
 
@@ -153,8 +153,8 @@ function square(): string {
 <rect width="${S}" height="${S}" fill="${PAPER}"/>
 ${logo(80, 72, 48, INK)}
 ${h.svg}
-${text(sans, "Results-driven influencer marketing on Solana.", 80, below + 40, 32, MUTED)}
-${receipt(380, below + 110, 440, -2)}
+${text(sans, "Results-driven influencer marketing on Solana.", 80, below + 72, 32, MUTED)}
+${receipt(380, below + 140, 440, -2)}
 ${text(mono, "earnout.dev", 80, 1128, 26, MUTED)}
 </svg>`;
 }
