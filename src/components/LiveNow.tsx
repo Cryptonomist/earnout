@@ -12,7 +12,7 @@ export async function LiveNow() {
   let notPaid = 0;
   let paidOut = 0n;
   let decimals: number | null = null;
-  const KOLs = new Set<string>();
+  const influencers = new Set<string>();
   let first: string | null = null;
 
   for (const meta of campaigns) {
@@ -23,7 +23,7 @@ export async function LiveNow() {
     for (const ch of chain.channels) {
       paidFor += Number(ch.conversions);
       if (chain.decimals === decimals) paidOut += ch.earned;
-      if (ch.xId !== null) KOLs.add(String(ch.xId));
+      if (ch.xId !== null) influencers.add(String(ch.xId));
     }
     for (const c of report?.channels ?? []) {
       tagged += c.tagged;
@@ -37,7 +37,7 @@ export async function LiveNow() {
     { text: `${paidFor} paid for`, tone: "paid" },
     { text: `${notPaid} not paid`, tone: "unpaid" },
     { text: `${money(paidOut, decimals)} paid out` },
-    { text: `${KOLs.size} verified KOL${KOLs.size === 1 ? "" : "s"}` },
+    { text: `${influencers.size} verified influencer${influencers.size === 1 ? "" : "s"}` },
   ];
 
   return (

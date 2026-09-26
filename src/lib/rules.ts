@@ -9,7 +9,7 @@
  * below, and the site records the rules only when that memo matches. Anyone
  * can recompute the hash from the published rules and check it against the
  * transaction. Rules are final; there is no update, because rules that can
- * change after KOLs start sending people are not rules.
+ * change after influencers start sending people are not rules.
  *
  * Pure and small, so the browser hashes exactly what the server checks. */
 
@@ -199,7 +199,7 @@ export function parseLinkMemo(memo: string): { campaign: string; index: number; 
   return { campaign: m[1], index: Number(m[2]), slug: m[3] };
 }
 
-/** A link slug for a KOL on a campaign: "stonk-wars-cryptonomist". */
+/** A link slug for an influencer on a campaign: "stonk-wars-cryptonomist". */
 export function slugFor(campaignName: string, handle: string): string {
   const part = (s: string) =>
     s

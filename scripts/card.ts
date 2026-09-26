@@ -8,7 +8,8 @@
  * Writes public/brand/card-1200x800.png (3:2, for update cards and link
  * previews) and card-1200x1200.png (square, for X and avatars-with-text).
  * Everything that matters sits inside the middle of each, so a crop to
- * square or to 16:9 keeps the words. */
+ * square or to 16:9 keeps the words. The headline is sized to fit its
+ * column, so a longer word never runs into the receipt. */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -104,18 +105,17 @@ function receipt(x: number, y: number, w: number, tilt: number): string {
   rule();
   row("Stayed", "146", INK, monoBold, INK);
   row("x $4.00 per user", "");
-  // The green bar: paid to the KOL.
+  // The green bar: what the influencer was paid.
   const barY = cy - 30;
   rows.push(`<rect x="${left - 8}" y="${barY}" width="${right - left + 16}" height="${lh + 2}" rx="4" fill="${PAID_SOFT}"/>`);
   cy += 6;
-  row("Paid to KOL", "$584.00", PAID, monoBold, PAID);
+  row("Paid out", "$584.00", PAID, monoBold, PAID);
   row("Not paid: 266", "$1,064.00", UNPAID, mono, UNPAID);
   const h = cy - y + pad - 10;
 
-  // The stamp, over the stayed row.
+  // The stamp, over the stayed row. Tracking is in em.
   const sx = left + 150;
   const sy = y + pad + 30 + 52 + 6 + lh * 3 + 6 + 10;
-  // Tracking is in em: a stamp's letters sit apart, not across the room.
   const stamp = `<g transform="rotate(-12 ${sx + 60} ${sy})"><rect x="${sx}" y="${sy - 24}" width="120" height="44" rx="6" fill="none" stroke="${PAID}" stroke-width="4" opacity="0.85"/>${text(monoBold, "PAID", sx + 18, sy + 9, 30, PAID, 0.12)}</g>`;
 
   const cx = x + w / 2;
@@ -123,31 +123,38 @@ function receipt(x: number, y: number, w: number, tilt: number): string {
   return `<g transform="rotate(${tilt} ${cx} ${cyc})"><path d="${slipPath(x, y, w, h)}" fill="${CARD}" stroke="${LINE}" stroke-width="2"/>${rows.join("")}${stamp}</g>`;
 }
 
-function headline(x: number, y: number, size: number, lines: string[]): string {
-  return lines.map((l, i) => text(semi, l, x, y + i * size * 1.02, size, INK, -0.03)).join("");
+/** The headline at the largest size, up to `max`, at which every line fits
+ * in `maxWidth`. Returns the paths and the height used. */
+function headline(x: number, y: number, max: number, maxWidth: number, lines: string[]): { svg: string; height: number } {
+  const size = Math.floor(Math.min(max, ...lines.map((l) => (max * maxWidth) / width(semi, l, max, -0.03))));
+  const svg = lines.map((l, i) => text(semi, l, x, y + i * size * 1.02, size, INK, -0.03)).join("");
+  return { svg, height: size * 1.02 * lines.length };
 }
 
 function wide(): string {
   const W = 1200;
   const H = 800;
+  const h = headline(72, 300, 104, 640, ["Pay influencers", "for users", "who stay."]);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <rect width="${W}" height="${H}" fill="${PAPER}"/>
 ${logo(72, 64, 44, INK)}
-${headline(72, 318, 104, ["Pay KOLs", "for users", "who stay."])}
-${text(sans, "Results-driven KOL marketing on Solana", 72, 690, 30, MUTED)}
+${h.svg}
+${text(sans, "Results-driven influencer marketing on Solana", 72, 690, 30, MUTED)}
 ${text(mono, "earnout.dev", 72, 736, 24, MUTED)}
-${receipt(730, 120, 400, 2)}
+${receipt(740, 120, 390, 2)}
 </svg>`;
 }
 
 function square(): string {
   const S = 1200;
+  const h = headline(80, 280, 118, 1040, ["Pay influencers", "for users who stay."]);
+  const below = 280 - 118 + h.height;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">
 <rect width="${S}" height="${S}" fill="${PAPER}"/>
 ${logo(80, 72, 48, INK)}
-${headline(80, 290, 118, ["Pay KOLs", "for users who stay."])}
-${text(sans, "Results-driven KOL marketing on Solana.", 80, 470, 32, MUTED)}
-${receipt(380, 540, 440, -2)}
+${h.svg}
+${text(sans, "Results-driven influencer marketing on Solana.", 80, below + 40, 32, MUTED)}
+${receipt(380, below + 110, 440, -2)}
 ${text(mono, "earnout.dev", 80, 1128, 26, MUTED)}
 </svg>`;
 }

@@ -5,27 +5,27 @@ import { SiteFooter, SiteHeader } from "@/components/SiteShell";
 import { Receipt } from "@/components/Receipt";
 import { SITE, STATS } from "@/lib/site";
 
-/* The whole site speaks one small vocabulary: a project pays, a KOL
+/* The whole site speaks one small vocabulary: a project pays, an influencer
  * shares a link, a user joins through it, and if the user stays Earnout
- * pays the KOL. One scene, short sentences. The mechanism lives in the
+ * pays the influencer. One scene, short sentences. The mechanism lives in the
  * developer section and the docs, not up here. */
 
 const STEPS = [
   {
     title: "Set the deal",
-    body: "Say a KOL earns $5 for each new user still active after 7 days. Lock the budget in a Solana program.",
+    body: "Say an influencer earns $5 for each new user still active after 7 days. Lock the budget in a Solana program.",
   },
   {
-    title: "Give each KOL a link",
+    title: "Give each influencer a link",
     body: "Every link tells the visitor who is paid, and for what, before they continue.",
   },
   {
     title: "The user's first deposit carries the tag",
-    body: "That is how Earnout knows which KOL sent them. The tag can never break the deposit.",
+    body: "That is how Earnout knows which influencer sent them. The tag can never break the deposit.",
   },
   {
     title: "Pay only for who stayed",
-    body: "After 7 days, Earnout checks who is still active and pays their KOLs on-chain. Unspent budget comes back to you.",
+    body: "After 7 days, Earnout checks who is still active and pays their influencers on-chain. Unspent budget comes back to you.",
   },
 ];
 
@@ -33,7 +33,7 @@ const GUARANTEES = [
   "A payout is always users who stayed times your price. Never more than the budget.",
   "Nobody can be paid twice for the same user.",
   "No payouts after your deadline. No refunds before it.",
-  "Money leaves two ways: to a KOL who earned it, or back to you.",
+  "Money leaves two ways: to an influencer who earned it, or back to you.",
   "No admin key. No fee. Open source.",
 ];
 
@@ -43,8 +43,8 @@ const ROLES = [
     text: "An app on Solana that wants more real users: a game, a DEX, a wallet. It sets the deal and locks the budget.",
   },
   {
-    who: "KOL",
-    text: "A key opinion leader, crypto's word for an influencer: a trader with a following, a newsletter writer, a community lead. They share their link and get paid for the users who stay.",
+    who: "Influencer",
+    text: "In crypto, a KOL. A trader with a following, a newsletter writer, a community lead. They share their link and get paid for the users who stay.",
   },
   {
     who: "User",
@@ -54,7 +54,7 @@ const ROLES = [
 
 const PROBLEMS = [
   {
-    title: "KOLs are paid per post.",
+    title: "Influencers are paid per post.",
     body: "The biggest line in a crypto marketing budget, $500 to $50,000 a post, paid up front. The deal is done the moment the post goes up.",
   },
   {
@@ -70,7 +70,7 @@ const PROBLEMS = [
 /* By category, not by name: what each way of paying for growth actually
  * buys, who measures it, who holds the money, and whether the user is told. */
 const COMPARE: { who: string; pays: string; measured: string; money: string; told: string; earnout?: true }[] = [
-  { who: "KOL deals and agencies", pays: "A post", measured: "Nobody", money: "The KOL, up front", told: "Rarely" },
+  { who: "Influencer deals and agencies", pays: "A post", measured: "Nobody", money: "The influencer, up front", told: "Rarely" },
   { who: "Quest platforms", pays: "Tasks, on claim day", measured: "The platform", money: "The platform", told: "No" },
   { who: "Creator marketplaces", pays: "Posts, clicks, sign-ups, mindshare", measured: "The platform's own data", money: "The platform", told: "Sometimes" },
   { who: "Attribution dashboards", pays: "Nothing; they only measure", measured: "Pixels and on-chain data", money: "You", told: "No" },
@@ -115,13 +115,13 @@ function Hero() {
   return (
     <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
-        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN KOL MARKETING ON SOLANA</p>
+        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN INFLUENCER MARKETING ON SOLANA</p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-          Pay KOLs for users <span className="font-serif font-normal italic">who stay.</span>
+          Pay influencers for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Think of it as a sales commission. A KOL shares a link to your project. When someone comes through it and is
-          still active a week later, the KOL gets paid. Nothing for clicks. Nothing for people who leave.
+          Think of it as a sales commission. An influencer shares a link to your project. When someone comes through it and is
+          still active a week later, the influencer gets paid. Nothing for clicks. Nothing for people who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
           <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
@@ -262,12 +262,12 @@ function Numbers() {
 
 function Sides() {
   return (
-    <Section id="kols" eyebrow="Both sides of the deal" title="Fair to the ones paying and the ones sending.">
+    <Section id="influencers" eyebrow="Both sides of the deal" title="Fair to the ones paying and the ones sending.">
       <div className="grid gap-4 md:grid-cols-2">
         <Side
           who="For projects"
           points={[
-            "See which KOL brought each user.",
+            "See which influencer brought each user.",
             "Pay per user who stayed, at your price.",
             "Unspent budget comes back on its own.",
             "Every payout has proof on-chain.",
@@ -275,7 +275,7 @@ function Sides() {
           cta={{ href: "/dashboard/new", label: "Start a campaign" }}
         />
         <Side
-          who="For KOLs"
+          who="For influencers"
           points={[
             "Get paid from a budget that is already locked.",
             "No invoices. Claim straight from the program.",
@@ -327,7 +327,7 @@ function Trust() {
         <div className="space-y-6 leading-7 text-muted">
           <p>
             <strong className="font-semibold text-ink">Private by design.</strong> The chain shows that a user joined, not
-            which KOL sent them. Only the project can see that.
+            which influencer sent them. Only the project can see that.
           </p>
           <p>
             <strong className="font-semibold text-ink">Honest about trust.</strong> Earnout does the counting. The program

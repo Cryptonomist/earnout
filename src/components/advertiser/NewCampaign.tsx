@@ -7,7 +7,7 @@
  * chain, so their hash goes on chain: the creating transaction carries it in
  * a memo, and the site records the rules only if they hash to what the memo
  * says (api/campaigns). Nothing here can be changed later, which is the
- * point: a KOL who reads the disclosure page is reading the terms the
+ * point: an influencer who reads the disclosure page is reading the terms the
  * advertiser is bound to. */
 
 import { useRouter } from "next/navigation";
@@ -311,7 +311,7 @@ export function NewCampaign(p: Props) {
 
         <Card n={3} title="The money">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="A KOL earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
+            <Field label="An influencer earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
               <input value={form.price} onChange={(e) => set("price", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
             </Field>
             <Field label="Fund now" hint="Empty to fund later; top-ups are always open">
@@ -333,7 +333,7 @@ export function NewCampaign(p: Props) {
             <Create wallet={connected.wallet} account={connected.account} form={form} rules={checked.rules} payout={payout} budget={budget ?? 0n} problem={problem} {...p} />
           ) : (
             <>
-              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds KOLs, and gets the refund.</p>
+              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds influencers, and gets the refund.</p>
               <ChooseWallet wallets={wallets} />
             </>
           )}

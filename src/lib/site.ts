@@ -1,9 +1,9 @@
 export const SITE = {
   name: "Earnout",
   url: "https://earnout.dev",
-  tagline: "Pay KOLs for users who stay",
+  tagline: "Pay influencers for users who stay",
   description:
-    "Results-driven KOL marketing on Solana. Every KOL gets a link; when someone joins through it and is still active later, the KOL gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
+    "Results-driven influencer marketing on Solana. Every influencer gets a link; when someone joins through it and is still active later, the influencer gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
   github: "https://github.com/Cryptonomist/earnout",
   contact: "mailto:hello@earnout.dev?subject=Earnout%20pilot",
 };
@@ -25,7 +25,7 @@ export const STATS = [
   },
   {
     figure: "$500 to $50,000",
-    text: "is what a KOL charges for a post or a campaign, paid up front, whatever happens next.",
+    text: "is what an influencer charges for a post or a campaign, paid up front, whatever happens next.",
     source: "KOLHQ, 2026 cost guide",
     href: "https://www.kolhq.com/blog/crypto-marketing-cost",
   },
