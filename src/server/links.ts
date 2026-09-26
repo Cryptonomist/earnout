@@ -13,7 +13,7 @@
  * ended, or the secrets are missing, the visitor still goes; the redirect
  * just carries no tag. */
 
-import { createKeyPairFromBytes, getAddressFromPublicKey, type Address } from "@solana/kit";
+import { createKeyPairFromBytes, createKeyPairSignerFromBytes, getAddressFromPublicKey, type Address, type KeyPairSigner } from "@solana/kit";
 import { encodeTagToken, signReference } from "../../sdk/identity.ts";
 import { TAG_PARAM } from "../../sdk/client.ts";
 import { issueReference, referenceKeys } from "../../sdk/reference.ts";
@@ -30,6 +30,8 @@ export type Registry = Record<string, LinkEntry>;
 
 export type Secrets = {
   identity: CryptoKeyPair;
+  /** The same key as a signer, for co-signing X links. */
+  identitySigner: KeyPairSigner;
   identityAddress: Address;
   referenceSecret: Uint8Array;
 };
@@ -82,9 +84,10 @@ export async function loadSecrets(env: Record<string, string | undefined> = proc
   const bytes = Uint8Array.from(JSON.parse(rawKeypair) as number[]);
   if (bytes.length !== 64) throw new Error("EARNOUT_IDENTITY_KEYPAIR must be a 64-byte keypair");
   const identity = await createKeyPairFromBytes(bytes);
+  const identitySigner = await createKeyPairSignerFromBytes(bytes);
 
   const referenceSecret = loadReferenceSecret(env);
-  return { identity, identityAddress: await getAddressFromPublicKey(identity.publicKey), referenceSecret };
+  return { identity, identitySigner, identityAddress: await getAddressFromPublicKey(identity.publicKey), referenceSecret };
 }
 
 /** Just the reference secret: all the settler needs to open references. It

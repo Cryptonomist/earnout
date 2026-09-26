@@ -61,6 +61,14 @@ record follows them and a bad one cannot be shed by changing wallets.
 Channels made before verification existed have no identity and are shown as
 unverified.
 
+Creators link at `/creators`: sign in with X (read-only, PKCE, nothing
+stored on a server; the profile rides in a cookie the server signs for
+fifteen minutes), connect a wallet, and link. `/api/x/link` builds the
+`link_x` transaction and signs it as the Earnout identity; the wallet
+completes it in the browser and the page sends it. `X_CLIENT_ID` and
+`X_CLIENT_SECRET` come from an app at console.x.com with
+`https://earnout.dev/api/x/callback` as a callback.
+
 ```bash
 npx tsx --env-file=.env.local scripts/add-channel.ts \
   --campaign <address> --slug <slug> --payee <linked wallet>

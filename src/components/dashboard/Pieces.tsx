@@ -17,6 +17,9 @@ export function SiteHeader() {
           <Link href="/dashboard" className="text-muted hover:text-ink">
             Dashboard
           </Link>
+          <Link href="/creators" className="text-muted hover:text-ink">
+            Creators
+          </Link>
           <Link href="/demo" className="text-muted hover:text-ink">
             Demo
           </Link>
@@ -127,6 +130,16 @@ export function ChannelReceipt({
         <div>
           <div className="text-[11px] tracking-[0.2em] text-muted">CHANNEL {chain.index}</div>
           <div className="text-base font-semibold tracking-tight">{slug ?? `channel ${chain.index}`}</div>
+          {chain.handle ? (
+            <div className="mt-0.5 text-[12px]">
+              <a href={`https://x.com/${chain.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                @{chain.handle}
+              </a>{" "}
+              <span className="text-paid">verified X</span>
+            </div>
+          ) : (
+            <div className="mt-0.5 text-[12px] text-unpaid">unverified: added before X verification</div>
+          )}
         </div>
         <a href={explorer("address", chain.payee)} className="text-[11px] text-muted underline decoration-line underline-offset-2 hover:text-ink">
           pays {short(chain.payee)}

@@ -43,6 +43,13 @@ export default async function CreatorPage({ params }: Params) {
         ) : (
           <>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
+              {channel.handle ? (
+                <>
+                  <span className="font-mono text-ink">@{channel.handle}</span>, verified on X.{" "}
+                </>
+              ) : (
+                <>Added before X verification. </>
+              )}
               For {meta?.name ?? "this campaign"}: you earn {money(chain.payout, chain.decimals)} for each person who comes
               through your link, converts, and is still there {duration(chain.retentionSecs)} later. Nobody else can see which
               wallets you sent.

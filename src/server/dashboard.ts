@@ -9,7 +9,7 @@
 import "server-only";
 import { address, createSolanaRpc, getBase64Encoder, type Address } from "@solana/kit";
 import devnet from "../../registry/devnet.json";
-import { channelAddress, decodeCampaign, decodeChannel } from "../../sdk/program";
+import { channelAddress, channelIdentityAddress, decodeCampaign, decodeChannel, decodeChannelIdentity } from "../../sdk/program";
 import type { PublicReport } from "@/lib/report";
 import { rpcUrl } from "./chain";
 
@@ -26,6 +26,10 @@ export type ChannelChain = {
   earned: bigint;
   claimed: bigint;
   evidence: string;
+  /** The verified X account this channel was created for; null for a
+   * channel made before verification existed. */
+  handle: string | null;
+  xId: bigint | null;
 };
 
 export type CampaignChain = {
@@ -84,10 +88,13 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
   const c = decodeCampaign(bytes(value.data[0]));
 
   const channelAddresses = await Promise.all(Array.from({ length: c.channels }, (_, i) => channelAddress(a, i)));
+  const identityAddresses = await Promise.all(channelAddresses.map((ch) => channelIdentityAddress(ch)));
   const { value: accounts } = await rpc
-    .getMultipleAccounts([c.mint, ...channelAddresses], { encoding: "base64", commitment: "confirmed" })
+    .getMultipleAccounts([c.mint, ...channelAddresses, ...identityAddresses], { encoding: "base64", commitment: "confirmed" })
     .send();
-  const [mint, ...channels] = accounts;
+  const mint = accounts[0];
+  const channels = accounts.slice(1, 1 + channelAddresses.length);
+  const identities = accounts.slice(1 + channelAddresses.length);
 
   return {
     address: a,
@@ -116,6 +123,8 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
           earned: ch.earned,
           claimed: ch.claimed,
           evidence: Buffer.from(ch.evidence).toString("hex"),
+          handle: identities[i] ? decodeChannelIdentity(bytes(identities[i]!.data[0])).handle : null,
+          xId: identities[i] ? decodeChannelIdentity(bytes(identities[i]!.data[0])).xId : null,
         },
       ];
     }),

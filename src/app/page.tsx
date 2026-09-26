@@ -205,15 +205,16 @@ function Sides() {
             "Get paid on results from a vault that is already funded.",
             "No invoices and no chasing: claim straight from the program.",
             "Your audience stays private. The chain cannot link wallets to you.",
-            "Move your payout wallet whenever you like, earnings included.",
+            "Your X account is your name on every receipt: a record that follows you.",
           ]}
+          cta={{ href: "/creators", label: "Link your X account" }}
         />
       </div>
     </Section>
   );
 }
 
-function Side({ who, points }: { who: string; points: string[] }) {
+function Side({ who, points, cta }: { who: string; points: string[]; cta?: { href: string; label: string } }) {
   return (
     <div className="rounded-2xl border border-line bg-card p-7">
       <h3 className="text-xl font-semibold tracking-tight">{who}</h3>
@@ -225,6 +226,11 @@ function Side({ who, points }: { who: string; points: string[] }) {
           </li>
         ))}
       </ul>
+      {cta && (
+        <a href={cta.href} className="mt-6 inline-block rounded-full border border-ink px-5 py-2.5 font-medium hover:bg-ink hover:text-paper">
+          {cta.label}
+        </a>
+      )}
     </div>
   );
 }
