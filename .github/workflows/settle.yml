@@ -39,7 +39,10 @@ jobs:
           node-version: 24
           cache: npm
 
-      - run: npm ci --no-audit --no-fund
+      # npm install, as Vercel uses: the runner's npm wants optional peers
+      # (bufferutil) in the lockfile that a local npm leaves out, and npm ci
+      # refuses the mismatch.
+      - run: npm install --no-audit --no-fund
 
       - name: Settle
         env:
