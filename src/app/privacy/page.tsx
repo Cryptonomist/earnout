@@ -14,15 +14,15 @@ export default function PrivacyPage() {
         <p className="mt-4 text-muted">Last updated 26 September 2026. Earnout runs on Solana devnet during its hackathon build.</p>
 
         <Section title="On Solana, which is public">
-          A tagged transaction shows that a wallet converted for a campaign. It does not show which creator sent it: the
-          reference is encrypted, and only the campaign can read it. Settlements show how many conversions each channel was
+          A tagged transaction shows that a wallet joined a campaign. It does not show which creator sent it: the
+          reference is encrypted, and only the campaign can read it. Payouts show how many users each creator was
           paid for, and payouts show which wallet received them.
         </Section>
 
         <Section title="On our servers">
-          The settler keeps a private ledger of which wallet came through which channel and whether it stayed. It never
-          publishes that; the dashboard shows counts only. The advertiser may be given the list behind a settlement so they
-          can check it against the chain. We keep no accounts, names or emails for people who convert.
+          Earnout keeps a private ledger of which wallet came through which creator and whether it stayed. It never
+          publishes that; the dashboard shows counts only. The project may be given the list behind a payout so they
+          can check it against the chain. We keep no accounts, names or emails for people who join.
         </Section>
 
         <Section title="In your browser">

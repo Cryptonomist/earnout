@@ -11,7 +11,7 @@ import { COOKIE_PROFILE, openProfile, xConfig } from "@/server/x-auth";
 
 export const metadata: Metadata = {
   title: "Creators",
-  description: "Link your X account to your wallet and become a verified Earnout channel.",
+  description: "Link your X account to your wallet and get paid for users who stay.",
 };
 
 export const dynamic = "force-dynamic";
@@ -36,9 +36,8 @@ export default async function CreatorsPage({ searchParams }: Params) {
           Your name, <span className="font-serif font-normal italic">on the record.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-          Every Earnout channel belongs to a verified X account. Link yours to your wallet once, and every campaign you
-          run builds a record that follows you: users sent, users who stayed, and what you were paid, all checkable on
-          chain. Projects can see it, and nobody can fake it.
+          Link your X account to your wallet once. Every campaign you run adds to your public record: users sent, users
+          who stayed, money earned. Projects can see it. Nobody can fake it.
         </p>
 
         {x === "error" && (
@@ -52,8 +51,8 @@ export default async function CreatorsPage({ searchParams }: Params) {
         <section className="mt-16">
           <h2 className="text-2xl font-semibold tracking-tight">Verified creators</h2>
           <p className="mt-2 max-w-2xl leading-7 text-muted">
-            Every creator with a channel on Earnout, and their record so far. Counts come from the settler and the chain;
-            nobody edits them.
+            Every creator on Earnout and their record so far. The numbers come from the chain and from Earnout&apos;s checks.
+            Nobody edits them.
           </p>
           {cards.length ? (
             <div className="mt-6 overflow-x-auto rounded-2xl border border-line">

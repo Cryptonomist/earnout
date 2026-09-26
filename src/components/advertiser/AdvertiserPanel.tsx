@@ -154,7 +154,7 @@ function Controls(p: PanelProps & { wallet: UiWallet; account: UiWalletAccount }
             <Refund {...p} signer={signer} refundable={refundable} onChanged={() => router.refresh()} />
           ) : (
             <p className="mt-2 text-sm leading-6 text-muted">
-              {money(refundable, p.decimals)} is not committed to any channel so far. Whatever is still uncommitted when settlement closes on{" "}
+              {money(refundable, p.decimals)} is still unspent. Whatever is still unspent when payouts close on{" "}
               {new Date(p.settleDeadline * 1000).toUTCString().slice(5, 16)} comes back to this wallet with one click here.
             </p>
           )}
@@ -195,7 +195,7 @@ function Fund(p: PanelProps & { signer: Signer; tokens: bigint | null; refresh: 
   return (
     <div className="rounded-xl bg-card p-5">
       <h3 className="font-semibold tracking-tight">Add to the budget</h3>
-      <p className="mt-2 text-sm leading-6 text-muted">Top-ups are open until settlement closes. Nothing leaves the vault except to channels, or back to you.</p>
+      <p className="mt-2 text-sm leading-6 text-muted">Top-ups are open until payouts close. Money leaves two ways: to a creator who earned it, or back to you.</p>
       <div className="mt-3 flex gap-2">
         <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 font-mono text-[15px] outline-none focus:border-ink" />
         <button
@@ -280,7 +280,7 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
     <div className="rounded-xl bg-card p-5">
       <h3 className="font-semibold tracking-tight">Add a creator</h3>
       {p.source === "file" ? (
-        <p className="mt-2 text-sm leading-6 text-muted">This pilot campaign is managed from the repository; its channels are added with scripts/add-channel.ts.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">This pilot campaign is managed from the repository; its creators are added with scripts/add-channel.ts.</p>
       ) : (
         <>
           <p className="mt-2 text-sm leading-6 text-muted">
@@ -323,7 +323,7 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
                 </div>
               </label>
               {!SLUG.test(slug) && <p className="mt-1 text-xs text-unpaid">Lowercase letters, digits and dashes, starting with a letter or digit.</p>}
-              {tooLittleSol && <Faucet wallet={p.signer.address} onFunded={p.refresh} need="A channel is two small accounts on devnet: about 0.004 devnet SOL in rent and fees, and this wallet has less." />}
+              {tooLittleSol && <Faucet wallet={p.signer.address} onFunded={p.refresh} need="Adding a creator writes two small accounts on devnet: about 0.004 devnet SOL in rent and fees, and this wallet has less." />}
               <button
                 onClick={() => void add()}
                 disabled={busy.kind === "working" || !SLUG.test(slug) || tooLittleSol}
@@ -347,7 +347,7 @@ async function registerLink(signature: string): Promise<void> {
     const res = await fetch("/api/campaigns/links", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ signature }) });
     if (res.ok) return;
     const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-    if (res.status !== 404 || i >= 8) throw new Error(error ?? "The channel was added but its link could not be named. Name it below.");
+    if (res.status !== 404 || i >= 8) throw new Error(error ?? "The creator was added but their link could not be named. Name it below.");
     await sleep(1_500);
   }
 }
@@ -371,7 +371,7 @@ function Refund(p: PanelProps & { signer: Signer; refundable: bigint; onChanged:
 
   return (
     <>
-      <p className="mt-2 text-sm leading-6 text-muted">Settlement has closed. What no channel earned is yours to take back.</p>
+      <p className="mt-2 text-sm leading-6 text-muted">Payouts have closed. What no creator earned is yours to take back.</p>
       <p className="mt-3 text-2xl font-semibold tracking-tight">{money(p.refundable, p.decimals)}</p>
       <button
         onClick={() => void refund()}
@@ -398,7 +398,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
       const tx = await sendInstructions(rpc(), p.signer, [memoIx(linkMemo(p.campaign, naming.index, naming.slug))], () => setBusy({ kind: "working", what: "Confirming on devnet..." }));
       setBusy({ kind: "working", what: "Naming the link..." });
       await registerLink(tx);
-      setBusy({ kind: "done", text: `Channel ${naming.index} is now earnout.dev/r/${naming.slug}.`, tx });
+      setBusy({ kind: "done", text: `Creator ${naming.index} is now earnout.dev/r/${naming.slug}.`, tx });
       setNaming(null);
       await sleep(2_500);
       p.onChanged();
@@ -411,7 +411,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
     <div className="mt-8 border-t border-line pt-6">
       <h3 className="font-semibold tracking-tight">Links to hand out</h3>
       {p.channels.length === 0 ? (
-        <p className="mt-2 text-sm leading-6 text-muted">No channels yet. Add a creator above and their link appears here.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">No creators yet. Add one above and their link appears here.</p>
       ) : (
         <ul className="mt-3 divide-y divide-line text-sm">
           {p.channels.map((c) => (
@@ -423,7 +423,7 @@ function Links(p: PanelProps & { signer: Signer; onChanged: () => void }) {
                   </>
                 ) : (
                   <>
-                    channel {c.index} <span className="text-muted">{c.handle ? `@${c.handle}, ` : ""}no link yet</span>
+                    creator {c.index} <span className="text-muted">{c.handle ? `@${c.handle}, ` : ""}no link yet</span>
                   </>
                 )}
               </span>

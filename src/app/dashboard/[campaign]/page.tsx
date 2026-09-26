@@ -75,7 +75,7 @@ export default async function CampaignPage({ params }: Params) {
           <span className="rounded-full border border-line px-3 py-1 text-sm">{status(now, chain.endsAt, chain.settleDeadline)}</span>
         </div>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-muted">
-          Pays {money(chain.payout, d)} for each user who stays {duration(chain.retentionSecs)}. Conversions count until{" "}
+          Pays {money(chain.payout, d)} per user who stays {duration(chain.retentionSecs)}. New users count until{" "}
           {new Date(chain.endsAt * 1000).toUTCString().slice(5, 16)}.
           {meta.description ? ` ${meta.description}` : ""}
         </p>
@@ -84,7 +84,7 @@ export default async function CampaignPage({ params }: Params) {
           <a href={explorer("address", chain.address)} className="underline decoration-line underline-offset-2 hover:text-ink">
             {short(chain.address)}
           </a>{" "}
-          · advertiser {short(chain.advertiser)} · settler {short(chain.settler)}
+          · project {short(chain.advertiser)} · checked by {short(chain.settler)}
         </p>
 
         <AdvertiserPanel
@@ -105,22 +105,22 @@ export default async function CampaignPage({ params }: Params) {
 
         {meta.rules && meta.rulesHash && (
           <section className="mt-8 rounded-2xl border border-line bg-card p-6 sm:p-8">
-            <h2 className="text-lg font-semibold tracking-tight">The rules, committed on chain</h2>
+            <h2 className="text-lg font-semibold tracking-tight">The rules, locked on-chain</h2>
             <dl className="mt-4 grid gap-4 text-[15px] leading-7 sm:grid-cols-2">
               <div>
-                <dt className="text-sm text-muted">A conversion is when a wallet</dt>
+                <dt className="text-sm text-muted">A user counts when their wallet</dt>
                 <dd>{describeConversion(meta.rules.conversion)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">It has stayed if, {duration(chain.retentionSecs)} later, it</dt>
+                <dt className="text-sm text-muted">They have stayed if, {duration(chain.retentionSecs)} later, their wallet</dt>
                 <dd>{describeRetention(meta.rules.retention)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">A click counts for</dt>
+                <dt className="text-sm text-muted">A link click counts for</dt>
                 <dd>{duration(meta.rules.attributionWindowSecs)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">Wallets from one quiet funder before they are a cluster</dt>
+                <dt className="text-sm text-muted">Bot check: users from one quiet funder before they count as a farm</dt>
                 <dd>{meta.rules.sybil.maxWalletsPerFunder}</dd>
               </div>
             </dl>
@@ -140,14 +140,14 @@ export default async function CampaignPage({ params }: Params) {
         )}
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Headline numbers">
-          <StatTile label="Wallets tagged" value={tagged === null ? "not reported" : String(tagged)} note="Came through a channel's link and converted" />
+          <StatTile label="Users sent" value={tagged === null ? "not checked yet" : String(tagged)} note="Came through a creator's link and joined" />
           <StatTile
             label="Stayed and paid for"
             value={String(settled)}
-            note={waiting ? `${waiting} more waiting out the window or settling` : "Settled on chain"}
+            note={waiting ? `${waiting} more still in the stay period or being paid` : "Paid on-chain"}
           />
-          <StatTile label="Not paid for" value={notPaid === null ? "not reported" : String(notPaid)} note="Left before the window closed, or flagged" />
-          <StatTile label="Cost per user who stayed" value={money(chain.payout, d)} note="Set by the campaign, paid only after the window" />
+          <StatTile label="Not paid for" value={notPaid === null ? "not checked yet" : String(notPaid)} note="Left early, or flagged as bots" />
+          <StatTile label="Price per user who stayed" value={money(chain.payout, d)} note="Set by the project, paid only after the stay period" />
         </section>
 
         <section className="mt-6 rounded-2xl border border-line p-6 sm:p-8">
@@ -155,9 +155,9 @@ export default async function CampaignPage({ params }: Params) {
         </section>
 
         <section className="mt-14">
-          <h2 className="text-2xl font-semibold tracking-tight">Channels</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Creators</h2>
           <p className="mt-2 max-w-2xl leading-7 text-muted">
-            One receipt per creator or partner. Which wallet came through which channel stays private; these are the counts.
+            One receipt per creator. Which user came through which creator stays private; these are the counts.
           </p>
           {chain.channels.length ? (
             <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -166,22 +166,22 @@ export default async function CampaignPage({ params }: Params) {
               ))}
             </div>
           ) : (
-            <p className="mt-4 leading-7 text-muted">No channels yet. The advertiser adds creators by X handle above; each one gets a link and a receipt here.</p>
+            <p className="mt-4 leading-7 text-muted">No creators yet. The project adds them by X handle above; each one gets a link and a receipt here.</p>
           )}
         </section>
 
         <section className="mt-14">
-          <h2 className="text-2xl font-semibold tracking-tight">Settlements</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Payouts</h2>
           {report && report.batches.length ? (
             <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-line bg-card text-muted">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Channel</th>
-                    <th className="px-4 py-3 font-medium">Batch</th>
+                    <th className="px-4 py-3 font-medium">Creator</th>
+                    <th className="px-4 py-3 font-medium">Payout</th>
                     <th className="px-4 py-3 text-right font-medium">Users</th>
                     <th className="px-4 py-3 text-right font-medium">Paid</th>
-                    <th className="px-4 py-3 font-medium">Evidence root</th>
+                    <th className="px-4 py-3 font-medium">Proof</th>
                     <th className="px-4 py-3 font-medium">Transaction</th>
                   </tr>
                 </thead>
@@ -208,16 +208,16 @@ export default async function CampaignPage({ params }: Params) {
               </table>
             </div>
           ) : (
-            <p className="mt-4 leading-7 text-muted">No settlements reported yet.</p>
+            <p className="mt-4 leading-7 text-muted">No payouts yet.</p>
           )}
           <p className="mt-4 text-sm leading-6 text-muted">
-            Each evidence root is stored on the channel&apos;s account. The advertiser holds the list of conversions behind it
-            and can check every one against the chain.
+            Each proof is stored on-chain with the creator&apos;s account. The project holds the list of users behind it and
+            can check every one against the chain.
           </p>
         </section>
 
         <p className="mt-14 border-t border-line pt-6 text-sm text-muted">
-          {report ? `Counts from the settler's pass ${ago(report.updatedAt)}.` : "The settler has not published a report yet; it passes every ten minutes."} Money
+          {report ? `Counts from Earnout's check ${ago(report.updatedAt)}.` : "Earnout has not checked this campaign yet; it checks every ten minutes."} Money
           read from Solana devnet just now. Amounts are a devnet test token standing in for USDC.
         </p>
       </main>

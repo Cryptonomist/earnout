@@ -32,7 +32,7 @@ export default function OpengraphImage() {
               Pay for users who stay.
             </div>
             <div style={{ fontSize: 30, color: MUTED, marginTop: 28, lineHeight: 1.35 }}>
-              On-chain attribution for Solana. Pay only for wallets that are still there when the window closes.
+              Creator marketing on Solana. Pay only for users who join and are still there later.
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 24, color: MUTED }}>earnout.dev</div>
@@ -50,13 +50,13 @@ export default function OpengraphImage() {
             boxShadow: "0 20px 40px rgba(22,21,15,0.15)",
           }}
         >
-          <div style={{ display: "flex", fontSize: 20, color: MUTED, letterSpacing: 4 }}>SETTLEMENT RECEIPT</div>
+          <div style={{ display: "flex", fontSize: 20, color: MUTED, letterSpacing: 4 }}>PAYOUT RECEIPT</div>
           <div style={{ display: "flex", height: 16 }} />
-          {row("Wallets tagged", "412")}
-          {row("Gone by day 30", "-225", UNPAID)}
-          {row("One cluster", "-41", UNPAID)}
+          {row("Users sent", "412")}
+          {row("Left by day 30", "-225", UNPAID)}
+          {row("Flagged as bots", "-41", UNPAID)}
           <div style={{ display: "flex", height: 2, background: "#e0dbcd", margin: "12px 0" }} />
-          {row("Qualified", "146")}
+          {row("Stayed", "146")}
           <div
             style={{
               display: "flex",

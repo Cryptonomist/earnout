@@ -15,7 +15,7 @@ export function Countdown({ endsAt }: { endsAt: number }) {
   if (left === 0) {
     return (
       <p className="mt-6 rounded-xl bg-paid-soft px-4 py-3 text-sm leading-6 text-paid">
-        Your window has closed. The settler&apos;s next pass decides, and the creator&apos;s receipt updates on the dashboard.
+        Your stay period has ended. Earnout&apos;s next check decides, and the creator&apos;s receipt updates on the dashboard.
       </p>
     );
   }
@@ -23,7 +23,7 @@ export function Countdown({ endsAt }: { endsAt: number }) {
   const s = Math.floor((left % 60_000) / 1000);
   return (
     <p className="mt-6 rounded-xl border border-line px-4 py-3 text-sm leading-6" aria-live="off">
-      Your window closes in <span className="font-mono text-base tabular-nums">{m}:{String(s).padStart(2, "0")}</span>. Keep at
+      Your stay period ends in <span className="font-mono text-base tabular-nums">{m}:{String(s).padStart(2, "0")}</span>. Keep at
       least 0.005 SOL in the wallet until then and you count as stayed.
     </p>
   );

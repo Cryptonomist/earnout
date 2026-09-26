@@ -80,8 +80,8 @@ export function DemoTag({ slugs }: { slugs: string[] }) {
             </a>
           </Row>
           <Row label="Reference">{short(tag.reference)}</Row>
-          <Row label="Channel">
-            <span className="text-muted">sealed: only the campaign can read it</span>
+          <Row label="Creator">
+            <span className="text-muted">sealed: only the project can read it</span>
           </Row>
           <Row label="Kept">{new Date(savedAt * 1000).toLocaleString()}</Row>
           <Row label="Lapses">{new Date(expiresAt * 1000).toLocaleString()}</Row>
@@ -139,7 +139,7 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
   const [depositedAt] = useState(() => Date.now());
   const checks: [boolean, string][] = [
     [true, "The deposit confirmed on devnet, with the tag inside it."],
-    [result.foundByReference, "Found on chain by its reference alone, the settler's first lookup."],
+    [result.foundByReference, "Found on chain by its reference alone, the way Earnout finds it."],
     [result.signedByIdentity, "Its memo carries a valid signature from the Earnout identity."],
     [true, "The tag was cleared from this device. A reference only ever counts once."],
   ];
@@ -177,10 +177,10 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
 
       <Countdown endsAt={depositedAt + DEMO.retentionMinutes * 60_000} />
       <p className="mt-6 leading-7 text-muted">
-        Next, the retention window: {DEMO.retentionMinutes} minutes for this demo, 30 days or more in a real campaign. When
-        it closes, the settler checks this wallet is still active and not part of a bot cluster. If it passes, the creator
-        whose link you used is owed {DEMO.payout} test tokens, settled on-chain for them to claim. If it does not, they get
-        nothing and the budget stays with the campaign.
+        Next, the stay period: {DEMO.retentionMinutes} minutes for this demo, days or weeks in a real campaign. When it
+        ends, Earnout checks this wallet is still active and not part of a bot farm. If it passes, the creator whose link
+        you used is owed {DEMO.payout} test dollars, paid on-chain for them to claim. If not, they get nothing and the
+        budget stays with the project.
       </p>
       <a
         href={`/dashboard/${tag.campaign}`}

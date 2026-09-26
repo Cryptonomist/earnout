@@ -19,7 +19,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="No warranty">
-          The software is provided as it is, without warranty of any kind. The program and settler may have bugs, and the
+          The software is provided as it is, without warranty of any kind. The program and the checker may have bugs, and the
           service may change, pause or stop.
         </Section>
 
@@ -28,9 +28,9 @@ export default function TermsPage() {
           Anyone with access to your browser can use it, and it is lost if you clear your browser&apos;s data.
         </Section>
 
-        <Section title="Creators and advertisers">
-          A creator is paid only for conversions the settler qualifies under a campaign&apos;s published rules; wallets that
-          leave before the retention window closes, or that look like one cluster, are not paid for. Paid partnerships made
+        <Section title="Creators and projects">
+          A creator is paid only for users Earnout counts under a campaign&apos;s published rules; users who
+          leave before the stay period ends, or look like a bot farm, are not paid for. Paid partnerships made
           through Earnout are disclosed as such, and creators remain responsible for following the disclosure rules where
           they post.
         </Section>

@@ -44,21 +44,20 @@ export default async function DisclosurePage({ params }: Params) {
             </>
           ) : (
             <>
-              The <span className="font-mono">{slug}</span> channel sent you here.
+              The <span className="font-mono">{slug}</span> link sent you here.
             </>
           )}
         </h1>
         <p className="mt-4 leading-7 text-muted">
           {chain ? (
             <>
-              {handle ? "They are" : "It is"} paid by {name} only if you stay: {money(chain.payout, chain.decimals)} for each user
-              who is still there {duration(chain.retentionSecs)} later. Nothing is paid for a click, a visit, or a sign-up
-              that leaves.
+              {name} pays {handle ? "them" : "for it"} only if you stay: {money(chain.payout, chain.decimals)} for each user still
+              active {duration(chain.retentionSecs)} later. Nothing for a click, a visit, or a sign-up that leaves.
             </>
           ) : (
             <>
-              {handle ? "They are" : "It is"} paid by {name} only for users who stay. Nothing is paid for a click, a visit, or
-              a sign-up that leaves.
+              {name} pays {handle ? "them" : "for it"} only for users who stay. Nothing for a click, a visit, or a sign-up that
+              leaves.
             </>
           )}
         </p>
@@ -73,7 +72,7 @@ export default async function DisclosurePage({ params }: Params) {
                 <span className="text-paid">verified X</span>
               </>
             ) : (
-              <span className="text-muted">demo channel, unverified</span>
+              <span className="text-muted">demo link, unverified</span>
             )}
           </Row>
           <Row label="Paid by">{name}</Row>
@@ -94,8 +93,8 @@ export default async function DisclosurePage({ params }: Params) {
         </a>
 
         <p className="mt-6 text-sm leading-6 text-muted">
-          Every Earnout link says who is paid and for what before you decide. Your wallet is never linked to the creator on
-          chain; only the campaign can read which link you used.{" "}
+          Every Earnout link says who is paid, and for what, before you decide. Your wallet is never tied to the creator
+          on-chain. Only the project can see which link you used.{" "}
           <Link href="/" className="underline decoration-line underline-offset-2 hover:text-ink">
             About Earnout
           </Link>

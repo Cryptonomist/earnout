@@ -10,7 +10,7 @@ import { CLUSTER } from "@/server/registry";
 
 export const metadata: Metadata = {
   title: "Start a campaign",
-  description: "Create an Earnout campaign on devnet: set the price per user who stays, fund the vault, and add verified creators by X handle.",
+  description: "Create an Earnout campaign on devnet: set the price per user who stays, fund it, and add creators by X handle.",
 };
 
 export const dynamic = "force-dynamic";
@@ -34,9 +34,8 @@ export default async function NewCampaignPage() {
           Start a campaign <span className="font-serif font-normal italic">on results.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-          Say what you pay for and what &ldquo;stayed&rdquo; means, fund the vault, and add creators by their X handle. The rules
-          are hashed into the transaction that creates the campaign, so nobody, including you, can change them once a creator
-          starts sending people. Devnet, with test dollars from the faucet.
+          Set the price per user, how long they must stay, and the budget. Add creators by X handle. Sign once, and the
+          rules are locked on-chain, for you too. Devnet, with test dollars from the faucet.
         </p>
         <NewCampaign identity={identity} settler={settlerAddress(CLUSTER)} mint={TEST_USD.mint} decimals={TEST_USD.decimals} reason={reason} />
       </main>

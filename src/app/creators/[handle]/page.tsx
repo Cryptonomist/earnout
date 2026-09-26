@@ -42,18 +42,18 @@ export default async function CreatorScorecard({ params }: Params) {
           </a>
         </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          {card.campaigns} campaign{card.campaigns === 1 ? "" : "s"} on Earnout. Every number here is the settler&apos;s
-          count or the chain&apos;s; none of it can be edited, and it stays with this X account whatever wallet it pays to.
+          {card.campaigns} campaign{card.campaigns === 1 ? "" : "s"} on Earnout. Every number here comes from Earnout&apos;s
+          checks or the chain. None of it can be edited, and it stays with this X account whatever wallet it pays to.
         </p>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Record">
-          <StatTile label="Users sent" value={String(card.tagged)} note={card.pending ? `${card.pending} still in their window` : "Tagged conversions"} />
-          <StatTile label="Stayed and paid for" value={String(card.stayed)} note="Settled on chain" />
-          <StatTile label="Stay rate" value={pct(card.stayRate)} note="Of users whose window has closed" />
+          <StatTile label="Users sent" value={String(card.tagged)} note={card.pending ? `${card.pending} still in the stay period` : "Through their links"} />
+          <StatTile label="Stayed and paid for" value={String(card.stayed)} note="Paid on-chain" />
+          <StatTile label="Stay rate" value={pct(card.stayRate)} note="Of users past the stay period" />
           <StatTile
             label="Flagged"
             value={String(card.flagged)}
-            note={card.flagRate === null ? "Bot clusters, self-referrals" : `${pct(card.flagRate)} of decided users`}
+            note={card.flagRate === null ? "Bot farms, self-referrals" : `${pct(card.flagRate)} of decided users`}
           />
         </section>
 
@@ -61,7 +61,7 @@ export default async function CreatorScorecard({ params }: Params) {
           <section className="mt-6 grid gap-4 sm:grid-cols-3">
             <StatTile label="Earned" value={m(card.earned, card.decimals)} note="Across all campaigns" />
             <StatTile label="Claimed" value={m(card.claimed ?? 0n, card.decimals)} />
-            <StatTile label="Gone before the window closed" value={String(card.gone)} note="Not paid for" />
+            <StatTile label="Left early" value={String(card.gone)} note="Not paid for" />
           </section>
         )}
 

@@ -108,7 +108,7 @@ const EMPTY: Form = {
  * funds demo wallets is listed so the cluster check ignores it. */
 const DEMO_PRESET: Partial<Form> = {
   name: "My demo campaign",
-  description: "A pretend DeFi app on devnet. A conversion is a 0.01 SOL deposit into its treasury; a wallet stays if it still holds 0.005 SOL ten minutes later.",
+  description: "A pretend DeFi app on devnet. A user counts when they deposit 0.01 SOL into its treasury, and has stayed if they still hold 0.005 SOL ten minutes later.",
   destination: "/demo",
   convKind: "sol-transfer",
   convTo: DEMO.treasury,
@@ -217,7 +217,7 @@ export function NewCampaign(p: Props) {
 
         <Card n={2} title="What you pay for">
           <fieldset>
-            <legend className="text-sm text-muted">A conversion is when a wallet...</legend>
+            <legend className="text-sm text-muted">A new user counts when they...</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <Choice on={form.convKind === "sol-transfer"} onClick={() => set("convKind", "sol-transfer")} title="Deposits SOL" text="Sends at least this much SOL to your treasury" />
               <Choice on={form.convKind === "program"} onClick={() => set("convKind", "program")} title="Uses your program" text="Makes any transaction with your program" />
@@ -239,7 +239,7 @@ export function NewCampaign(p: Props) {
           )}
 
           <fieldset className="mt-6">
-            <legend className="text-sm text-muted">...and it has stayed if, when the window closes, it...</legend>
+            <legend className="text-sm text-muted">...and they have stayed if, after the stay period, they...</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               <Choice on={form.retKind === "sol-balance"} onClick={() => set("retKind", "sol-balance")} title="Still holds SOL" text="Did not drain the wallet" />
               <Choice on={form.retKind === "token-balance"} onClick={() => set("retKind", "token-balance")} title="Still holds a token" text="Kept a position or receipt" />
@@ -273,7 +273,7 @@ export function NewCampaign(p: Props) {
           )}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <Field label="The window" hint="How long a wallet must stay">
+            <Field label="They must stay for" hint="The stay period">
               <select value={form.retentionSecs} onChange={(e) => set("retentionSecs", Number(e.target.value))} className={INPUT}>
                 {RETENTION_OPTIONS.map(([v, label]) => (
                   <option key={v} value={v}>
@@ -282,10 +282,10 @@ export function NewCampaign(p: Props) {
                 ))}
               </select>
             </Field>
-            <Field label="Campaign runs for" hint="Days conversions count">
+            <Field label="Campaign runs for" hint="Days new users count">
               <input value={form.lengthDays} onChange={(e) => set("lengthDays", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
             </Field>
-            <Field label="A click counts for" hint="Time from click to conversion">
+            <Field label="A link click counts for" hint="Time from click to joining">
               <select value={form.attributionWindowSecs} onChange={(e) => set("attributionWindowSecs", Number(e.target.value))} className={INPUT}>
                 {WINDOW_OPTIONS.map(([v, label]) => (
                   <option key={v} value={v}>
@@ -297,9 +297,9 @@ export function NewCampaign(p: Props) {
           </div>
 
           <details className="mt-6 text-sm">
-            <summary className="cursor-pointer text-muted hover:text-ink">Cluster check</summary>
+            <summary className="cursor-pointer text-muted hover:text-ink">Bot check</summary>
             <div className="mt-3 grid gap-4 sm:grid-cols-[180px_1fr]">
-              <Field label="Wallets per funder" hint="More than this from one quiet source is a farm">
+              <Field label="Users per funder" hint="More than this from one quiet source is a bot farm">
                 <input value={form.maxWallets} onChange={(e) => set("maxWallets", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
               </Field>
               <Field label="Funders to ignore" hint="A faucet you run, one address per line. Each one is a way around the check.">
@@ -333,7 +333,7 @@ export function NewCampaign(p: Props) {
             <Create wallet={connected.wallet} account={connected.account} form={form} rules={checked.rules} payout={payout} budget={budget ?? 0n} problem={problem} {...p} />
           ) : (
             <>
-              <p className="text-sm leading-6 text-muted">The wallet that signs is the advertiser: it funds the vault, adds creators, and gets the refund.</p>
+              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds creators, and gets the refund.</p>
               <ChooseWallet wallets={wallets} />
             </>
           )}
@@ -484,7 +484,7 @@ function Create(
       {phase.kind === "confirming" && <p className="mt-3 font-mono text-xs text-muted">sent {shortAddress(phase.signature)}, waiting for confirmation</p>}
       {phase.kind === "error" && <p className="mt-3 text-sm leading-6 text-unpaid">{phase.message}</p>}
       <p className="mt-4 text-sm leading-6 text-muted">
-        One transaction: create the campaign{p.budget > 0n ? ", fund it" : ""}, and commit to the rules by their hash. The settler is Earnout&apos;s ({shortAddress(p.settler)}); it can only ever pay out of this budget, never more.
+        One transaction: create the campaign{p.budget > 0n ? ", fund it" : ""}, and lock the rules by their hash. Earnout&apos;s checker ({shortAddress(p.settler)}) can only ever pay out of this budget, never more.
       </p>
     </div>
   );
@@ -542,12 +542,12 @@ function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules |
         {rules ? (
           <>
             <p className="mt-2">
-              A conversion is when a wallet {describeConversion(rules.conversion)}. It has stayed if, {duration(form.retentionSecs)} later, it{" "}
+              A user counts when their wallet {describeConversion(rules.conversion)}. They have stayed if, {duration(form.retentionSecs)} later, their wallet{" "}
               {describeRetention(rules.retention)}.
             </p>
             <p className="mt-2 text-muted">
-              A click counts for {duration(rules.attributionWindowSecs)}. More than {rules.sybil.maxWalletsPerFunder} converting wallets funded by one quiet source
-              is a cluster, and none of them is paid for.
+              A link click counts for {duration(rules.attributionWindowSecs)}. More than {rules.sybil.maxWalletsPerFunder} new users funded by one quiet source
+              count as bots, and none of them is paid for.
             </p>
             <p className="mt-3 font-mono text-xs text-muted break-all">rules hash {hash ?? "..."}</p>
             <p className="mt-1 text-sm text-muted">This hash goes into the transaction that creates the campaign. The rules cannot change afterwards.</p>

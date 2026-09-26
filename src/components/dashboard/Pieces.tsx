@@ -33,15 +33,15 @@ export function BudgetMeter(p: {
   const uncommitted = p.funded - p.committed - p.refunded;
   const pct = (n: bigint) => (p.funded > 0n ? Math.max(0, (Number(n) / Number(p.funded)) * 100) : 0);
   const segments = [
-    { key: "claimed", label: "Claimed by channels", value: p.claimed, className: "bg-paid" },
-    { key: "owed", label: "Owed, not yet claimed", value: owed, className: "bg-paid-mid" },
+    { key: "claimed", label: "Claimed by creators", value: p.claimed, className: "bg-paid" },
+    { key: "owed", label: "Earned, not yet claimed", value: owed, className: "bg-paid-mid" },
   ].filter((s) => s.value > 0n);
   const rows: [string, bigint, string][] = [
-    ["Claimed by channels", p.claimed, "bg-paid"],
-    ["Owed, not yet claimed", owed, "bg-paid-mid"],
-    ["Not committed yet", uncommitted, "bg-paid-soft border border-line"],
+    ["Claimed by creators", p.claimed, "bg-paid"],
+    ["Earned, not yet claimed", owed, "bg-paid-mid"],
+    ["Still unspent", uncommitted, "bg-paid-soft border border-line"],
   ];
-  if (p.refunded > 0n) rows.push(["Refunded to the advertiser", p.refunded, "bg-line"]);
+  if (p.refunded > 0n) rows.push(["Refunded to the project", p.refunded, "bg-line"]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
@@ -105,7 +105,7 @@ export function ChannelReceipt({
     <figure className="torn bg-card px-6 pt-6 pb-11 font-mono text-[13px] leading-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.2em] text-muted">CHANNEL {chain.index}</div>
+          <div className="text-[11px] tracking-[0.2em] text-muted">CREATOR {chain.index}</div>
           <div className="text-base font-semibold tracking-tight">{slug ?? `channel ${chain.index}`}</div>
           {chain.handle ? (
             <div className="mt-0.5 text-[12px]">
@@ -125,19 +125,19 @@ export function ChannelReceipt({
       <hr className="rule my-4" />
       {report ? (
         <dl className="space-y-0.5">
-          <Row label="Wallets tagged" value={String(report.tagged)} />
-          <Row label="Waiting out the window" value={String(report.waiting)} />
-          <Row label="Gone before it closed" value={`-${report.gone}`} unpaid={report.gone > 0} />
-          <Row label="Flagged" value={`-${report.flagged}`} unpaid={report.flagged > 0} />
-          {report.otherRejected > 0 && <Row label="Other rejections" value={`-${report.otherRejected}`} unpaid />}
+          <Row label="Users sent" value={String(report.tagged)} />
+          <Row label="Still in the stay period" value={String(report.waiting)} />
+          <Row label="Left early" value={`-${report.gone}`} unpaid={report.gone > 0} />
+          <Row label="Flagged as bots" value={`-${report.flagged}`} unpaid={report.flagged > 0} />
+          {report.otherRejected > 0 && <Row label="Not counted" value={`-${report.otherRejected}`} unpaid />}
         </dl>
       ) : (
-        <p className="text-muted">Tagged, gone and flagged counts appear after the settler&apos;s next pass.</p>
+        <p className="text-muted">Sent, left and flagged counts appear after Earnout&apos;s next check.</p>
       )}
       <hr className="rule my-4" />
       <dl className="space-y-0.5">
-        <Row label="Stayed, settled on chain" value={String(chain.conversions)} strong />
-        {report && report.qualified > 0 && <Row label="Qualified, settling next" value={String(report.qualified)} />}
+        <Row label="Stayed, paid on-chain" value={String(chain.conversions)} strong />
+        {report && report.qualified > 0 && <Row label="Stayed, paying next" value={String(report.qualified)} />}
         <Row label="x price per user" value={money(payout, decimals)} />
       </dl>
       <div className="mt-4 flex items-baseline justify-between rounded-sm bg-paid-soft px-2 py-1.5 text-paid">
@@ -147,12 +147,12 @@ export function ChannelReceipt({
       <dl className="mt-1.5 space-y-0.5 px-2">
         <Row label="Claimed" value={money(chain.claimed, decimals)} />
         <Row label="Claimable now" value={money(claimable, decimals)} strong={claimable > 0n} />
-        {report && notPaid > 0 && <Row label={`Not paid, ${notPaid} wallet${notPaid === 1 ? "" : "s"}`} value={money(BigInt(notPaid) * payout, decimals)} unpaid />}
+        {report && notPaid > 0 && <Row label={`Not paid, ${notPaid} user${notPaid === 1 ? "" : "s"}`} value={money(BigInt(notPaid) * payout, decimals)} unpaid />}
       </dl>
       <hr className="rule my-4" />
       <dl className="space-y-0.5 text-[11px] text-muted">
-        <Row label="Batches settled" value={String(chain.batches)} />
-        <Row label="Latest evidence root" value={chain.batches ? `${chain.evidence.slice(0, 6)}...${chain.evidence.slice(-4)}` : "none yet"} />
+        <Row label="Payouts" value={String(chain.batches)} />
+        <Row label="Latest proof" value={chain.batches ? `${chain.evidence.slice(0, 6)}...${chain.evidence.slice(-4)}` : "none yet"} />
       </dl>
       {showCreatorLink && slug && (
         <Link href={`/c/${slug}`} className="mt-4 inline-block font-sans text-sm underline decoration-line underline-offset-4 hover:decoration-ink">

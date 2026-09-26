@@ -31,8 +31,8 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          Each campaign pays its channels only for wallets that stayed. Money is read from Solana; the counts come from the
-          settler&apos;s latest pass. Public while Earnout runs on devnet.
+          Each campaign pays its creators only for users who stayed. Money is read live from Solana; the counts come from
+          Earnout&apos;s latest check. Public while Earnout runs on devnet.
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
@@ -53,11 +53,11 @@ export default async function DashboardPage() {
                   <>
                     <p className="mt-2 text-sm leading-6 text-muted">
                       {money(chain.payout, chain.decimals)} per user who stays {duration(chain.retentionSecs)} ·{" "}
-                      {chain.channels.length} channel{chain.channels.length === 1 ? "" : "s"}
+                      {chain.channels.length} creator{chain.channels.length === 1 ? "" : "s"}
                     </p>
                     <dl className="mt-6 grid grid-cols-3 gap-4">
-                      <Figure label="Funded" value={money(chain.funded, chain.decimals)} />
-                      <Figure label="Paid to channels" value={money(chain.committed, chain.decimals)} />
+                      <Figure label="Budget" value={money(chain.funded, chain.decimals)} />
+                      <Figure label="Paid to creators" value={money(chain.committed, chain.decimals)} />
                       <Figure label="Users who stayed" value={String(settled)} />
                     </dl>
                   </>
@@ -66,8 +66,8 @@ export default async function DashboardPage() {
                 )}
                 <p className="mt-6 text-xs text-muted">
                   {report
-                    ? `${tagged} wallet${tagged === 1 ? "" : "s"} tagged · settler last ran ${ago(report.updatedAt)}`
-                    : "No settler report yet"}
+                    ? `${tagged} user${tagged === 1 ? "" : "s"} sent · checked ${ago(report.updatedAt)}`
+                    : "Not checked yet"}
                 </p>
               </Link>
             );

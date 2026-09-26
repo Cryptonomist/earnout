@@ -104,7 +104,7 @@ function Claim(p: Props & { wallet: UiWallet; account: UiWalletAccount }) {
 
       {!isPayee ? (
         <p className="mt-4 leading-7">
-          This wallet is not the channel&apos;s payout wallet. Connect <span className="font-mono">{shortAddress(p.payee)}</span> to
+          This wallet is not the creator&apos;s payout wallet. Connect <span className="font-mono">{shortAddress(p.payee)}</span> to
           claim.
         </p>
       ) : state.kind === "done" ? (

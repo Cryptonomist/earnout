@@ -5,45 +5,50 @@ import { SiteFooter, SiteHeader } from "@/components/SiteShell";
 import { Receipt } from "@/components/Receipt";
 import { SITE, STATS } from "@/lib/site";
 
+/* The whole site speaks one small vocabulary: a project pays, a creator
+ * shares a link, a user joins through it, and if the user stays Earnout
+ * pays the creator. One scene, short sentences. The mechanism lives in the
+ * developer section and the docs, not up here. */
+
 const STEPS = [
   {
-    title: "Fund a campaign",
-    body: "Set a price per user, a retention window and an end date. The budget sits in an on-chain vault that only the program can move.",
+    title: "Set the deal",
+    body: "Say $5 for each new user who is still active after 7 days. Lock the budget in a Solana program.",
   },
   {
-    title: "Hand out links",
-    body: "Every creator, newsletter or partner app gets its own. Each click mints a single-use reference signed by your campaign.",
+    title: "Give each creator a link",
+    body: "Every link tells the visitor who is paid, and for what, before they continue.",
   },
   {
-    title: "Tag the conversion",
-    body: "The user's deposit, swap or mint carries that reference: a standard Solana Actions memo, plus a tag that can never make the transaction fail.",
+    title: "The user's first deposit carries the tag",
+    body: "That is how Earnout knows which creator sent them. The tag can never break the deposit.",
   },
   {
-    title: "Pay for who stayed",
-    body: "When the window closes, wallets still active and not part of a bot cluster are settled on-chain. Channels claim. The rest comes back to you.",
+    title: "Pay only for who stayed",
+    body: "After 7 days, Earnout checks who is still active and pays their creators on-chain. Unspent budget comes back to you.",
   },
 ];
 
 const GUARANTEES = [
-  "A settlement pays exactly conversions times your price, never more than the budget left.",
-  "Batches are numbered, so the same conversions cannot be paid twice.",
-  "Nothing settles after your deadline. Nothing refunds before it.",
-  "Money leaves the vault two ways: to a channel that earned it, or back to you.",
-  "No admin key, no protocol fee, no sweep.",
+  "A payout is always users who stayed times your price. Never more than the budget.",
+  "Nobody can be paid twice for the same user.",
+  "No payouts after your deadline. No refunds before it.",
+  "Money leaves two ways: to a creator who earned it, or back to you.",
+  "No admin key. No fee. Open source.",
 ];
 
 const PROBLEMS = [
   {
-    title: "Tracking dies at the wallet.",
-    body: "Link tracking breaks the moment a user connects a wallet or jumps to a mobile app, and the deposit itself happens in a DEX or a wallet, not on your site.",
+    title: "Clicks are not users.",
+    body: "Tracking stops at the wallet. The deposit happens somewhere you cannot see.",
   },
   {
-    title: "Rewards pay the people who leave.",
-    body: "Airdrops and points pay out when someone claims, not when they stay. Farmers claim, sell and move on to the next one.",
+    title: "Airdrops pay the leavers.",
+    body: "Rewards pay out on claim day. Farmers claim, sell, and move on.",
   },
   {
-    title: "Creators get paid per post.",
-    body: "Flat fees, rarely disclosed, with no way to see whose audience actually converted, or whether any of it stuck.",
+    title: "Creators are paid per post.",
+    body: "A flat fee, often undisclosed. Nobody knows whose audience stayed.",
   },
 ];
 
@@ -76,23 +81,23 @@ function Hero() {
   return (
     <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
-        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">ON-CHAIN ATTRIBUTION FOR SOLANA</p>
+        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">CREATOR MARKETING ON SOLANA</p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
           Pay for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Give every creator, newsletter and partner app its own link. Earnout tags the transactions they bring, waits out
-          your retention window, and pays only for wallets that are still there. Whatever nobody earned comes back to you.
+          Every creator gets a link. You pay for each user who joins through it and is still active a week later. Nothing
+          for clicks. Nothing for users who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
           <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
-            Try the live demo
+            Try the demo
           </a>
-          <a href="/dashboard" className="rounded-full border border-line px-6 py-3 font-medium transition-colors hover:border-ink">
-            See a live campaign
+          <a href="/dashboard/new" className="rounded-full border border-line px-6 py-3 font-medium transition-colors hover:border-ink">
+            Start a campaign
           </a>
         </div>
-        <p className="rise rise-4 mt-4 text-sm text-muted">Three clicks, no wallet needed. Every link discloses who is paid.</p>
+        <p className="rise rise-4 mt-4 text-sm text-muted">Live on Solana devnet. Three clicks, no wallet needed.</p>
       </div>
       <div className="rise rise-3 lift">
         <Receipt />
@@ -123,7 +128,7 @@ function Stats() {
 
 function Problem() {
   return (
-    <Section eyebrow="The problem" title="Crypto marketing pays for attention. Nobody can prove it paid for users.">
+    <Section eyebrow="The problem" title="Today, projects pay for attention and hope users follow.">
       <div className="grid gap-8 md:grid-cols-3">
         {PROBLEMS.map((p) => (
           <div key={p.title} className="border-t border-ink pt-5">
@@ -138,7 +143,7 @@ function Problem() {
 
 function HowItWorks() {
   return (
-    <Section id="how" eyebrow="How it works" title="A budget that only pays for results you can check.">
+    <Section id="how" eyebrow="How it works" title="Four steps. One rule: no stay, no pay.">
       <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (
           <li key={s.title} className="rounded-xl border border-line bg-card p-6">
@@ -154,7 +159,7 @@ function HowItWorks() {
 
 function Numbers() {
   return (
-    <Section eyebrow="Run your numbers" title="What a retention window is worth.">
+    <Section eyebrow="Run your numbers" title="What changes when you pay for who stayed.">
       <div className="rounded-2xl border border-line p-6 sm:p-8">
         <Calculator />
       </div>
@@ -164,25 +169,25 @@ function Numbers() {
 
 function Sides() {
   return (
-    <Section id="creators" eyebrow="Both sides of the deal" title="Fair to the people paying and the people sending.">
+    <Section id="creators" eyebrow="Both sides of the deal" title="Fair to the ones paying and the ones sending.">
       <div className="grid gap-4 md:grid-cols-2">
         <Side
           who="For projects"
           points={[
-            "See which channel worked, per wallet, not per click.",
-            "Pay per user who stayed, at a price you set.",
-            "Unspent budget comes back after the deadline, automatically.",
-            "Every paid conversion comes with evidence you can check on-chain.",
+            "See which creator brought each user.",
+            "Pay per user who stayed, at your price.",
+            "Unspent budget comes back on its own.",
+            "Every payout has proof on-chain.",
           ]}
           cta={{ href: "/dashboard/new", label: "Start a campaign" }}
         />
         <Side
-          who="For creators and partners"
+          who="For creators"
           points={[
-            "Get paid on results from a vault that is already funded.",
-            "No invoices and no chasing: claim straight from the program.",
-            "Your audience stays private. The chain cannot link wallets to you.",
-            "Your X account is your name on every receipt: a record that follows you.",
+            "Get paid from a budget that is already locked.",
+            "No invoices. Claim straight from the program.",
+            "Your audience stays private.",
+            "Your X account is your record. It follows you, wallet to wallet.",
           ]}
           cta={{ href: "/creators", label: "Link your X account" }}
         />
@@ -228,14 +233,12 @@ function Trust() {
         </ul>
         <div className="space-y-6 leading-7 text-muted">
           <p>
-            <strong className="font-semibold text-ink">Sealed channels.</strong> Each link&apos;s reference is encrypted, and
-            only your campaign can open it. The chain shows that a wallet converted, never who sent it. Under EU guidance
-            wallet addresses can be personal data, so Earnout never publishes that link.
+            <strong className="font-semibold text-ink">Private by design.</strong> The chain shows that a user joined, not
+            which creator sent them. Only the project can see that.
           </p>
           <p>
-            <strong className="font-semibold text-ink">Honest about trust.</strong> A settler decides which wallets
-            qualified. The program holds it to your budget and your deadline, and every batch ships with evidence you can
-            check against the chain, so overcounting gets caught.
+            <strong className="font-semibold text-ink">Honest about trust.</strong> Earnout does the counting. The program
+            holds it to your budget and your deadline, and every payout comes with evidence anyone can check.
           </p>
           <p>
             <a href={SITE.github} className="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
@@ -265,18 +268,14 @@ clearTag();`;
 
 function Developers() {
   return (
-    <Section id="developers" eyebrow="For developers" title="Two instructions on the transaction you already send.">
+    <Section id="developers" eyebrow="For developers" title="Two instructions on a transaction you already send.">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div className="space-y-5 leading-7 text-muted">
           <p>
-            Earnout follows the Solana Actions spec for Action Identity, so any Actions indexer can read its tags. Our SDK is
-            checked against the official <code className="font-mono text-sm text-ink">@solana/actions</code> package in
-            both directions.
+            Earnout follows the Solana Actions spec, so any Actions indexer can read its tags. The SDK is checked against
+            the official <code className="font-mono text-sm text-ink">@solana/actions</code> package both ways.
           </p>
-          <p>
-            The tag reads nothing and writes nothing. A stale link, a closed campaign or a typo can never break your user&apos;s
-            transaction.
-          </p>
+          <p>The tag reads nothing and writes nothing. It can never break a user&apos;s transaction.</p>
         </div>
         {/* Code stays dark in both themes, like an editor. */}
         <pre className="overflow-x-auto rounded-2xl border border-line bg-[#16150f] p-6 font-mono text-[13px] leading-6 text-[#edebe3]">
@@ -295,8 +294,7 @@ function Closing() {
           Run your next campaign <span className="font-serif font-normal italic">on results.</span>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-8 opacity-75">
-          Create a campaign on devnet in a few minutes, with test dollars from the faucet. Or talk to us about a pilot on
-          mainnet.
+          Create one on devnet in minutes, with test dollars. Or talk to us about mainnet.
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <a href="/dashboard/new" className="rounded-full bg-paper px-6 py-3 font-medium text-ink hover:opacity-90">

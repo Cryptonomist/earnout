@@ -257,7 +257,7 @@ function Channels({ rows, linked }: { rows: ChannelRow[] | null; linked: boolean
   if (rows === null) return null;
   return (
     <div className="mt-6 border-t border-line pt-5">
-      <h3 className="font-semibold tracking-tight">Your channels</h3>
+      <h3 className="font-semibold tracking-tight">Your links</h3>
       {rows.length ? (
         <ul className="mt-3 space-y-2 text-sm">
           {rows.map((r) => (
@@ -268,7 +268,7 @@ function Channels({ rows, linked }: { rows: ChannelRow[] | null; linked: boolean
                     /r/{r.slug}
                   </Link>
                 ) : (
-                  <span className="font-mono">channel</span>
+                  <span className="font-mono">link</span>
                 )}{" "}
                 <span className="text-muted">in {r.campaignName}</span>
               </span>

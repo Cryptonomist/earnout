@@ -28,9 +28,9 @@ export function Calculator() {
     <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
       <div className="space-y-6">
         <Slider label="Campaign budget" value={budget} display={usd(budget)} min={1_000} max={100_000} step={1_000} onChange={setBudget} />
-        <Slider label="Wallets your channels bring" value={wallets} display={num(wallets)} min={100} max={20_000} step={100} onChange={setWallets} />
-        <Slider label="Still active when the window closes" value={stay} display={`${stay}%`} min={1} max={100} step={1} onChange={setStay} />
-        <Slider label="Price you set per user who stayed" value={price} display={usd(price)} min={1} max={100} step={1} onChange={setPrice} />
+        <Slider label="Users your creators bring" value={wallets} display={num(wallets)} min={100} max={20_000} step={100} onChange={setWallets} />
+        <Slider label="Still active after the stay period" value={stay} display={`${stay}%`} min={1} max={100} step={1} onChange={setStay} />
+        <Slider label="Your price per user who stayed" value={price} display={usd(price)} min={1} max={100} step={1} onChange={setPrice} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -61,8 +61,8 @@ export function Calculator() {
             : `Here paying up front comes out cheaper, but only because you already knew ${stay}% would stay. An up-front deal is a bet on that number; Earnout pays for the result.`}
         </p>
         <p className="text-sm leading-6 text-muted sm:col-span-2">
-          Illustrative. Nothing here changes who shows up or who stays; it changes what you pay for. The price per user is
-          yours to set, and channels see it before they send anyone.
+          An illustration. Nothing here changes who shows up or who stays, only what you pay for. You set the price per
+          user, and creators see it before they send anyone.
         </p>
       </div>
     </div>
