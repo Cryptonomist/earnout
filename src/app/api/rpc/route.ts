@@ -14,6 +14,7 @@ const ALLOWED = new Set([
   "getLatestBlockhash",
   "getSignatureStatuses",
   "getSignaturesForAddress",
+  "getTokenAccountBalance",
   "getTransaction",
   "sendTransaction",
 ]);
