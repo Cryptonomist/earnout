@@ -1,10 +1,72 @@
 /* Browser-side chain access, all through /api/rpc so no key reaches a page,
  * and the small helpers every wallet flow on the site needs. */
 
-import { createSolanaRpc, type Signature } from "@solana/kit";
+import {
+  appendTransactionMessageInstructions,
+  createSolanaRpc,
+  createTransactionMessage,
+  getBase64EncodedWireTransaction,
+  getBase64Encoder,
+  getSignatureFromTransaction,
+  pipe,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
+  signTransactionMessageWithSigners,
+  type Address,
+  type Instruction,
+  type Signature,
+  type TransactionSigner,
+} from "@solana/kit";
+import { ataAddress } from "../../sdk/program";
 
 export const rpc = () => createSolanaRpc(new URL("/api/rpc", location.origin).toString());
 export type BrowserRpc = ReturnType<typeof rpc>;
+
+/** Build, sign and send one transaction of `ixs`, paid by `signer`, and
+ * wait for it. `onSent` gets the signature as soon as the wallet has signed. */
+export async function sendInstructions(
+  client: BrowserRpc,
+  signer: TransactionSigner,
+  ixs: Instruction[],
+  onSent?: (signature: string) => void,
+): Promise<string> {
+  const { value: blockhash } = await client.getLatestBlockhash({ commitment: "confirmed" }).send();
+  const signed = await signTransactionMessageWithSigners(
+    pipe(
+      createTransactionMessage({ version: 0 }),
+      (m) => setTransactionMessageFeePayerSigner(signer, m),
+      (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+      (m) => appendTransactionMessageInstructions(ixs, m),
+    ),
+  );
+  const signature = getSignatureFromTransaction(signed);
+  onSent?.(signature);
+  await client.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: "base64", preflightCommitment: "confirmed" }).send();
+  await confirmSignature(client, signature);
+  return signature;
+}
+
+/** A wallet's balance of a token, in base units; 0 when it has no account. */
+export async function tokenBalance(client: BrowserRpc, owner: Address, mint: Address): Promise<bigint> {
+  try {
+    const { value } = await client.getTokenAccountBalance(await ataAddress(owner, mint), { commitment: "confirmed" }).send();
+    return BigInt(value.amount);
+  } catch {
+    return 0n;
+  }
+}
+
+/** A mint's decimals, or null if there is no mint at that address. */
+export async function mintDecimals(client: BrowserRpc, mint: Address): Promise<number | null> {
+  try {
+    const { value } = await client.getAccountInfo(mint, { encoding: "base64", commitment: "confirmed" }).send();
+    if (!value) return null;
+    const data = getBase64Encoder().encode(value.data[0]) as Uint8Array;
+    return data.length >= 45 ? data[44] : null;
+  } catch {
+    return null;
+  }
+}
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const shortAddress = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
@@ -35,5 +97,8 @@ export function describeError(e: unknown): string {
   }
   if (/blockhash/i.test(text)) return "That took too long and the transaction expired. Try again.";
   if (/429|too many/i.test(text)) return "Devnet is rate-limiting right now. Wait a few seconds and try again.";
+  // Anchor logs its own sentence for a program error; that beats a hex code.
+  const program = /Error Message: ([^."\n\\]+)/.exec(text);
+  if (program) return `${program[1].trim()}.`;
   return err?.message ?? "Something went wrong. Try again.";
 }

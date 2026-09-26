@@ -15,7 +15,9 @@ with, what lives on chain and what does not, and why.
 | Settler (`settler/`, `scripts/settle.ts`) | GitHub Actions, every ten minutes | Finds tagged transactions, screens them, waits out retention, flags clusters, settles batches on chain, publishes counts. |
 | Dashboard and records (`src/app/dashboard`, `src/app/creators`) | Vercel | Money read live from the chain; counts from the settler's published report; scorecards grouped by X account. |
 | Creator hub (`src/app/creators`, `src/app/api/x`) | Vercel | Sign in with X, then link that account to a wallet under two signatures. |
-| State | Supabase | The settler's private ledger (service role only) and its public report (counts only). |
+| Advertiser hub (`src/app/dashboard/new`, `src/components/advertiser`) | Vercel | Create a campaign, fund it, add creators by X handle, refund. Every action is the advertiser's own signature. |
+| Registry (`src/server/registry.ts`, `settler/registry.ts`) | The repo and Supabase | Which campaigns exist, their rules, and which slug is which channel: the pilots in a file, dashboard campaigns in `campaigns` and `links`. |
+| State | Supabase | The settler's private ledger (service role only), its public report (counts only), and the registry rows (public to read, written only from the advertiser's transactions). |
 
 ## One conversion, start to finish
 
@@ -73,10 +75,28 @@ the trust: money is enforced, judgement is auditable.
 | Settler key | GitHub Actions | Settle batches for campaigns that name it. Holds a little devnet SOL for fees. |
 | Advertiser wallet | The advertiser | Create and fund campaigns, add channels, refund after the deadline. |
 | Payee wallet | The creator | Claim, move payouts to another wallet linked to the same X account, unlink. |
+| Supabase secret key | The site (registry rows) and the settler (ledger, report) | Write the registry and the ledger. The site writes a row only from a confirmed transaction the advertiser paid for. |
 
 Trust is per campaign: a campaign names its identity and its settler, and
 trusts only X links its own identity vouched for. Nothing is global, so
 nothing global can be captured.
+
+## Rules, committed on chain
+
+What counts as a conversion and what "stayed" means depend on the partner's
+product, so they live off chain, in the registry. To keep them honest, the
+advertiser commits to them on chain: the transaction that creates a campaign
+from the dashboard carries a memo with the SHA-256 of the rules' canonical
+form (`src/lib/rules.ts`: keys sorted, amounts as base-unit strings), and
+adding a creator carries a memo naming the campaign, the channel and its
+slug. The site records a campaign or a link only when the transaction is
+confirmed, was paid for by the campaign's advertiser, and carries the
+matching memo (`src/server/campaign-registry.ts`). The settler trusts a row
+only while its rules still hash to the committed hash (`settler/registry.ts`),
+so a changed row is ignored rather than obeyed. Rules are final; a campaign
+whose terms could change after creators started sending people would not
+have terms. Anyone can recompute the hash from a campaign page and check it
+against the transaction linked there.
 
 ## On chain, off chain, and why
 
@@ -119,6 +139,10 @@ be sent again, unchanged. A crash mid-send cannot pay anyone twice.
   sealed X profile and the half-signed link transaction, the faucet's
   limits, scorecard aggregation, and what people are told when devnet says
   no.
+- `tests/rules.test.ts`, `tests/campaign-registry.test.ts`,
+  `tests/settler-registry.test.ts`: the rules' validation, canonical form
+  and memos; what earns a registry row and what is refused; and that the
+  settler skips a row whose rules no longer match their committed hash.
 
 `scripts/devnet-smoke.ts` runs one campaign end to end against the deployed
 program.

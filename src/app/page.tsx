@@ -174,6 +174,7 @@ function Sides() {
             "Unspent budget comes back after the deadline, automatically.",
             "Every paid conversion comes with evidence you can check on-chain.",
           ]}
+          cta={{ href: "/dashboard/new", label: "Start a campaign" }}
         />
         <Side
           who="For creators and partners"
@@ -294,14 +295,15 @@ function Closing() {
           Run your next campaign <span className="font-serif font-normal italic">on results.</span>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-8 opacity-75">
-          We are onboarding a small number of Solana projects and creators for the first pilots.
+          Create a campaign on devnet in a few minutes, with test dollars from the faucet. Or talk to us about a pilot on
+          mainnet.
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <a href={SITE.contact} className="rounded-full bg-paper px-6 py-3 font-medium text-ink hover:opacity-90">
-            Run a pilot
+          <a href="/dashboard/new" className="rounded-full bg-paper px-6 py-3 font-medium text-ink hover:opacity-90">
+            Start a campaign
           </a>
-          <a href={SITE.github} className="rounded-full border border-paper/30 px-6 py-3 font-medium hover:border-paper">
-            View on GitHub
+          <a href={SITE.contact} className="rounded-full border border-paper/30 px-6 py-3 font-medium hover:border-paper">
+            Talk to us
           </a>
         </div>
       </div>

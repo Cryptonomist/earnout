@@ -26,7 +26,7 @@ function getSecrets(): Promise<Secrets | null> {
 export async function GET(request: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
   const result = await resolveLink(slug, {
-    registry: registry(),
+    registry: await registry(),
     secrets: await getSecrets(),
     origin: new URL(request.url).origin,
     now: Math.floor(Date.now() / 1000),

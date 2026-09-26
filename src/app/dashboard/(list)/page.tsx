@@ -13,7 +13,7 @@ export const revalidate = 30;
 
 export default async function DashboardPage() {
   const campaigns = await Promise.all(
-    campaignList().map(async (meta) => {
+    (await campaignList()).map(async (meta) => {
       const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
       return { meta, chain, report };
     }),
@@ -24,7 +24,12 @@ export default async function DashboardPage() {
       <SiteHeader />
       <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Dashboard</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Campaigns</h1>
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Campaigns</h1>
+          <Link href="/dashboard/new" className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90">
+            Start a campaign
+          </Link>
+        </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
           Each campaign pays its channels only for wallets that stayed. Money is read from Solana; the counts come from the
           settler&apos;s latest pass. Public while Earnout runs on devnet.

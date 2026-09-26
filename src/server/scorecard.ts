@@ -7,9 +7,9 @@ import { campaignChain, campaignList, campaignReport, slugsByChannel } from "./d
  * settler's published report. Channels made before verification have no
  * identity and do not appear on anyone's record. */
 export async function channelFacts(): Promise<ChannelFacts[]> {
-  const slugs = slugsByChannel();
+  const [slugs, campaigns] = await Promise.all([slugsByChannel(), campaignList()]);
   const facts: ChannelFacts[] = [];
-  for (const meta of campaignList()) {
+  for (const meta of campaigns) {
     const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
     if (!chain) continue;
     for (const ch of chain.channels) {

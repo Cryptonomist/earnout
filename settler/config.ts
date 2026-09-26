@@ -1,12 +1,12 @@
-/* A campaign's rules, as the settler reads them from registry/<cluster>.json.
+/* A campaign's rules, as the settler reads them from the registry: the
+ * `campaigns` section of registry/<cluster>.json, or a row the dashboard
+ * wrote (settler/registry.ts reads both).
  *
  * The program knows a campaign's money and dates. What counts as a
  * conversion, and what "stayed" means, depend on the partner's product, so
  * they live here: a deposit of at least so much into this treasury; still
  * holding so much when the window closes. */
 
-import fs from "node:fs";
-import path from "node:path";
 import { address, type Address } from "@solana/kit";
 
 export type ConversionRule =
@@ -77,9 +77,4 @@ export function parseCampaigns(raw: Record<string, Raw>): CampaignConfig[] {
       sybil: { maxWalletsPerFunder: max, ignoreFunders: ((c.sybil?.ignoreFunders ?? []) as string[]).map((a) => address(a)) },
     };
   });
-}
-
-export function loadCampaigns(cluster: string, root = process.cwd()): CampaignConfig[] {
-  const file = JSON.parse(fs.readFileSync(path.join(root, "registry", `${cluster}.json`), "utf8"));
-  return parseCampaigns(file.campaigns ?? {});
 }

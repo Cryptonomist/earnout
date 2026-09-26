@@ -22,10 +22,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function CreatorPage({ params }: Params) {
   const { slug } = await params;
-  const link = linkFor(slug);
+  const link = await linkFor(slug);
   if (!link) notFound();
-  const meta = campaignMeta(link.campaign);
-  const [chain, report] = await Promise.all([campaignChain(link.campaign).catch(() => null), campaignReport(link.campaign)]);
+  const [meta, chain, report] = await Promise.all([
+    campaignMeta(link.campaign),
+    campaignChain(link.campaign).catch(() => null),
+    campaignReport(link.campaign),
+  ]);
   const channel = chain?.channels.find((c) => c.index === link.channel);
   const url = `https://earnout.dev/r/${slug}`;
 

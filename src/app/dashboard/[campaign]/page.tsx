@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdvertiserPanel } from "@/components/advertiser/AdvertiserPanel";
 import { BudgetMeter, ChannelReceipt, SiteHeader, StatTile } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
+import { describeConversion, describeRetention } from "@/lib/rules";
 import {
   ago,
   campaignChain,
@@ -15,12 +17,14 @@ import {
   slugsByChannel,
 } from "@/server/dashboard";
 
-export const revalidate = 30;
+/* Read fresh on every view: the advertiser acts from this page and expects
+ * to see the result, and the money is one RPC call away. */
+export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ campaign: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const meta = campaignMeta((await params).campaign);
+  const meta = await campaignMeta((await params).campaign);
   return { title: meta ? `${meta.name} campaign` : "Campaign" };
 }
 
@@ -31,10 +35,9 @@ function status(now: number, endsAt: number, deadline: number): string {
 }
 
 export default async function CampaignPage({ params }: Params) {
-  const meta = campaignMeta((await params).campaign);
+  const meta = await campaignMeta((await params).campaign);
   if (!meta) notFound();
-  const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
-  const slugs = slugsByChannel();
+  const [chain, report, slugs] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address), slugsByChannel()]);
 
   if (!chain) {
     return (
@@ -58,6 +61,7 @@ export default async function CampaignPage({ params }: Params) {
   const notPaid = sum((c) => c.gone + c.flagged + c.otherRejected);
   const waiting = sum((c) => c.waiting + c.qualified);
   const settled = chain.channels.reduce((n, c) => n + c.conversions, 0n);
+  const slugOf = (index: number) => slugs.get(`${chain.address}:${index}`) ?? null;
 
   return (
     <>
@@ -80,8 +84,60 @@ export default async function CampaignPage({ params }: Params) {
           <a href={explorer("address", chain.address)} className="underline decoration-line underline-offset-2 hover:text-ink">
             {short(chain.address)}
           </a>{" "}
-          · advertiser {short(chain.advertiser)}
+          · advertiser {short(chain.advertiser)} · settler {short(chain.settler)}
         </p>
+
+        <AdvertiserPanel
+          campaign={chain.address}
+          advertiser={chain.advertiser}
+          identity={chain.identity}
+          mint={chain.mint}
+          decimals={d}
+          name={meta.name}
+          source={meta.source}
+          endsAt={chain.endsAt}
+          settleDeadline={chain.settleDeadline}
+          funded={String(chain.funded)}
+          committed={String(chain.committed)}
+          refunded={String(chain.refunded)}
+          channels={chain.channels.map((ch) => ({ index: ch.index, slug: slugOf(ch.index), handle: ch.handle, payee: ch.payee }))}
+        />
+
+        {meta.rules && meta.rulesHash && (
+          <section className="mt-8 rounded-2xl border border-line bg-card p-6 sm:p-8">
+            <h2 className="text-lg font-semibold tracking-tight">The rules, committed on chain</h2>
+            <dl className="mt-4 grid gap-4 text-[15px] leading-7 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm text-muted">A conversion is when a wallet</dt>
+                <dd>{describeConversion(meta.rules.conversion)}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">It has stayed if, {duration(chain.retentionSecs)} later, it</dt>
+                <dd>{describeRetention(meta.rules.retention)}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">A click counts for</dt>
+                <dd>{duration(meta.rules.attributionWindowSecs)}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Wallets from one quiet funder before they are a cluster</dt>
+                <dd>{meta.rules.sybil.maxWalletsPerFunder}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 font-mono text-xs leading-6 text-muted break-all">
+              rules hash {meta.rulesHash}
+              {meta.rulesTx && (
+                <>
+                  , in{" "}
+                  <a href={explorer("tx", meta.rulesTx)} className="underline decoration-line underline-offset-2 hover:text-ink">
+                    the transaction that created the campaign
+                  </a>
+                </>
+              )}
+              . Links send people to <span className="text-ink">{meta.destination}</span>.
+            </p>
+          </section>
+        )}
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Headline numbers">
           <StatTile label="Wallets tagged" value={tagged === null ? "not reported" : String(tagged)} note="Came through a channel's link and converted" />
@@ -103,18 +159,15 @@ export default async function CampaignPage({ params }: Params) {
           <p className="mt-2 max-w-2xl leading-7 text-muted">
             One receipt per creator or partner. Which wallet came through which channel stays private; these are the counts.
           </p>
-          <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {chain.channels.map((ch) => (
-              <ChannelReceipt
-                key={ch.index}
-                chain={ch}
-                report={byIndex.get(ch.index) ?? null}
-                slug={slugs.get(`${chain.address}:${ch.index}`) ?? null}
-                payout={chain.payout}
-                decimals={d}
-              />
-            ))}
-          </div>
+          {chain.channels.length ? (
+            <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {chain.channels.map((ch) => (
+                <ChannelReceipt key={ch.index} chain={ch} report={byIndex.get(ch.index) ?? null} slug={slugOf(ch.index)} payout={chain.payout} decimals={d} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 leading-7 text-muted">No channels yet. The advertiser adds creators by X handle above; each one gets a link and a receipt here.</p>
+          )}
         </section>
 
         <section className="mt-14">
@@ -135,7 +188,7 @@ export default async function CampaignPage({ params }: Params) {
                 <tbody className="font-mono">
                   {[...report.batches].reverse().map((b) => (
                     <tr key={`${b.channel}-${b.batch}`} className="border-b border-line last:border-0">
-                      <td className="px-4 py-3 font-sans">{slugs.get(`${chain.address}:${b.channel}`) ?? `channel ${b.channel}`}</td>
+                      <td className="px-4 py-3 font-sans">{slugOf(b.channel) ?? `channel ${b.channel}`}</td>
                       <td className="px-4 py-3 tabular-nums">{b.batch}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{b.conversions}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{money(BigInt(b.conversions) * chain.payout, d)}</td>
@@ -164,8 +217,8 @@ export default async function CampaignPage({ params }: Params) {
         </section>
 
         <p className="mt-14 border-t border-line pt-6 text-sm text-muted">
-          {report ? `Counts from the settler's pass ${ago(report.updatedAt)}.` : "The settler has not published a report yet."} Money
-          read from Solana devnet within the last 30 seconds. Amounts are a devnet test token standing in for USDC.
+          {report ? `Counts from the settler's pass ${ago(report.updatedAt)}.` : "The settler has not published a report yet; it passes every ten minutes."} Money
+          read from Solana devnet just now. Amounts are a devnet test token standing in for USDC.
         </p>
       </main>
       <SiteFooter />

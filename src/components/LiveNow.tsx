@@ -5,7 +5,8 @@ import { campaignChain, campaignList, campaignReport, money } from "@/server/das
  * live from the chain and the settler's report. Every figure is a real
  * count; if nothing can be read, the line is simply absent. */
 export async function LiveNow() {
-  const campaigns = campaignList();
+  // The pilots and the newest dozen from the hub: a bounded number of reads.
+  const campaigns = await campaignList({ limit: 12 });
   let tagged = 0;
   let paidFor = 0;
   let notPaid = 0;

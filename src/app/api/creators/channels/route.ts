@@ -10,9 +10,9 @@ export async function GET(request: Request) {
   const wallet = new URL(request.url).searchParams.get("wallet") ?? "";
   if (!isAddress(wallet)) return Response.json({ error: "Not a wallet" }, { status: 400 });
 
-  const slugs = slugsByChannel();
+  const [slugs, campaigns] = await Promise.all([slugsByChannel(), campaignList()]);
   const rows: unknown[] = [];
-  for (const meta of campaignList()) {
+  for (const meta of campaigns) {
     const chain = await campaignChain(meta.address).catch(() => null);
     if (!chain) continue;
     for (const ch of chain.channels) {

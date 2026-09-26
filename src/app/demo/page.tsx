@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function DemoPage() {
+/* A new hub campaign that lands here should show up in the list of links. */
+export const revalidate = 60;
+
+export default async function DemoPage() {
+  const links = await registry();
   return (
     <>
       <SiteHeader />
@@ -25,7 +29,7 @@ export default function DemoPage() {
         </p>
         {/* Every registered link that lands here, so a new creator's shows up too. */}
         <DemoTag
-          slugs={Object.entries(registry())
+          slugs={Object.entries(links)
             .filter(([, e]) => e.destination === "/demo")
             .map(([slug]) => slug)}
         />

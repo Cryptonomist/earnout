@@ -41,7 +41,8 @@ import { getSetComputeUnitPriceInstruction } from "@solana-program/compute-budge
 import { settleIx } from "../sdk/program.ts";
 import { referenceKeys } from "../sdk/reference.ts";
 import { loadReferenceSecret } from "../src/server/links.ts";
-import { loadCampaigns, type CampaignConfig } from "../settler/config.ts";
+import type { CampaignConfig } from "../settler/config.ts";
+import { loadRegistry } from "../settler/registry.ts";
 import {
   admit,
   applyRetention,
@@ -222,13 +223,11 @@ function settlerKeyJson(): string {
 async function pass() {
   const referenceSecret = loadReferenceSecret();
   const settler = await createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(settlerKeyJson())));
-  const file = JSON.parse(fs.readFileSync(path.resolve("registry", `${CLUSTER}.json`), "utf8"));
-  const slugs = new Map<string, string>(
-    Object.entries(file.links ?? {}).map(([slug, e]: [string, any]) => [`${e.campaign}:${e.channel}`, slug]),
-  );
-  const campaigns = loadCampaigns(CLUSTER).filter((c) => !values.campaign || c.campaign === address(values.campaign));
+  // The repo's registry file and the dashboard's rows, together.
+  const registry = await loadRegistry(CLUSTER);
+  const campaigns = registry.campaigns.filter((c) => !values.campaign || c.campaign === address(values.campaign));
   if (!campaigns.length) throw new Error("No matching campaign in the registry");
-  for (const c of campaigns) await runCampaign(c, settler, referenceSecret, slugs);
+  for (const c of campaigns) await runCampaign(c, settler, referenceSecret, registry.slugs);
 }
 
 async function main() {

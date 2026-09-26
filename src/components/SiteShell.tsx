@@ -31,12 +31,12 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <span className="hidden rounded-full border border-line px-2.5 py-1 font-mono text-[11px] text-muted sm:inline">devnet</span>
-          <a
-            href={SITE.contact}
+          <Link
+            href="/dashboard/new"
             className="hidden rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition-opacity hover:opacity-90 sm:inline-block"
           >
-            Run a pilot
-          </a>
+            Start a campaign
+          </Link>
           <details className="group relative md:hidden">
             <summary
               aria-label="Menu"
@@ -57,9 +57,9 @@ export function SiteHeader() {
                   {n.label}
                 </Link>
               ))}
-              <a href={SITE.contact} className="mt-1 block rounded-xl bg-ink px-3 py-2.5 text-center text-sm font-medium text-paper">
-                Run a pilot
-              </a>
+              <Link href="/dashboard/new" className="mt-1 block rounded-xl bg-ink px-3 py-2.5 text-center text-sm font-medium text-paper">
+                Start a campaign
+              </Link>
             </nav>
           </details>
         </div>
@@ -72,6 +72,7 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
   {
     title: "Product",
     links: [
+      { href: "/dashboard/new", label: "Start a campaign" },
       { href: "/dashboard", label: "Campaigns" },
       { href: "/demo", label: "Live demo" },
       { href: "/#how", label: "How it works" },

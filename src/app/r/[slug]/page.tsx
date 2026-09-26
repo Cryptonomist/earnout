@@ -21,10 +21,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function DisclosurePage({ params }: Params) {
   const { slug } = await params;
-  const link = linkFor(slug);
+  const link = await linkFor(slug);
   if (!link) notFound();
-  const meta = campaignMeta(link.campaign);
-  const chain = await campaignChain(link.campaign).catch(() => null);
+  const [meta, chain] = await Promise.all([campaignMeta(link.campaign), campaignChain(link.campaign).catch(() => null)]);
   const channel = chain?.channels.find((c) => c.index === link.channel) ?? null;
   const name = meta?.name ?? "the partner";
   const handle = channel?.handle ?? null;

@@ -2,20 +2,26 @@
  * read live: nothing to drift, nothing to trust. Counts (tagged, gone,
  * flagged) come from the settler's last published report in Supabase,
  * because only the settler can tell which channel a wallet came through.
- *
- * The publishable key below is designed to be public: it can read the
- * `reports` table and nothing else (the ledgers are service-role only). */
+ * Which campaigns and slugs exist comes from the registry (./registry.ts). */
 
 import "server-only";
-import { address, createSolanaRpc, getBase64Encoder, type Address } from "@solana/kit";
-import devnet from "../../registry/devnet.json";
+import { createSolanaRpc, getBase64Encoder, type Address } from "@solana/kit";
 import { channelAddress, channelIdentityAddress, decodeCampaign, decodeChannel, decodeChannelIdentity } from "../../sdk/program";
 import type { PublicReport } from "@/lib/report";
 import { rpcUrl } from "./chain";
+import { publicRows } from "./db";
+import { campaigns, CLUSTER, type CampaignEntry } from "./registry";
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://rglvyzffulvsyawnrenw.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_FnShmwGT2wZnIWnItam2Ng_7Myr77E9";
-export const CLUSTER = process.env.EARNOUT_CLUSTER ?? "devnet";
+export { CLUSTER, campaignMeta, linkFor, slugsByChannel, type CampaignEntry } from "./registry";
+export { duration, money } from "@/lib/money";
+
+export type CampaignMeta = CampaignEntry;
+
+/** Campaigns the dashboard lists: the pilots, then the newest from the hub. */
+export async function campaignList(opts: { limit?: number } = {}): Promise<CampaignEntry[]> {
+  const all = await campaigns();
+  return opts.limit ? all.slice(0, opts.limit) : all;
+}
 
 export type ChannelChain = {
   index: number;
@@ -35,6 +41,8 @@ export type ChannelChain = {
 export type CampaignChain = {
   address: Address;
   advertiser: Address;
+  settler: Address;
+  identity: Address;
   mint: Address;
   decimals: number;
   payout: bigint;
@@ -48,36 +56,6 @@ export type CampaignChain = {
   refunded: bigint;
   channels: ChannelChain[];
 };
-
-export type CampaignMeta = { address: Address; name: string; description: string | null };
-
-type RawCampaign = { name?: string; description?: string };
-
-/** Campaigns the dashboard lists: the ones the settler runs. */
-export function campaignList(): CampaignMeta[] {
-  if (CLUSTER !== "devnet") return [];
-  return Object.entries(devnet.campaigns as Record<string, RawCampaign>).map(([a, c]) => ({
-    address: address(a),
-    name: c.name ?? a,
-    description: c.description ?? null,
-  }));
-}
-
-export function campaignMeta(a: string): CampaignMeta | null {
-  return campaignList().find((c) => c.address === a) ?? null;
-}
-
-/** The link slug for each channel, keyed `campaign:index`. */
-export function slugsByChannel(): Map<string, string> {
-  const links = devnet.links as Record<string, { campaign: string; channel: number }>;
-  return new Map(Object.entries(links).map(([slug, e]) => [`${e.campaign}:${e.channel}`, slug]));
-}
-
-export function linkFor(slug: string): { campaign: Address; channel: number } | null {
-  const links = devnet.links as Record<string, { campaign: string; channel: number }>;
-  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug) || !Object.hasOwn(links, slug)) return null;
-  return { campaign: address(links[slug].campaign), channel: links[slug].channel };
-}
 
 const bytes = (b64: string) => getBase64Encoder().encode(b64) as Uint8Array;
 
@@ -99,6 +77,8 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
   return {
     address: a,
     advertiser: c.advertiser,
+    settler: c.settler,
+    identity: c.identity,
     mint: c.mint,
     decimals: mint ? bytes(mint.data[0])[44] : 0,
     payout: c.payout,
@@ -113,6 +93,7 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
     channels: channels.flatMap((acc, i) => {
       if (!acc) return [];
       const ch = decodeChannel(bytes(acc.data[0]));
+      const identity = identities[i] ? decodeChannelIdentity(bytes(identities[i]!.data[0])) : null;
       return [
         {
           index: ch.index,
@@ -123,44 +104,20 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
           earned: ch.earned,
           claimed: ch.claimed,
           evidence: Buffer.from(ch.evidence).toString("hex"),
-          handle: identities[i] ? decodeChannelIdentity(bytes(identities[i]!.data[0])).handle : null,
-          xId: identities[i] ? decodeChannelIdentity(bytes(identities[i]!.data[0])).xId : null,
+          handle: identity?.handle ?? null,
+          xId: identity?.xId ?? null,
         },
       ];
     }),
   };
 }
 
-async function reportsWhere(filter: string): Promise<PublicReport[]> {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=data&${filter}`, {
-      headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
-      next: { revalidate: 30 },
-    });
-    if (!res.ok) return [];
-    return ((await res.json()) as { data: PublicReport }[]).map((r) => r.data);
-  } catch {
-    return [];
-  }
-}
-
 export async function campaignReport(a: Address): Promise<PublicReport | null> {
-  const [r] = await reportsWhere(`campaign=eq.${a}&cluster=eq.${CLUSTER}`);
-  return r ?? null;
+  const [r] = await publicRows<{ data: PublicReport }>("reports", `select=data&campaign=eq.${a}&cluster=eq.${CLUSTER}`, 30);
+  return r?.data ?? null;
 }
 
 // ── formatting ───────────────────────────────────────────────────────────────
-
-export function money(n: bigint, decimals: number): string {
-  const v = Number(n) / 10 ** decimals;
-  return `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-export function duration(secs: number): string {
-  if (secs % 86_400 === 0) return `${secs / 86_400} day${secs === 86_400 ? "" : "s"}`;
-  if (secs % 3_600 === 0) return `${secs / 3_600} hour${secs === 3_600 ? "" : "s"}`;
-  return `${Math.round(secs / 60)} minute${secs === 60 ? "" : "s"}`;
-}
 
 export function ago(iso: string, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));

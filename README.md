@@ -33,6 +33,14 @@ To become a creator yourself: **[earnout.dev/creators](https://earnout.dev/creat
 sign in with X, link a wallet. Every channel is a verified X account, and a
 creator's record follows that account whatever wallet it pays to.
 
+To run a campaign yourself: **[earnout.dev/dashboard/new](https://earnout.dev/dashboard/new)**.
+Pick what counts as a conversion and what "stayed" means, set a price per
+user who stays, fund the vault with test dollars from the faucet, and sign
+once. On the campaign's page, add creators by X handle (each gets a link),
+top up the budget, and take the refund when settlement closes. The rules are
+hashed into the transaction that creates the campaign, so nobody, including
+the advertiser, can change them once creators start sending people.
+
 For how the pieces fit, trust boundaries and what is on chain versus off,
 see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -116,9 +124,11 @@ e1.<campaign>.<identity>.<reference>.<signature>
 ```
 
 The token carries everything needed to tag a transaction, so a partner needs
-no configuration and no RPC call. Slugs live in `registry/<cluster>.json`;
-destinations come only from there, never from the request. If a campaign has
-ended or the service is misconfigured, the link still redirects, untagged.
+no configuration and no RPC call. Slugs live in the registry: the pilots in
+`registry/<cluster>.json`, campaigns made from the dashboard in the
+`campaigns` and `links` tables in Supabase (see below). Destinations come
+only from there, never from the request. If a campaign has ended or the
+service is misconfigured, the link still redirects, untagged.
 
 Try it on devnet: `/r/demo-alice` or `/r/demo-bob` lands on `/demo`, which
 plays the partner.
@@ -150,8 +160,9 @@ signature, as the settler will.
 
 ### Running the link service
 
-Copy `.env.example` to `.env.local` and fill it in. To create a campaign with
-the Earnout identity and register its slugs:
+Copy `.env.example` to `.env.local` and fill it in. To create a pilot
+campaign from the command line, with the Earnout identity, and register its
+slugs in the file:
 
 ```bash
 npx tsx --env-file=.env.local scripts/create-campaign.ts \
@@ -159,10 +170,34 @@ npx tsx --env-file=.env.local scripts/create-campaign.ts \
   --destination /demo --channel demo-alice --channel demo-bob
 ```
 
+## Campaigns from the dashboard
+
+`/dashboard/new` creates a campaign from the browser, and `/dashboard/<campaign>`
+manages it: fund, add a creator by X handle, refund after the deadline. The
+wallet that signs is the advertiser, and the guest wallet works, so a judge
+can run the whole loop without installing anything.
+
+The rules (what counts as a conversion, what "stayed" means, the attribution
+window, the cluster limit) live off chain, so their hash goes on chain. The
+transaction that creates the campaign carries `earnout:rules:v1:<sha256>` in
+a memo, over the canonical form in `src/lib/rules.ts`; adding a creator
+carries `earnout:link:v1:<campaign>:<channel>:<slug>`. The site records a
+campaign or a link only from a confirmed transaction the advertiser paid for
+whose memo matches (`src/server/campaign-registry.ts`), and the settler
+trusts a row only while its rules still hash to what was committed
+(`settler/registry.ts`). Rules are final: there is no update. Anyone can
+recompute the hash from a campaign page and check it against the transaction
+linked there.
+
+The rows live in Supabase (`campaigns`, `links`), public to read. Writing
+them needs `SUPABASE_SECRET_KEY` on the site's host; without it the hub is
+read-only and says so. Test dollars come from `/api/faucet/usd`, minted by
+the faucet key, which holds the test token's mint authority.
+
 ## Settler
 
 `scripts/settle.ts` turns tagged transactions into on-chain payouts. Each
-pass, for every campaign in `registry/<cluster>.json`:
+pass, for every campaign in the registry (the file and the dashboard's rows):
 
 1. **Find** new transactions touching the campaign's address.
 2. **Screen** each tag: the campaign's identity, a memo signature that
@@ -204,12 +239,13 @@ npx tsx scripts/claim.ts --slug demo-alice --signer <payee keyfile>
 
 `/dashboard` lists campaigns; `/dashboard/<campaign>` shows one: headline
 numbers, the budget (claimed, owed, uncommitted), a receipt per channel, and
-every settlement with its evidence root and transaction. `/c/<slug>` is a
-creator's page: their link, their receipt, and a claim button for the
+every settlement with its evidence root and transaction. Connect the
+advertiser's wallet there to fund it, add creators and refund. `/c/<slug>`
+is a creator's page: their link, their receipt, and a claim button for the
 channel's payout wallet.
 
-Money on these pages is read from Solana on each render (cached for 30
-seconds), so it cannot drift from the truth. Tagged, gone and flagged counts
+Money on these pages is read from Solana on each render, so it cannot drift
+from the truth. Tagged, gone and flagged counts
 come from the report the settler publishes after every pass to the earnout
 Supabase project: counts and settlement links only, never a wallet, which a
 test holds it to. The settler's own ledger lives in a private table only its
@@ -230,9 +266,10 @@ mark's geometry and the wordmark (Geist SemiBold, converted to paths).
 | `sdk/` | TypeScript SDK on `@solana/kit`: instruction builders, account decoders, the Action Identity memo, tag tokens |
 | `sdk/reference.ts` | The reference cipher (server only) |
 | `sdk/client.ts` | The partner's browser helper: capture, keep and clear a tag |
-| `src/app` | The site: landing page, `/r/[slug]` links, `/demo` partner page |
-| `src/server` | Link resolution, the registry, the one chain read a link needs |
-| `registry/` | Per cluster: slugs to campaign and channel, and each campaign's settler rules |
+| `src/app` | The site: landing page, `/r/[slug]` links, `/demo` partner page, the dashboard and the advertiser hub |
+| `src/lib/rules.ts` | A campaign's rules: validation, the canonical form that is hashed, the memo formats |
+| `src/server` | Link resolution, the registry (file plus database), registering campaigns from their transactions |
+| `registry/` | Per cluster: the pilots' slugs and settler rules; dashboard campaigns live in Supabase |
 | `settler/` | Parsing, screening, retention and cluster checks, batch planning, evidence |
 | `scripts/` | Create a campaign, settle, claim, move a payee, the devnet smoke test |
 | `tests/` | LiteSVM tests against the built binary, and SDK tests checked against `@solana/actions` |
@@ -261,9 +298,10 @@ reference and verified, then settle and claim.
 ## Status
 
 Built for the Colosseum Crypto World's Fair hackathon (September to October
-2026). The whole loop runs on devnet: a click on `/r/demo-alice`, a tagged
-deposit on `/demo`, the retention window, a settlement on chain and the
-creator's claim. The dashboard is next.
+2026). The whole loop runs on devnet: a campaign created from the dashboard,
+a creator added by X handle, a click on their link, a tagged deposit on
+`/demo`, the retention window, a settlement on chain, the creator's claim and
+the advertiser's refund.
 
 ## License
 
