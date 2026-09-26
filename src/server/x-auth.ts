@@ -35,7 +35,7 @@ export const COOKIE_STATE = "eo_x_state";
 export const COOKIE_VERIFIER = "eo_x_verifier";
 
 /** Where sign-in starts and ends: the influencer hub. */
-export const RETURN_PATH = "/creators";
+export const RETURN_PATH = "/influencers";
 
 /** The callback X redirects to, which must match one registered on the app. */
 export const redirectUri = (origin: string) => `${origin}/api/x/callback`;

@@ -1,6 +1,6 @@
 /* Move a channel's payout to another wallet. The current payee signs, and
  * the new wallet must already be linked to the channel's own X account
- * (link X from the new wallet at earnout.dev/creators first).
+ * (link X from the new wallet at earnout.dev/influencers first).
  *
  *   npx tsx scripts/set-payee.ts --slug demo-alice --payee <address> [--signer <keyfile>]
  *

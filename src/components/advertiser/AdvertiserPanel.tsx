@@ -234,7 +234,7 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
     setFound(null);
     setBusy({ kind: "idle" });
     try {
-      const res = await fetch(`/api/creators/lookup?handle=${encodeURIComponent(h)}`);
+      const res = await fetch(`/api/influencers/lookup?handle=${encodeURIComponent(h)}`);
       const body = (await res.json()) as Found & { error?: string };
       if (!res.ok) throw new Error(body.error ?? "Could not look that up");
       setFound(body);
@@ -285,8 +285,8 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
         <>
           <p className="mt-2 text-sm leading-6 text-muted">
             By X handle. They must have linked their X account to a wallet at{" "}
-            <Link href="/creators" className="underline decoration-line underline-offset-2 hover:decoration-ink">
-              earnout.dev/creators
+            <Link href="/influencers" className="underline decoration-line underline-offset-2 hover:decoration-ink">
+              earnout.dev/influencers
             </Link>{" "}
             first; that wallet is where they are paid.
           </p>
@@ -304,7 +304,7 @@ function AddCreator(p: PanelProps & { signer: Signer; lamports: bigint | null; r
           </div>
           {found && !found.found && (
             <p className="mt-3 text-sm leading-6 text-unpaid">
-              @{found.handle} has not linked an X account on Earnout yet. Send them to earnout.dev/creators; it takes a minute.
+              @{found.handle} has not linked an X account on Earnout yet. Send them to earnout.dev/influencers; it takes a minute.
             </p>
           )}
           {found?.found && (

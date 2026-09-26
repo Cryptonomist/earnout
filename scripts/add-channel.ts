@@ -3,7 +3,7 @@
  *   npx tsx --env-file=.env.local scripts/add-channel.ts \
  *     --campaign <address> --slug <slug> --payee <wallet> [--destination /demo]
  *
- * The payee must already have linked their X account at earnout.dev/creators
+ * The payee must already have linked their X account at earnout.dev/influencers
  * (under this campaign's identity); the channel is created for that account
  * and the slug registered in registry/<cluster>.json. The deploy wallet must
  * be the campaign's advertiser. */
@@ -64,7 +64,7 @@ async function main() {
   if (c.advertiser !== wallet.address) throw new Error(`The campaign's advertiser is ${c.advertiser}, not this wallet`);
 
   const link = await fetchXLink(rpc, c.identity, payee);
-  if (!link) throw new Error(`${payee} has not linked an X account under ${c.identity}. They sign in at earnout.dev/creators first.`);
+  if (!link) throw new Error(`${payee} has not linked an X account under ${c.identity}. They sign in at earnout.dev/influencers first.`);
   if (!link.current) throw new Error(`@${link.handle} has since moved to another wallet; use that one`);
   console.log(`${slug} will be @${link.handle} (X id ${link.xId}), paid to ${payee}`);
 

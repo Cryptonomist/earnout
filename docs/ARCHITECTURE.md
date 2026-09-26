@@ -13,8 +13,8 @@ with, what lives on chain and what does not, and why.
 | Link service (`src/app/r`) | Vercel | A disclosure page per link, then a redirect that mints a signed, single-use reference. |
 | Demo partner (`src/app/demo`) | Vercel | Stands in for a partner app: a deposit with the tag on it, a guest wallet, a devnet faucet. |
 | Settler (`settler/`, `scripts/settle.ts`) | GitHub Actions, every ten minutes | Finds tagged transactions, screens them, waits out retention, flags clusters, settles batches on chain, publishes counts. |
-| Dashboard and records (`src/app/dashboard`, `src/app/creators`) | Vercel | Money read live from the chain; counts from the settler's published report; scorecards grouped by X account. |
-| influencer hub (`src/app/creators`, `src/app/api/x`) | Vercel | Sign in with X, then link that account to a wallet under two signatures. |
+| Dashboard and records (`src/app/dashboard`, `src/app/influencers`) | Vercel | Money read live from the chain; counts from the settler's published report; scorecards grouped by X account. |
+| influencer hub (`src/app/influencers`, `src/app/api/x`) | Vercel | Sign in with X, then link that account to a wallet under two signatures. |
 | Advertiser hub (`src/app/dashboard/new`, `src/components/advertiser`) | Vercel | Create a campaign, fund it, add influencers by X handle, refund. Every action is the advertiser's own signature. |
 | Registry (`src/server/registry.ts`, `settler/registry.ts`) | The repo and Supabase | Which campaigns exist, their rules, and which slug is which channel: the pilots in a file, dashboard campaigns in `campaigns` and `links`. |
 | State | Supabase | The settler's private ledger (service role only), its public report (counts only), and the registry rows (public to read, written only from the advertiser's transactions). |

@@ -8,7 +8,7 @@ import { PROGRAM_ADDRESS } from "../../sdk/generated";
 
 export const NAV = [
   { href: "/dashboard", label: "Campaigns" },
-  { href: "/creators", label: "Influencers" },
+  { href: "/influencers", label: "Influencers" },
   { href: "/demo", label: "Demo" },
   { href: SITE.github, label: "GitHub" },
 ];
@@ -82,8 +82,8 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
   {
     title: "Influencers",
     links: [
-      { href: "/creators", label: "Link your X account" },
-      { href: "/creators", label: "Verified influencers" },
+      { href: "/influencers", label: "Link your X account" },
+      { href: "/influencers", label: "Verified influencers" },
       { href: "/c/cryptonomist", label: "An influencer page" },
     ],
   },

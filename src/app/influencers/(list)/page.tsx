@@ -71,7 +71,7 @@ export default async function CreatorsPage({ searchParams }: Params) {
                   {cards.map((c) => (
                     <tr key={c.xId} className="border-b border-line last:border-0">
                       <td className="px-4 py-3">
-                        <Link href={`/creators/${c.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                        <Link href={`/influencers/${c.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
                           @{c.handle}
                         </Link>{" "}
                         <span className="text-xs text-paid">verified</span>

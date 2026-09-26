@@ -282,7 +282,7 @@ function Sides() {
             "Your audience stays private.",
             "Your X account is your record. It follows you, wallet to wallet.",
           ]}
-          cta={{ href: "/creators", label: "Link your X account" }}
+          cta={{ href: "/influencers", label: "Link your X account" }}
         />
       </div>
     </Section>

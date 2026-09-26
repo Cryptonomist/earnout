@@ -117,7 +117,7 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
     } catch {
       setLink({ kind: "none" });
     }
-    fetch(`/api/creators/channels?wallet=${account.address}`)
+    fetch(`/api/influencers/channels?wallet=${account.address}`)
       .then((r) => r.json())
       .then((b: { channels: ChannelRow[] }) => setChannels(b.channels))
       .catch(() => setChannels([]));
@@ -220,7 +220,7 @@ function Linked({ wallet, account, profile, identity }: { wallet: UiWallet; acco
             {link.current && (
               <>
                 {" "}
-                <Link href={`/creators/${link.handle}`} className="text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
+                <Link href={`/influencers/${link.handle}`} className="text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
                   Your public record
                 </Link>
               </>

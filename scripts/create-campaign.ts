@@ -16,7 +16,7 @@
  *   --channel <slug>     one per channel, in order
  *   --payee <address>    one per channel, in the same order. Every channel is a
  *                        verified person: each payee must already have linked
- *                        an X account at earnout.dev/creators
+ *                        an X account at earnout.dev/influencers
  *   --settler <address>  the key that may settle; defaults to the wallet. Give
  *                        a dedicated key if the settler will run anywhere but
  *                        this machine.
@@ -176,7 +176,7 @@ async function main() {
   for (let i = 0; i < slugs.length; i++) {
     const payee = address(payees[i]);
     const link = await fetchXLink(rpc, identityAddress, payee);
-    if (!link || !link.current) throw new Error(`${payee} has not linked an X account under ${identityAddress}; they sign in at earnout.dev/creators first`);
+    if (!link || !link.current) throw new Error(`${payee} has not linked an X account under ${identityAddress}; they sign in at earnout.dev/influencers first`);
     console.log(`  ${slugs[i]} is @${link.handle}`);
     channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, identity: identityAddress, index: i, payee, xId: link.xId }));
   }

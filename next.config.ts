@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  /* The hub lived at /creators until the site settled on the word
+   * influencer. Links already shared, and the builder updates, keep working. */
+  async redirects() {
+    return [
+      { source: "/creators", destination: "/influencers", permanent: true },
+      { source: "/creators/:path*", destination: "/influencers/:path*", permanent: true },
+      { source: "/api/creators/:path*", destination: "/api/influencers/:path*", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

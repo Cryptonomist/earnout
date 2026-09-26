@@ -66,7 +66,7 @@ export default async function DisclosurePage({ params }: Params) {
           <Row label="Influencer">
             {handle ? (
               <>
-                <Link href={`/creators/${handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                <Link href={`/influencers/${handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
                   @{handle}
                 </Link>{" "}
                 <span className="text-paid">verified X</span>

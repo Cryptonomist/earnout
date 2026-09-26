@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const body = link ? { found: true, handle: link.handle, xId: String(link.xId), wallet: link.wallet } : { found: false, handle };
     return Response.json(body, { headers: { "cache-control": "no-store" } });
   } catch (e) {
-    console.error(`[creators/lookup] ${(e as Error).message}`);
+    console.error(`[influencers/lookup] ${(e as Error).message}`);
     return Response.json({ error: "Devnet did not answer. Try again in a moment." }, { status: 502 });
   }
 }

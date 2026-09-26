@@ -23,13 +23,13 @@ No wallet or devnet SOL needed.
 3. Watch the **[campaign dashboard](https://earnout.dev/dashboard)**. After
    the 10-minute window the settler checks you stayed, settles on chain, and
    the influencer's receipt shows one more user paid for. Their public record is
-   at **[earnout.dev/creators/CRYPT0NOMIST](https://earnout.dev/creators/CRYPT0NOMIST)**.
+   at **[earnout.dev/influencers/CRYPT0NOMIST](https://earnout.dev/influencers/CRYPT0NOMIST)**.
 
 Two demo channels already show what the settler catches: users who left
 before the window closed, and a four-wallet farm flagged as one cluster, none
 of them paid for.
 
-To become an influencer yourself: **[earnout.dev/creators](https://earnout.dev/creators)**,
+To become an influencer yourself: **[earnout.dev/influencers](https://earnout.dev/influencers)**,
 sign in with X, link a wallet. Every channel is a verified X account, and a
 influencer's record follows that account whatever wallet it pays to.
 
@@ -98,7 +98,7 @@ record follows them and a bad one cannot be shed by changing wallets.
 Channels made before verification existed have no identity and are shown as
 unverified.
 
-Influencers link at `/creators`: sign in with X (read-only, PKCE, nothing
+Influencers link at `/influencers`: sign in with X (read-only, PKCE, nothing
 stored on a server; the profile rides in a cookie the server signs for
 fifteen minutes), connect a wallet, and link. `/api/x/link` builds the
 `link_x` transaction and signs it as the Earnout identity; the wallet

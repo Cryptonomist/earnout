@@ -31,7 +31,7 @@ export default async function CreatorScorecard({ params }: Params) {
     <>
       <SiteHeader />
       <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <Link href="/creators" className="text-sm text-muted hover:text-ink">
+        <Link href="/influencers" className="text-sm text-muted hover:text-ink">
           Influencers
         </Link>
         <div className="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-2">
