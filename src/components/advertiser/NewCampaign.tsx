@@ -19,6 +19,7 @@ import { memoIx } from "../../../sdk/identity";
 import { ataAddress, campaignAddress, createCampaignIx, fundIx } from "../../../sdk/program";
 import { describeError, mintDecimals, rpc, sendInstructions, shortAddress, sleep, sol, tokenBalance } from "@/lib/browser-rpc";
 import { DEMO } from "@/lib/demo";
+import { registerGuestWallet } from "@/lib/guest-wallet";
 import { duration, money, toBaseUnits } from "@/lib/money";
 import { describeConversion, describeRetention, LIMITS, RulesError, rulesHash, rulesMemo, validateRules, type Rules } from "@/lib/rules";
 import { TEST_USD } from "@/lib/test-usd";
@@ -155,6 +156,12 @@ export function NewCampaign(p: Props) {
   const [form, setForm] = useState<Form>(EMPTY);
   const [retDecimals, setRetDecimals] = useState<number | null>(null);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  // The advertiser's money here is devnet test dollars, so the wallet that
+  // lives in the page is offered, as on the demo: a judge installs nothing.
+  useEffect(() => {
+    registerGuestWallet();
+  }, []);
 
   // The decimals of the token a wallet must keep, read when a mint is typed.
   useEffect(() => {

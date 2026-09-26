@@ -1,9 +1,9 @@
 "use client";
 
 /* Wallet Standard, with no adapter: any installed Solana wallet that can sign
- * devnet transactions shows up here. On the demo, so does the guest wallet
- * (src/lib/guest-wallet.ts); anywhere a creator's earnings are at stake, it
- * is left out. */
+ * devnet transactions shows up here. On the demo and in the advertiser hub,
+ * so does the guest wallet (src/lib/guest-wallet.ts); anywhere a creator's
+ * earnings are at stake, it is left out. */
 
 import { useState } from "react";
 import { useConnect, useWallets, type UiWallet, type UiWalletAccount } from "@wallet-standard/react";

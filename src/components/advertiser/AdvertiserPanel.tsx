@@ -20,6 +20,7 @@ import { address, getBase64Encoder } from "@solana/kit";
 import { memoIx } from "../../../sdk/identity";
 import { addChannelIx, ataAddress, decodeCampaign, fundIx, refundIx } from "../../../sdk/program";
 import { describeError, rpc, sendInstructions, shortAddress, sleep, sol, tokenBalance } from "@/lib/browser-rpc";
+import { registerGuestWallet } from "@/lib/guest-wallet";
 import { money, toBaseUnits } from "@/lib/money";
 import { linkMemo, SLUG, slugFor } from "@/lib/rules";
 import { TEST_USD } from "@/lib/test-usd";
@@ -53,6 +54,11 @@ const ADD_MIN_LAMPORTS = 5_000_000n;
 export function AdvertiserPanel(p: PanelProps) {
   const { wallets, connected } = useDevnetWallet({ allowGuest: true });
   const [open, setOpen] = useState(false);
+
+  // A campaign made with the guest wallet is managed with it too.
+  useEffect(() => {
+    registerGuestWallet();
+  }, []);
 
   if (!connected) {
     return (

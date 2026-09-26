@@ -29,7 +29,7 @@ export function DemoTag({ slugs }: { slugs: string[] }) {
   const [state, setState] = useState<State>({ phase: "loading" });
 
   useEffect(() => {
-    // The demo, and only the demo, offers a wallet that lives in the page.
+    // The demo offers the wallet that lives in the page; so does the advertiser hub.
     registerGuestWallet();
     arrivedThisLoad ??= captureTag() !== null;
     const arrived = arrivedThisLoad;
