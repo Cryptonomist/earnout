@@ -24,7 +24,7 @@ const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
  * report no arrival and overwrite the first. */
 let arrivedThisLoad: boolean | null = null;
 
-export function DemoTag() {
+export function DemoTag({ slugs }: { slugs: string[] }) {
   const [state, setState] = useState<State>({ phase: "loading" });
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export function DemoTag() {
   }, []);
 
   if (state.phase === "loading") return <div className="mt-10 h-64 animate-pulse rounded-2xl border border-line" />;
-  if (state.phase === "none") return <NoTag />;
+  if (state.phase === "none") return <NoTag slugs={slugs} />;
   if (state.phase === "deposited") return <Deposited tag={state.tag} result={state.result} />;
 
   const { tag, savedAt, expiresAt, justArrived, valid } = state;
@@ -118,13 +118,13 @@ export function DemoTag() {
   );
 }
 
-function NoTag() {
+function NoTag({ slugs }: { slugs: string[] }) {
   return (
     <section className="mt-10 rounded-2xl border border-line bg-card p-7">
       <h2 className="text-xl font-semibold tracking-tight">No Earnout tag on this device.</h2>
       <p className="mt-2 leading-7 text-muted">Come in through one of the demo campaign&apos;s links:</p>
       <div className="mt-5 flex flex-wrap gap-3">
-        {["demo-alice", "demo-bob"].map((slug) => (
+        {slugs.map((slug) => (
           <a key={slug} href={`/r/${slug}`} className="rounded-full bg-ink px-5 py-2.5 font-mono text-sm text-paper hover:opacity-90">
             earnout.dev/r/{slug}
           </a>

@@ -15,7 +15,9 @@
       "attributionWindowSecs": 604800,
       "sybil": {
         "maxWalletsPerFunder": 3,
-        "ignoreFunders": ["EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK"]
+        "ignoreFunders": [
+          "EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK"
+        ]
       }
     }
   },
@@ -31,6 +33,12 @@
       "channel": 1,
       "destination": "/demo",
       "label": "demo-bob"
+    },
+    "cryptonomist": {
+      "campaign": "4rTHzCLFQTmqws7RRd3VNjb77WAX5pT74byiZwSiS78s",
+      "channel": 2,
+      "destination": "/demo",
+      "label": "cryptonomist"
     }
   }
 }

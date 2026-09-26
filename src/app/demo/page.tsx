@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { DemoTag } from "@/components/DemoTag";
+import { registry } from "@/server/registry";
 
 export const metadata: Metadata = {
   title: "Demo partner",
@@ -29,7 +30,12 @@ export default function DemoPage() {
           Think of it as a DeFi app running an Earnout campaign. Arrive through a creator&apos;s link and this is what the
           app keeps, and what it will add to your deposit.
         </p>
-        <DemoTag />
+        {/* Every registered link that lands here, so a new creator's shows up too. */}
+        <DemoTag
+          slugs={Object.entries(registry())
+            .filter(([, e]) => e.destination === "/demo")
+            .map(([slug]) => slug)}
+        />
       </main>
     </>
   );
