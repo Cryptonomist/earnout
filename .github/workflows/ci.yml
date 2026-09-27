@@ -3,9 +3,8 @@
 # typechecks, lints and is formatted; and the whole suite passes against
 # the freshly built binary in LiteSVM.
 #
-# The first run compiles the Anchor CLI (about ten minutes); the cache
-# keeps it, the Solana platform tools and the program's build for the runs
-# after, which take a few minutes.
+# The Anchor CLI is the release binary, pinned by hash; the cache keeps the
+# Solana platform tools and the program's build between runs.
 
 name: ci
 
@@ -61,7 +60,14 @@ jobs:
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
       - name: Anchor CLI 1.2.0
-        run: command -v anchor >/dev/null || cargo install --locked anchor-cli@1.2.0
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/anchor" ]; then
+            curl -sSL -o "$HOME/.cargo/bin/anchor" \
+              https://github.com/solana-foundation/anchor/releases/download/v1.2.0/anchor-1.2.0-x86_64-unknown-linux-gnu
+            echo "0c9c41a3292c281cc6eadb78d6e1c8224d8324a34b0736a89d640fd314db05b7  $HOME/.cargo/bin/anchor" | sha256sum -c -
+            chmod +x "$HOME/.cargo/bin/anchor"
+          fi
+          anchor --version
 
       - run: cargo fmt --all -- --check
       - run: cargo clippy -p earnout --no-deps -- -D warnings
