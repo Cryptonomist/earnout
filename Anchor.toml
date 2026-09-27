@@ -1,6 +1,6 @@
-skip_local_validator = true
-
 [toolchain]
+anchor_version = "1.2.0"
+solana_version = "3.1.10"
 
 [features]
 resolution = true
@@ -16,7 +16,8 @@ earnout = "EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+# The suite runs in LiteSVM against target/deploy/earnout.so, so `anchor
+# test` needs no validator: run it with --skip-local-validator, or just
+# `npm test` after `npm run build:program`.
 [scripts]
 test = "npm test"
-
-[hooks]

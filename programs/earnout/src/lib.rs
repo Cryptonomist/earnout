@@ -1,6 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-#![allow(unexpected_cfgs)]
-
 //! # Earnout
 //!
 //! Marketing budgets that pay out only for users who stay.
@@ -26,7 +23,8 @@
 //! * a batch pays exactly `conversions * payout`, and never more than the
 //!   campaign has left uncommitted;
 //! * batches are numbered per channel, so one batch cannot be recorded twice;
-//! * nothing is recorded after the settle deadline.
+//! * nothing is recorded before the first wallet could have stayed, nor
+//!   after the settle deadline.
 //!
 //! Every conversion in a batch's evidence names a transaction the advertiser
 //! can look up, so a settler that overcounts can be caught, though not
@@ -42,10 +40,14 @@
 //! * `claim`: a channel's payee takes what settlements have committed to it,
 //!   at any time, including after the deadline;
 //! * `refund`: once the settle deadline has passed, the advertiser takes
-//!   back everything never committed.
+//!   back everything the vault holds beyond what channels are still owed,
+//!   including tokens that reached the vault by hand.
 //!
 //! There is no admin, no fee and no sweep. The settler can commit budget to
-//! channels the advertiser added, and do nothing else.
+//! channels the advertiser added, and do nothing else. The one power above
+//! the instruction set is the program's upgrade authority: on devnet the
+//! deploy wallet; a mainnet deployment would hand it to a multisig, and give
+//! it up once the program has been audited.
 //!
 //! ## Every channel is a verified person
 //!
@@ -71,6 +73,10 @@
 
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_2022::spl_token_2022::extension::{
+    BaseStateWithExtensions, ExtensionType, StateWithExtensions,
+};
+use anchor_spl::token_2022::spl_token_2022::state::Mint as Token2022Mint;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
@@ -91,17 +97,25 @@ declare_id!("EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU");
 pub mod earnout {
     use super::*;
 
-    pub fn create_campaign(
-        ctx: Context<CreateCampaign>,
-        seed: u64,
-        payout: u64,
-        retention_secs: u32,
-        ends_at: i64,
-        settle_deadline: i64,
-        settler: Pubkey,
-        identity: Pubkey,
-    ) -> Result<()> {
+    /// Open a campaign: its terms go on chain for good, and its vault (the
+    /// campaign's associated token account) is made empty, to be filled by
+    /// `fund`. The seed lets one advertiser run many campaigns.
+    pub fn create_campaign(ctx: Context<CreateCampaign>, terms: CampaignTerms) -> Result<()> {
+        let CampaignTerms {
+            seed,
+            payout,
+            retention_secs,
+            ends_at,
+            settle_deadline,
+            settler,
+            identity,
+        } = terms;
         let now = Clock::get()?.unix_timestamp;
+        require!(
+            settler != Pubkey::default() && identity != Pubkey::default(),
+            EarnoutError::MissingKey
+        );
+        refuse_risky_extensions(&ctx.accounts.mint.to_account_info())?;
         require!(payout > 0, EarnoutError::ZeroPayout);
         require!(
             retention_secs <= MAX_RETENTION_SECS,
@@ -291,6 +305,12 @@ pub mod earnout {
         Ok(())
     }
 
+    /// Record a channel's qualified conversions as its next numbered batch,
+    /// with a Merkle root of the evidence, and commit `conversions * payout`
+    /// of the budget to it. The program cannot know when each wallet
+    /// converted, so it holds the settler to what it can check: nothing
+    /// settles before the first wallet could have stayed, or after the
+    /// deadline, or beyond the budget.
     pub fn settle(
         ctx: Context<Settle>,
         batch: u32,
@@ -300,6 +320,11 @@ pub mod earnout {
         let now = Clock::get()?.unix_timestamp;
         let c = &mut ctx.accounts.campaign;
         let ch = &mut ctx.accounts.channel;
+        let earliest = c
+            .created_at
+            .checked_add(c.retention_secs as i64)
+            .ok_or(EarnoutError::MathOverflow)?;
+        require!(now >= earliest, EarnoutError::TooEarlyToSettle);
         require!(now <= c.settle_deadline, EarnoutError::SettlementClosed);
         require!(conversions > 0, EarnoutError::NoConversions);
         require!(batch == ch.batches, EarnoutError::WrongBatch);
@@ -337,6 +362,8 @@ pub mod earnout {
         Ok(())
     }
 
+    /// A channel's payee takes what settlements have committed to it and it
+    /// has not yet claimed, at any time, including after the deadline.
     pub fn claim(ctx: Context<Claim>) -> Result<()> {
         let ch = &ctx.accounts.channel;
         let amount = ch
@@ -374,14 +401,23 @@ pub mod earnout {
         Ok(())
     }
 
+    /// After the settle deadline the advertiser takes back everything the
+    /// vault holds beyond what channels are still owed. It is counted from
+    /// the vault's balance, not the counters, so tokens that reached the
+    /// vault by hand come back too instead of being locked for good.
     pub fn refund(ctx: Context<Refund>) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let c = &ctx.accounts.campaign;
         require!(now > c.settle_deadline, EarnoutError::TooEarlyToRefund);
-        let amount = c
-            .funded
-            .checked_sub(c.committed)
-            .and_then(|a| a.checked_sub(c.refunded))
+        let owed = c
+            .committed
+            .checked_sub(c.claimed)
+            .ok_or(EarnoutError::MathOverflow)?;
+        let amount = ctx
+            .accounts
+            .vault
+            .amount
+            .checked_sub(owed)
             .ok_or(EarnoutError::MathOverflow)?;
         require!(amount > 0, EarnoutError::NothingToRefund);
 
@@ -416,7 +452,56 @@ pub mod earnout {
 
 /// X's own rule for handles: 1 to 15 of [A-Za-z0-9_].
 fn is_handle(h: &str) -> bool {
-    !h.is_empty() && h.len() <= MAX_HANDLE && h.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    !h.is_empty()
+        && h.len() <= MAX_HANDLE
+        && h.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+}
+
+/// Token-2022 lets a mint carry extensions that would put the budget in
+/// somebody else's hands: a permanent delegate can move the vault's tokens,
+/// a transfer hook needs accounts `fund` and `claim` do not pass, and a
+/// non-transferable mint cannot be funded at all. Such mints are refused
+/// when the campaign is made, so no channel has to vet the mint. A classic
+/// SPL mint has no extensions and passes.
+fn refuse_risky_extensions(mint: &AccountInfo) -> Result<()> {
+    if *mint.owner != anchor_spl::token_2022::spl_token_2022::ID {
+        return Ok(());
+    }
+    let data = mint.try_borrow_data()?;
+    let state = StateWithExtensions::<Token2022Mint>::unpack(&data)?;
+    for extension in state.get_extension_types()? {
+        require!(
+            !matches!(
+                extension,
+                ExtensionType::PermanentDelegate
+                    | ExtensionType::TransferHook
+                    | ExtensionType::NonTransferable
+            ),
+            EarnoutError::UnsupportedMint
+        );
+    }
+    Ok(())
+}
+
+/// What `create_campaign` fixes for good. Borsh lays a struct out as its
+/// fields in order, so this encodes exactly as the seven arguments would.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+pub struct CampaignTerms {
+    /// Chosen by the advertiser; one advertiser can run many campaigns.
+    pub seed: u64,
+    /// Paid per qualified conversion, in the mint's base units.
+    pub payout: u64,
+    /// How long a converted wallet must stay before it qualifies.
+    pub retention_secs: u32,
+    /// Conversions after this time do not count.
+    pub ends_at: i64,
+    /// Settlements are accepted until this time; refunds only after it.
+    pub settle_deadline: i64,
+    /// The only key that can record qualified conversions.
+    pub settler: Pubkey,
+    /// The Action Identity whose signed references count as this campaign's
+    /// tags, and the only voucher whose X links it trusts.
+    pub identity: Pubkey,
 }
 
 /// Send `amount` from the vault, signed for by the campaign PDA.
@@ -453,7 +538,7 @@ fn pay_out<'info>(
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
+#[instruction(terms: CampaignTerms)]
 pub struct CreateCampaign<'info> {
     #[account(mut)]
     pub advertiser: Signer<'info>,
@@ -463,7 +548,7 @@ pub struct CreateCampaign<'info> {
         init,
         payer = advertiser,
         space = 8 + Campaign::INIT_SPACE,
-        seeds = [SEED_CAMPAIGN, advertiser.key().as_ref(), &seed.to_le_bytes()],
+        seeds = [SEED_CAMPAIGN, advertiser.key().as_ref(), &terms.seed.to_le_bytes()],
         bump
     )]
     pub campaign: Box<Account<'info, Campaign>>,
@@ -688,6 +773,7 @@ pub struct Claim<'info> {
         associated_token::token_program = token_program
     )]
     pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// `init_if_needed`: a payee's first claim also makes their token account.
     #[account(
         init_if_needed,
         payer = payee,
@@ -722,6 +808,8 @@ pub struct Refund<'info> {
         associated_token::token_program = token_program
     )]
     pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// `init_if_needed`: the advertiser may have closed their token account
+    /// since funding; the refund makes it again.
     #[account(
         init_if_needed,
         payer = advertiser,

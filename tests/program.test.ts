@@ -62,25 +62,23 @@ describe("earnout program - LiteSVM", () => {
       programAddress: owner,
       executable: false,
       space: BigInt(data.length),
-    } as any);
+    });
   }
 
   function data(addr: Address): Uint8Array {
-    const acc = svm.getAccount(addr) as any;
-    if (!acc || ("exists" in acc && !acc.exists)) throw new Error(`Missing account ${addr}`);
+    const acc = svm.getAccount(addr);
+    if (!acc.exists) throw new Error(`Missing account ${addr}`);
     return Uint8Array.from(acc.data);
   }
 
-  function exists(addr: Address): boolean {
-    const acc = svm.getAccount(addr) as any;
-    return !!acc && !("exists" in acc && !acc.exists);
-  }
+  const exists = (addr: Address): boolean => svm.getAccount(addr).exists;
 
   const tokenAmount = (addr: Address) => new DataView(data(addr).buffer).getBigUint64(64, true);
   const lamportsOf = (addr: Address) => BigInt(svm.getBalance(addr) ?? 0n);
   const campaignOf = (addr: Address) => eo.decodeCampaign(data(addr));
   const channelOf = (addr: Address) => eo.decodeChannel(data(addr));
-  const channelIdentityOf = async (channel: Address) => eo.decodeChannelIdentity(data(await eo.channelIdentityAddress(channel)));
+  const channelIdentityOf = async (channel: Address) =>
+    eo.decodeChannelIdentity(data(await eo.channelIdentityAddress(channel)));
   const xlinkOf = async (wallet: Address) => eo.decodeXLink(data(await eo.xlinkAddress(identityAddress, wallet)));
   const xclaimOf = async (xId: bigint) => eo.decodeXClaim(data(await eo.xclaimAddress(identityAddress, xId)));
 
@@ -100,6 +98,19 @@ describe("earnout program - LiteSVM", () => {
     return d;
   }
 
+  /** A Token-2022 mint carrying one TLV extension after the 165-byte base
+   * and the account-type byte, as the token program lays it out. */
+  function encodeMint22(decimals: number, authority: Address, extension: number, value: Uint8Array): Uint8Array {
+    const d = new Uint8Array(166 + 4 + value.length);
+    d.set(encodeMint(decimals, authority), 0);
+    d[165] = 1; // AccountType::Mint
+    const v = new DataView(d.buffer);
+    v.setUint16(166, extension, true);
+    v.setUint16(168, value.length, true);
+    d.set(value, 170);
+    return d;
+  }
+
   function encodeTokenAccount(mintAddr: Address, owner: Address, amount: bigint): Uint8Array {
     const d = new Uint8Array(165);
     d.set(codec.encode(mintAddr), 0);
@@ -114,18 +125,18 @@ describe("earnout program - LiteSVM", () => {
       instructions,
       setTransactionMessageFeePayerSigner(feePayer, createTransactionMessage({ version: 0 })),
     );
-    return signTransactionMessageWithSigners(svm.setTransactionMessageLifetimeUsingLatestBlockhash(msg) as any);
+    return signTransactionMessageWithSigners(svm.setTransactionMessageLifetimeUsingLatestBlockhash(msg));
   }
 
   async function send(instructions: Instruction[], feePayer: KeyPairSigner) {
-    const res = svm.sendTransaction((await buildTx(instructions, feePayer)) as any);
+    const res = svm.sendTransaction(await buildTx(instructions, feePayer));
     if (res instanceof FailedTransactionMetadata) throw new Error(res.meta().prettyLogs());
     svm.expireBlockhash();
     return res;
   }
 
   async function fails(instructions: Instruction[], feePayer: KeyPairSigner, includes: string) {
-    const res = svm.simulateTransaction((await buildTx(instructions, feePayer)) as any);
+    const res = svm.simulateTransaction(await buildTx(instructions, feePayer));
     expect(res, `expected a failure containing "${includes}"`).to.be.instanceOf(FailedTransactionMetadata);
     const logs = (res as FailedTransactionMetadata).meta().prettyLogs();
     expect(logs, logs).to.include(includes);
@@ -157,7 +168,11 @@ describe("earnout program - LiteSVM", () => {
       [mint, eo.TOKEN_PROGRAM],
       [mint22, eo.TOKEN_2022_PROGRAM],
     ] as const) {
-      put(await eo.ataAddress(advertiser.address, m, program), encodeTokenAccount(m, advertiser.address, 10_000n * USDC), program);
+      put(
+        await eo.ataAddress(advertiser.address, m, program),
+        encodeTokenAccount(m, advertiser.address, 10_000n * USDC),
+        program,
+      );
     }
   });
 
@@ -200,7 +215,16 @@ describe("earnout program - LiteSVM", () => {
   async function fund(c: C, amount: bigint) {
     const source = await eo.ataAddress(advertiser.address, c.mint, c.tokenProgram);
     await send(
-      [await eo.fundIx({ funder: advertiser, campaign: c.campaign, mint: c.mint, source, amount, tokenProgram: c.tokenProgram })],
+      [
+        await eo.fundIx({
+          funder: advertiser,
+          campaign: c.campaign,
+          mint: c.mint,
+          source,
+          amount,
+          tokenProgram: c.tokenProgram,
+        }),
+      ],
       advertiser,
     );
   }
@@ -212,7 +236,11 @@ describe("earnout program - LiteSVM", () => {
 
   /** Link `wallet` to an X account under the test identity, as a creator
    * would from the site: a new account unless `xId` names one. */
-  async function linkX(wallet: KeyPairSigner, xId?: bigint, handle = `x_${wallet.address.slice(0, 6)}`): Promise<bigint> {
+  async function linkX(
+    wallet: KeyPairSigner,
+    xId?: bigint,
+    handle = `x_${wallet.address.slice(0, 6)}`,
+  ): Promise<bigint> {
     const id = xId ?? xIds.get(wallet.address) ?? nextXId++;
     xIds.set(wallet.address, id);
     await send([await eo.linkXIx({ wallet, voucher, xId: id, handle })], wallet);
@@ -220,7 +248,14 @@ describe("earnout program - LiteSVM", () => {
   }
 
   const channelIx = (c: C, payee: Address, xId: bigint, by = advertiser) =>
-    eo.addChannelIx({ advertiser: by, campaign: c.campaign, identity: identityAddress, index: campaignOf(c.campaign).channels, payee, xId });
+    eo.addChannelIx({
+      advertiser: by,
+      campaign: c.campaign,
+      identity: identityAddress,
+      index: campaignOf(c.campaign).channels,
+      payee,
+      xId,
+    });
 
   /** A channel for `payee`, linking them first if they are not yet. */
   async function addChannel(c: C, payee: KeyPairSigner): Promise<Address> {
@@ -231,15 +266,34 @@ describe("earnout program - LiteSVM", () => {
   }
 
   const moveIx = (c: C, channel: Address, payee: KeyPairSigner, newPayee: Address) =>
-    eo.setPayeeIx({ payee, campaign: c.campaign, identity: identityAddress, channel, newPayee, newPayeeXId: xIds.get(newPayee)! });
+    eo.setPayeeIx({
+      payee,
+      campaign: c.campaign,
+      identity: identityAddress,
+      channel,
+      newPayee,
+      newPayeeXId: xIds.get(newPayee)!,
+    });
 
   const settleIx = (c: C, channel: Address, batch: number, conversions: number, by = settler) =>
-    eo.settleIx({ settler: by, campaign: c.campaign, channel, batch, conversions, evidence: new Uint8Array(32).fill(batch + 1) });
+    eo.settleIx({
+      settler: by,
+      campaign: c.campaign,
+      channel,
+      batch,
+      conversions,
+      evidence: new Uint8Array(32).fill(batch + 1),
+    });
 
   const claimIx = (c: C, channel: Address, payee: KeyPairSigner) =>
     eo.claimIx({ payee, campaign: c.campaign, channel, mint: c.mint, tokenProgram: c.tokenProgram });
 
-  const refundIx = (c: C) => eo.refundIx({ advertiser, campaign: c.campaign, mint: c.mint, tokenProgram: c.tokenProgram });
+  const refundIx = (c: C) =>
+    eo.refundIx({ advertiser, campaign: c.campaign, mint: c.mint, tokenProgram: c.tokenProgram });
+
+  /** Move the clock to the first moment a converted wallet could have
+   * stayed the whole window: the program settles nothing before it. */
+  const stayed = (c: C) => setClock(NOW + c.retentionSecs);
 
   // ── campaigns ─────────────────────────────────────────────────────────────
 
@@ -267,6 +321,43 @@ describe("earnout program - LiteSVM", () => {
     for (const [o, err] of cases) {
       await fails([await eo.createCampaignIx(terms(o))], advertiser, err);
     }
+    const zero = address("11111111111111111111111111111111");
+    await fails([await eo.createCampaignIx({ ...terms(), settler: zero })], advertiser, "MissingKey");
+    await fails([await eo.createCampaignIx({ ...terms(), identity: zero })], advertiser, "MissingKey");
+  });
+
+  it("refuses a Token-2022 mint whose extensions could take the budget out of its hands", async () => {
+    const delegate = Uint8Array.from(codec.encode(stranger.address));
+    const hook = new Uint8Array(64); // authority + program id
+    const pointer = new Uint8Array(64); // metadata pointer: authority + address
+    const risky: [string, number, Uint8Array][] = [
+      ["permanent delegate", 12, delegate],
+      ["transfer hook", 14, hook],
+      ["non-transferable", 9, new Uint8Array(0)],
+    ];
+    for (const [what, kind, value] of risky) {
+      const m = (await generateKeyPairSigner()).address;
+      put(m, encodeMint22(6, advertiser.address, kind, value), eo.TOKEN_2022_PROGRAM);
+      const t = { ...terms({ tokenProgram: eo.TOKEN_2022_PROGRAM }), mint: m };
+      await fails([await eo.createCampaignIx(t)], advertiser, "UnsupportedMint").catch((e) => {
+        throw new Error(`${what}: ${e.message}`);
+      });
+    }
+    // A harmless extension is fine.
+    const m = (await generateKeyPairSigner()).address;
+    put(m, encodeMint22(6, advertiser.address, 18, pointer), eo.TOKEN_2022_PROGRAM);
+    await send([await eo.createCampaignIx({ ...terms({ tokenProgram: eo.TOKEN_2022_PROGRAM }), mint: m })], advertiser);
+  });
+
+  it("settles nothing before the first wallet could have stayed", async () => {
+    const c = await newCampaign();
+    await fund(c, 100n * USDC);
+    const a = await addChannel(c, alice);
+    await fails([settleIx(c, a, 0, 1)], settler, "TooEarlyToSettle");
+    setClock(NOW + c.retentionSecs - 1);
+    await fails([settleIx(c, a, 0, 1)], settler, "TooEarlyToSettle");
+    setClock(NOW + c.retentionSecs);
+    await send([settleIx(c, a, 0, 1)], settler);
   });
 
   // ── the money paths ───────────────────────────────────────────────────────
@@ -278,6 +369,7 @@ describe("earnout program - LiteSVM", () => {
     const b = await addChannel(c, bob);
     expect(channelOf(b).index).to.equal(1);
 
+    stayed(c);
     await send([settleIx(c, a, 0, 3)], settler);
     expect(campaignOf(c.campaign).committed).to.equal(15n * USDC);
     const ch = channelOf(a);
@@ -295,6 +387,7 @@ describe("earnout program - LiteSVM", () => {
     const c = await newCampaign();
     await fund(c, 100n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     await fails([settleIx(c, a, 1, 1)], settler, "WrongBatch");
     await send([settleIx(c, a, 0, 1)], settler);
     await fails([settleIx(c, a, 0, 1)], settler, "WrongBatch");
@@ -307,6 +400,7 @@ describe("earnout program - LiteSVM", () => {
     const c = await newCampaign();
     await fund(c, 100n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     for (const who of [stranger, advertiser, alice]) {
       await fails([settleIx(c, a, 0, 1, who)], who, "ConstraintHasOne");
     }
@@ -317,13 +411,34 @@ describe("earnout program - LiteSVM", () => {
     const c2 = await newCampaign();
     await fund(c1, 100n * USDC);
     const onC2 = await addChannel(c2, alice);
+    stayed(c1);
     await fails([settleIx(c1, onC2, 0, 1)], settler, "ConstraintSeeds");
+  });
+
+  it("lets anyone fund, from a token account of the campaign's mint only", async () => {
+    const c = await newCampaign();
+    const source = await eo.ataAddress(stranger.address, c.mint);
+    put(source, encodeTokenAccount(c.mint, stranger.address, 50n * USDC), eo.TOKEN_PROGRAM);
+    await send(
+      [await eo.fundIx({ funder: stranger, campaign: c.campaign, mint: c.mint, source, amount: 20n * USDC })],
+      stranger,
+    );
+    expect(campaignOf(c.campaign).funded).to.equal(20n * USDC);
+    expect(tokenAmount(c.vault)).to.equal(20n * USDC);
+
+    const wrongMint = await eo.ataAddress(advertiser.address, mint22, eo.TOKEN_2022_PROGRAM);
+    await fails(
+      [await eo.fundIx({ funder: advertiser, campaign: c.campaign, mint: c.mint, source: wrongMint, amount: 1n })],
+      advertiser,
+      "ConstraintTokenMint",
+    );
   });
 
   it("never commits more than was funded", async () => {
     const c = await newCampaign();
     await fund(c, 10n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     await fails([settleIx(c, a, 0, 3)], settler, "OverBudget");
     await send([settleIx(c, a, 0, 2)], settler);
     await fails([settleIx(c, a, 1, 1)], settler, "OverBudget");
@@ -337,6 +452,7 @@ describe("earnout program - LiteSVM", () => {
     await fund(c, 100n * USDC);
     const a = await addChannel(c, alice);
     const b = await addChannel(c, bob);
+    stayed(c);
     await send([settleIx(c, a, 0, 2)], settler);
 
     await fails([await claimIx(c, a, bob)], bob, "ConstraintHasOne");
@@ -353,8 +469,24 @@ describe("earnout program - LiteSVM", () => {
     const c = await newCampaign();
     await fund(c, 100n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     await send([settleIx(c, a, 0, 2)], settler);
 
+    // A wallet nobody has linked cannot be paid at all.
+    await fails(
+      [
+        await eo.setPayeeIx({
+          payee: alice,
+          campaign: c.campaign,
+          identity: identityAddress,
+          channel: a,
+          newPayee: stranger.address,
+          newPayeeXId: 1n,
+        }),
+      ],
+      alice,
+      "AccountNotInitialized",
+    );
     // Bob has an X account of his own: not the same person, so no.
     await linkX(bob);
     await fails([await moveIx(c, a, alice, bob.address)], alice, "DifferentPerson");
@@ -373,6 +505,7 @@ describe("earnout program - LiteSVM", () => {
     const c = await newCampaign();
     await fund(c, 100n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     await send([settleIx(c, a, 0, 3)], settler);
     const advertiserAta = await eo.ataAddress(advertiser.address, c.mint);
     const before = tokenAmount(advertiserAta);
@@ -386,13 +519,36 @@ describe("earnout program - LiteSVM", () => {
     await send([await refundIx(c)], advertiser);
     expect(tokenAmount(advertiserAta) - before).to.equal(85n * USDC);
     await fails([await refundIx(c)], advertiser, "NothingToRefund");
-    await fails([await eo.refundIx({ advertiser: stranger, campaign: c.campaign, mint: c.mint })], stranger, "ConstraintSeeds");
+    await fails(
+      [await eo.refundIx({ advertiser: stranger, campaign: c.campaign, mint: c.mint })],
+      stranger,
+      "ConstraintSeeds",
+    );
 
     // What a channel earned is still there after the refund.
     await send([await claimIx(c, a, alice)], alice);
     expect(tokenAmount(c.vault)).to.equal(0n);
     const k = campaignOf(c.campaign);
     expect(k.funded).to.equal(k.claimed + k.refunded);
+  });
+
+  it("refunds tokens that reached the vault by hand, and leaves what channels are owed", async () => {
+    const c = await newCampaign();
+    await fund(c, 100n * USDC);
+    const a = await addChannel(c, alice);
+    stayed(c);
+    await send([settleIx(c, a, 0, 3)], settler);
+    // Somebody sends 7 straight to the vault, outside `fund`.
+    put(c.vault, encodeTokenAccount(c.mint, c.campaign, 107n * USDC), eo.TOKEN_PROGRAM);
+    const advertiserAta = await eo.ataAddress(advertiser.address, c.mint);
+    const before = tokenAmount(advertiserAta);
+
+    setClock(Number(c.settleDeadline) + 1);
+    await send([await refundIx(c)], advertiser);
+    expect(tokenAmount(advertiserAta) - before).to.equal(92n * USDC);
+    expect(tokenAmount(c.vault)).to.equal(15n * USDC);
+    await send([await claimIx(c, a, alice)], alice);
+    expect(tokenAmount(c.vault)).to.equal(0n);
   });
 
   it("takes no channels once the campaign ends, and no money after the deadline", async () => {
@@ -404,7 +560,11 @@ describe("earnout program - LiteSVM", () => {
     await fund(c, 1n * USDC); // a top-up after the end is still allowed
     setClock(Number(c.settleDeadline) + 1);
     const source = await eo.ataAddress(advertiser.address, c.mint);
-    await fails([await eo.fundIx({ funder: advertiser, campaign: c.campaign, mint: c.mint, source, amount: 1n })], advertiser, "SettlementClosed");
+    await fails(
+      [await eo.fundIx({ funder: advertiser, campaign: c.campaign, mint: c.mint, source, amount: 1n })],
+      advertiser,
+      "SettlementClosed",
+    );
   });
 
   it("lets only the advertiser add channels", async () => {
@@ -417,6 +577,7 @@ describe("earnout program - LiteSVM", () => {
     const c = await newCampaign({ tokenProgram: eo.TOKEN_2022_PROGRAM });
     await fund(c, 50n * USDC);
     const a = await addChannel(c, alice);
+    stayed(c);
     await send([settleIx(c, a, 0, 4)], settler);
     await send([await claimIx(c, a, alice)], alice);
     expect(tokenAmount(await eo.ataAddress(alice.address, c.mint, eo.TOKEN_2022_PROGRAM))).to.equal(20n * USDC);
@@ -441,7 +602,10 @@ describe("earnout program - LiteSVM", () => {
 
   it("writes nothing on one signature alone", async () => {
     const good = await eo.linkXIx({ wallet: alice, voucher, xId: 1n, handle: "alice" });
-    const unvouched = { ...good, accounts: good.accounts!.map((a, i) => (i === 1 ? { address: a.address, role: AccountRole.READONLY } : a)) };
+    const unvouched = {
+      ...good,
+      accounts: good.accounts!.map((a, i) => (i === 1 ? { address: a.address, role: AccountRole.READONLY } : a)),
+    };
     await fails([unvouched as Instruction], alice, "AccountNotSigner");
     expect(exists(await eo.xlinkAddress(identityAddress, alice.address))).to.equal(false);
   });

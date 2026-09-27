@@ -40,4 +40,10 @@ pub enum EarnoutError {
     XAccountMoved,
     #[msg("Payouts can only move to a wallet linked to the same X account")]
     DifferentPerson,
+    #[msg("Settlement opens once the first wallet could have stayed the whole window")]
+    TooEarlyToSettle,
+    #[msg("The mint has an extension (permanent delegate, transfer hook or non-transferable) that could take the budget out of the program's hands")]
+    UnsupportedMint,
+    #[msg("The settler and identity keys must be set")]
+    MissingKey,
 }
