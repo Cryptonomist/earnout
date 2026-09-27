@@ -187,3 +187,38 @@ body {
 .skip-link:focus {
   top: 12px;
 }
+
+/* A band of the opposite paper: ink in the light theme, paper in the dark
+ * one. Everything inside keeps using the same token names, so cards, rules
+ * and the two meaning colours read correctly on the inverted ground. */
+.band-ink {
+  --paper: #16150f;
+  --card: #201f19;
+  --ink: #edebe3;
+  --muted: #a3a095;
+  --faint: #5f5c54;
+  --line: #34322b;
+  --paid: #4bd495;
+  --paid-mid: #2c8a5e;
+  --paid-soft: #17301f;
+  --unpaid: #ee8069;
+  --unpaid-soft: #2e1914;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  .band-ink {
+    --paper: #f4f2eb;
+    --card: #fffdf6;
+    --ink: #16150f;
+    --muted: #625e53;
+    --faint: #a29d8f;
+    --line: #e0dbcd;
+    --paid: #0b7349;
+    --paid-mid: #5fae86;
+    --paid-soft: #dbeee2;
+    --unpaid: #a9412b;
+    --unpaid-soft: #f4e0d8;
+  }
+}

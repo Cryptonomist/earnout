@@ -32,7 +32,7 @@ export function Calculator() {
 
   return (
     <div>
-      <p className="max-w-3xl text-2xl leading-[1.6] font-medium tracking-tight sm:text-3xl">
+      <p className="max-w-3xl text-2xl leading-[1.6] font-medium tracking-tight text-balance sm:text-3xl">
         My budget is <Num>{usd(budget)}</Num>. My influencers bring <Num>{num(users)}</Num> users. <Num>{stay}%</Num> are still there a
         week later. I pay <Num>{usd(price)}</Num> per user who stays.
       </p>

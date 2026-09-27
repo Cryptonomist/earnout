@@ -1,32 +1,43 @@
 import { Fragment } from "react";
 import { Calculator } from "@/components/Calculator";
 import { LiveNow } from "@/components/LiveNow";
-import { Mark } from "@/components/Logo";
 import { SiteFooter, SiteHeader } from "@/components/SiteShell";
-import { Receipt } from "@/components/Receipt";
+import { Receipt, type LiveReceipt } from "@/components/Receipt";
 import { SITE, STATS } from "@/lib/site";
+import { heroReceipt } from "@/server/hero";
 
 /* The whole site speaks one small vocabulary: a project pays, an influencer
  * shares a link, a user joins through it, and if the user stays Earnout
  * pays the influencer. One scene, short sentences. The mechanism lives in the
  * developer section and the docs, not up here. */
 
+/* Each step shows the real screen it happens on: crops of the live site,
+ * captured at 2x (public/shots, made by the Playwright script in the
+ * repo's history), so the page shows the product and not a description. */
 const STEPS = [
   {
     title: "Set the deal",
     body: "Say an influencer earns $5 for each new user still active after 7 days. Lock the budget in a Solana program.",
+    image: "/shots/step-1.png",
+    alt: "The money step of the new campaign form: an influencer earns $5 per user who stays, fund now $100.",
   },
   {
     title: "Give each influencer a link",
     body: "Every link tells the visitor who is paid, and for what, before they continue.",
+    image: "/shots/step-2.png",
+    alt: "An influencer page with their link, earnout.dev/r/hub-test-crypt0nomist, and a copy button.",
   },
   {
     title: "The user's first deposit carries the tag",
     body: "That is how Earnout knows which influencer sent them. The tag can never break the deposit.",
+    image: "/shots/step-3.png",
+    alt: "The disclosure page a visitor sees: @CRYPT0NOMIST sent you here, paid only if you stay.",
   },
   {
     title: "Pay only for who stayed",
     body: "After 7 days, Earnout checks who is still active and pays their influencers on-chain. Unspent budget comes back to you.",
+    image: "/shots/step-4.png",
+    alt: "A campaign dashboard: 13 users sent, 7 stayed and paid for.",
   },
 ];
 
@@ -38,14 +49,16 @@ const GUARANTEES = [
   "No admin key. No fee. Open source.",
 ];
 
-const ROLES = [
+const ROLES: { who: string; text: string; cta?: { href: string; label: string } }[] = [
   {
     who: "Project",
     text: "An app on Solana that wants more real users: a game, a DEX, a wallet. It sets the deal and locks the budget.",
+    cta: { href: "/dashboard/new", label: "Start a campaign" },
   },
   {
     who: "Influencer",
     text: "In crypto, a KOL. A trader with a following, a newsletter writer, a community lead. They share their link and get paid for the users who stay.",
+    cta: { href: "/influencers", label: "Link your X account" },
   },
   {
     who: "User",
@@ -87,12 +100,14 @@ const COMPARE: { who: string; pays: string; measured: string; money: string; tol
 
 export const revalidate = 60;
 
-export default function Home() {
+export default async function Home() {
+  // The receipt in the hero is a real one when devnet can be read.
+  const live = await heroReceipt().catch(() => null);
   return (
     <>
       <SiteHeader />
       <main id="content">
-        <Hero />
+        <Hero live={live} />
         <WhoIsWho />
         <LiveNow />
         <Stats />
@@ -100,7 +115,6 @@ export default function Home() {
         <HowItWorks />
         <Compare />
         <Numbers />
-        <Sides />
         <Trust />
         <Developers />
         <Closing />
@@ -112,12 +126,12 @@ export default function Home() {
 
 // ── sections ─────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ live }: { live: LiveReceipt | null }) {
   return (
     <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
         <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN INFLUENCER MARKETING ON SOLANA</p>
-        <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
+        <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
           Pay influencers for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
@@ -132,10 +146,12 @@ function Hero() {
             Start a campaign
           </a>
         </div>
-        <p className="rise rise-4 mt-4 text-sm text-muted">Live on Solana devnet. Three clicks, no wallet needed.</p>
+        <p className="rise rise-4 mt-4 text-sm text-muted">
+          {live ? "The receipt on the right is live on Solana devnet. Three clicks to make your own, no wallet needed." : "Live on Solana devnet. Three clicks, no wallet needed."}
+        </p>
       </div>
       <div className="rise rise-3 lift">
-        <Receipt />
+        <Receipt live={live} />
       </div>
     </section>
   );
@@ -147,9 +163,14 @@ function WhoIsWho() {
     <section aria-label="Who is who" className="reveal mx-auto max-w-6xl px-4 pb-16 sm:px-6">
       <div className="grid gap-6 rounded-2xl border border-line bg-card p-6 sm:grid-cols-3 sm:p-8">
         {ROLES.map((r) => (
-          <div key={r.who}>
+          <div key={r.who} className="flex flex-col">
             <div className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{r.who}</div>
             <p className="mt-2 text-[15px] leading-7">{r.text}</p>
+            {r.cta && (
+              <a href={r.cta.href} className="mt-4 inline-block self-start rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-paper">
+                {r.cta.label}
+              </a>
+            )}
           </div>
         ))}
       </div>
@@ -197,10 +218,18 @@ function HowItWorks() {
     <Section id="how" eyebrow="How it works" title="Four steps. One rule: no stay, no pay.">
       <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (
-          <li key={s.title} className="rounded-xl border border-line bg-card p-6">
+          <li key={s.title} className="flex flex-col rounded-xl border border-line bg-card p-6">
             <div className="font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</div>
             <h3 className="mt-6 text-lg font-semibold tracking-tight">{s.title}</h3>
             <p className="mt-2 text-[15px] leading-7 text-muted">{s.body}</p>
+            {/* A crop of the live screen this step happens on. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={s.image}
+              alt={s.alt}
+              loading="lazy"
+              className="mt-5 h-40 w-full rounded-lg border border-line object-cover object-left-top shadow-[0_8px_24px_rgba(22,21,15,0.08)]"
+            />
           </li>
         ))}
       </ol>
@@ -216,7 +245,7 @@ function Compare() {
     ["Is the user told?", "told"],
   ];
   return (
-    <Section eyebrow="How it compares" title="Quantity is clicks, posts and sign-ups. Quality is a user who is still there.">
+    <Section band eyebrow="How it compares" title="Quantity is clicks, posts and sign‑ups. Quality is a user who is still there.">
       {/* On a phone the table would scroll sideways and hide its point, so each row becomes a card. */}
       <div className="space-y-3 md:hidden">
         {COMPARE.map((r) => (
@@ -270,60 +299,10 @@ function Compare() {
 function Numbers() {
   return (
     <Section eyebrow="Run your numbers" title="What changes when you pay for who stayed.">
-      <div className="rounded-2xl border border-line p-6 sm:p-8">
+      <div className="rounded-2xl border border-line bg-card p-6 sm:p-8">
         <Calculator />
       </div>
     </Section>
-  );
-}
-
-function Sides() {
-  return (
-    <Section id="influencers" eyebrow="Both sides of the deal" title="Fair to the ones paying and the ones sending.">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Side
-          who="For projects"
-          points={[
-            "See which influencer brought each user.",
-            "Pay per user who stayed, at your price.",
-            "Unspent budget comes back on its own.",
-            "Every payout has proof on-chain.",
-          ]}
-          cta={{ href: "/dashboard/new", label: "Start a campaign" }}
-        />
-        <Side
-          who="For influencers"
-          points={[
-            "Get paid from a budget that is already locked.",
-            "No invoices. Claim straight from the program.",
-            "Your audience stays private.",
-            "Your X account is your record. It follows you, wallet to wallet.",
-          ]}
-          cta={{ href: "/influencers", label: "Link your X account" }}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function Side({ who, points, cta }: { who: string; points: string[]; cta?: { href: string; label: string } }) {
-  return (
-    <div className="rounded-2xl border border-line bg-card p-7">
-      <h3 className="text-xl font-semibold tracking-tight">{who}</h3>
-      <ul className="mt-5 space-y-3">
-        {points.map((p) => (
-          <li key={p} className="flex gap-3 leading-7">
-            <Mark className="mt-1 size-4 shrink-0" />
-            <span>{p}</span>
-          </li>
-        ))}
-      </ul>
-      {cta && (
-        <a href={cta.href} className="mt-6 inline-block rounded-full border border-ink px-5 py-2.5 font-medium hover:bg-ink hover:text-paper">
-          {cta.label}
-        </a>
-      )}
-    </div>
   );
 }
 
@@ -427,18 +406,22 @@ function Section({
   id,
   eyebrow,
   title,
+  band,
   children,
 }: {
   id?: string;
   eyebrow: string;
   title: string;
+  /** On the opposite paper (ink in the light theme), for the one section that should stop the scroll. */
+  band?: boolean;
   children: React.ReactNode;
 }) {
-  return (
+  const section = (
     <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 md:py-24">
       <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{eyebrow}</p>
-      <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">{title}</h2>
+      <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
       {children}
     </section>
   );
+  return band ? <div className="band-ink my-8">{section}</div> : section;
 }

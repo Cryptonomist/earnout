@@ -297,7 +297,7 @@ export function NewCampaign(p: Props) {
           </div>
 
           <details className="mt-6 text-sm">
-            <summary className="cursor-pointer text-muted hover:text-ink">Bot check</summary>
+            <summary className="cursor-pointer text-muted hover:text-ink">Bot check: {form.maxWallets || "3"} users per funder</summary>
             <div className="mt-3 grid gap-4 sm:grid-cols-[180px_1fr]">
               <Field label="Users per funder" hint="More than this from one quiet source is a bot farm">
                 <input value={form.maxWallets} onChange={(e) => set("maxWallets", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
@@ -314,7 +314,7 @@ export function NewCampaign(p: Props) {
             <Field label="An influencer earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
               <input value={form.price} onChange={(e) => set("price", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
             </Field>
-            <Field label="Fund now" hint="Empty to fund later; top-ups are always open">
+            <Field label="Fund it now with" hint="Empty to fund later; top-ups are always open">
               <input value={form.budget} onChange={(e) => set("budget", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
             </Field>
           </div>
