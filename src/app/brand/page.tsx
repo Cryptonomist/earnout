@@ -18,7 +18,13 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     note: "The mark and the wordmark together. Use this wherever there is room.",
     items: [
       { svg: "logo.svg", label: "Ink, for light backgrounds", bg: "paper", wide: true, pngs: ["logo-2048.png"] },
-      { svg: "logo-inverse.svg", label: "Paper, for dark backgrounds", bg: "ink", wide: true, pngs: ["logo-inverse-2048.png"] },
+      {
+        svg: "logo-inverse.svg",
+        label: "Paper, for dark backgrounds",
+        bg: "ink",
+        wide: true,
+        pngs: ["logo-inverse-2048.png"],
+      },
     ],
   },
   {
@@ -27,7 +33,12 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     items: [
       { svg: "mark.svg", label: "Ink", bg: "paper", pngs: ["mark-512.png", "mark-1024.png"] },
       { svg: "mark-inverse.svg", label: "Paper", bg: "ink", pngs: ["mark-inverse-512.png", "mark-inverse-1024.png"] },
-      { svg: "mark-paid.svg", label: "Paid green, the one accent", bg: "paper", pngs: ["mark-paid-512.png", "mark-paid-1024.png"] },
+      {
+        svg: "mark-paid.svg",
+        label: "Paid green, the one accent",
+        bg: "paper",
+        pngs: ["mark-paid-512.png", "mark-paid-1024.png"],
+      },
     ],
   },
   {
@@ -42,8 +53,18 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     title: "App icon",
     note: "Full bleed, no rounded corners: for X, Colosseum, app stores and anywhere else that masks icons itself. Whatever shape they cut, there is always ink underneath, and the mark sits inside the circle.",
     items: [
-      { svg: "icon.svg", label: "App icon, dark (use this one)", bg: "checker", pngs: ["icon-512.png", "icon-1024.png"] },
-      { svg: "icon-light.svg", label: "App icon, light", bg: "checker", pngs: ["icon-light-512.png", "icon-light-1024.png"] },
+      {
+        svg: "icon.svg",
+        label: "App icon, dark (use this one)",
+        bg: "checker",
+        pngs: ["icon-512.png", "icon-1024.png"],
+      },
+      {
+        svg: "icon-light.svg",
+        label: "App icon, light",
+        bg: "checker",
+        pngs: ["icon-light-512.png", "icon-light-1024.png"],
+      },
     ],
   },
   {
@@ -62,7 +83,13 @@ const ASSETS: { title: string; note: string; items: Item[] }[] = [
     items: [
       { svg: "card-1200x800.svg", label: "Card, 3:2", bg: "checker", wide: true, pngs: ["card-1200x800.png"] },
       { svg: "card-1200x1200.svg", label: "Card, square", bg: "checker", pngs: ["card-1200x1200.png"] },
-      { svg: "card-1920x1080.svg", label: "Card, 16:9, video thumbnail", bg: "checker", wide: true, pngs: ["card-1920x1080.png"] },
+      {
+        svg: "card-1920x1080.svg",
+        label: "Card, 16:9, video thumbnail",
+        bg: "checker",
+        wide: true,
+        pngs: ["card-1920x1080.png"],
+      },
       { svg: "end-1920x1080.svg", label: "Video end card", bg: "checker", wide: true, pngs: ["end-1920x1080.png"] },
     ],
   },
@@ -90,14 +117,21 @@ export default function BrandPage() {
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Brand</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">The Earnout logo</h1>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          Paper and ink, like a printed receipt. Green is used for one thing only: money that was paid. Every asset comes
-          as a vector and as PNG, on a transparent background unless it is an avatar or banner.
+          Paper and ink, like a printed receipt. Green is used for one thing only: money that was paid. Every asset
+          comes as a vector and as PNG, on a transparent background unless it is an avatar or banner.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <a href="/brand/earnout-brand.zip" download className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90">
+          <a
+            href="/brand/earnout-brand.zip"
+            download
+            className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90"
+          >
             Download the whole kit (zip)
           </a>
-          <a href="https://github.com/Cryptonomist/earnout/tree/main/public/brand" className="rounded-full border border-line px-5 py-2.5 font-medium hover:border-ink">
+          <a
+            href="https://github.com/Cryptonomist/earnout/tree/main/public/brand"
+            className="rounded-full border border-line px-5 py-2.5 font-medium hover:border-ink"
+          >
             Browse on GitHub
           </a>
         </div>
@@ -108,7 +142,10 @@ export default function BrandPage() {
             <p className="mt-2 max-w-2xl leading-7 text-muted">{group.note}</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {group.items.map((item) => (
-                <figure key={item.svg} className={`overflow-hidden rounded-2xl border border-line ${item.wide ? "sm:col-span-2 lg:col-span-3" : ""}`}>
+                <figure
+                  key={item.svg}
+                  className={`overflow-hidden rounded-2xl border border-line ${item.wide ? "sm:col-span-2 lg:col-span-3" : ""}`}
+                >
                   <div
                     className={`flex items-center justify-center p-10 ${
                       item.bg === "paper" ? "bg-[#f4f2eb]" : item.bg === "ink" ? "bg-[#16150f]" : "checker"
@@ -116,7 +153,11 @@ export default function BrandPage() {
                   >
                     {/* Plain img: these are the shipped files, shown as they are. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/brand/${item.svg}`} alt={item.label} className={item.wide ? "h-16 w-auto max-w-full" : "size-24"} />
+                    <img
+                      src={`/brand/${item.svg}`}
+                      alt={item.label}
+                      className={item.wide ? "h-16 w-auto max-w-full" : "size-24"}
+                    />
                   </div>
                   <figcaption className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm">
                     <span>{item.label}</span>
@@ -138,7 +179,10 @@ export default function BrandPage() {
           <ul className="mt-4 list-disc space-y-2 pl-5">
             <li>Keep clear space around the logo of at least the mark&apos;s own width.</li>
             <li>The mark alone works down to 16 pixels; the logo needs about 100 pixels of width.</li>
-            <li>Ink on light, paper on dark. Do not recolour the wordmark; green is for the mark only, and only where &quot;paid&quot; is the message.</li>
+            <li>
+              Ink on light, paper on dark. Do not recolour the wordmark; green is for the mark only, and only where
+              &quot;paid&quot; is the message.
+            </li>
             <li>Do not stretch, rotate, outline or add effects.</li>
             <li>Need another size? The SVGs scale to anything, and PNGs are exported from them.</li>
           </ul>

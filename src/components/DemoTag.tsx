@@ -4,12 +4,14 @@
  * was kept and check its signature in the browser, make the deposit with
  * the tag on it, and show what the settler will find. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { captureTag, clearTag, pendingTagEntry } from "../../sdk/client";
 import { verifyTag, type Tag } from "../../sdk/identity";
 import { DemoDeposit, type DepositResult } from "./DemoDeposit";
-import { DEMO, explorerAddress, explorerTx } from "@/lib/demo";
+import { DEMO } from "@/lib/demo";
+import { explorerAddress, explorerTx, shortAddress as short } from "@/lib/explorer";
 import { registerGuestWallet } from "@/lib/guest-wallet";
+import { linkText } from "@/lib/site";
 import { Countdown } from "./Countdown";
 
 type State =
@@ -18,28 +20,22 @@ type State =
   | { phase: "kept"; tag: Tag; savedAt: number; expiresAt: number; justArrived: boolean; valid: boolean | null }
   | { phase: "deposited"; tag: Tag; result: DepositResult };
 
-const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-
-/* Capture once per page load. The first capture takes the token out of the
- * URL, so a second one (React runs effects twice in development) would
- * report no arrival and overwrite the first. */
-let arrivedThisLoad: boolean | null = null;
-
 export function DemoTag({ slugs }: { slugs: string[] }) {
   const [state, setState] = useState<State>({ phase: "loading" });
+  // Whether this page load arrived with a token. Captured once: the first
+  // capture takes the token out of the URL, so a second run of this effect
+  // (React runs effects twice in development) would report no arrival.
+  const arrived = useRef<boolean | null>(null);
 
   useEffect(() => {
     // The demo offers the wallet that lives in the page; so does the advertiser hub.
     registerGuestWallet();
-    arrivedThisLoad ??= captureTag() !== null;
-    const arrived = arrivedThisLoad;
+    arrived.current ??= captureTag() !== null;
     const entry = pendingTagEntry();
-    if (!entry) {
-      setState({ phase: "none" });
-      return;
-    }
-    setState({ phase: "kept", ...entry, justArrived: arrived, valid: null });
-    verifyTag(entry.tag).then((valid) => setState((s) => (s.phase === "kept" ? { ...s, valid } : s)));
+    // The tag lives in the URL and in this browser's storage, which only an
+    // effect may read; carrying what it finds into state is the whole job.
+    setState(entry ? { phase: "kept", ...entry, justArrived: arrived.current, valid: null } : { phase: "none" });
+    if (entry) verifyTag(entry.tag).then((valid) => setState((s) => (s.phase === "kept" ? { ...s, valid } : s)));
   }, []);
 
   if (state.phase === "loading") return <div className="mt-10 h-64 animate-pulse rounded-2xl border border-line" />;
@@ -70,12 +66,18 @@ export function DemoTag({ slugs }: { slugs: string[] }) {
 
         <dl className="mt-6 divide-y divide-line border-y border-line font-mono text-sm">
           <Row label="Campaign">
-            <a href={explorerAddress(tag.campaign)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+            <a
+              href={explorerAddress(tag.campaign)}
+              className="underline decoration-line underline-offset-2 hover:decoration-ink"
+            >
               {short(tag.campaign)}
             </a>
           </Row>
           <Row label="Signed by">
-            <a href={explorerAddress(tag.identity)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+            <a
+              href={explorerAddress(tag.identity)}
+              className="underline decoration-line underline-offset-2 hover:decoration-ink"
+            >
               {short(tag.identity)}
             </a>
           </Row>
@@ -102,8 +104,8 @@ export function DemoTag({ slugs }: { slugs: string[] }) {
         <h2 className="text-lg font-semibold tracking-tight">What rides along with your deposit</h2>
         <ol className="mt-4 space-y-3 leading-7 text-muted">
           <li>
-            <span className="font-mono text-ink">tag</span> on the Earnout program, carrying the campaign, the identity and
-            the reference as read-only keys. It reads and writes nothing, so it cannot make the deposit fail.
+            <span className="font-mono text-ink">tag</span> on the Earnout program, carrying the campaign, the identity
+            and the reference as read-only keys. It reads and writes nothing, so it cannot make the deposit fail.
           </li>
           <li>
             <span className="font-mono text-ink">memo</span> in the Solana Actions format:{" "}
@@ -126,8 +128,12 @@ function NoTag({ slugs }: { slugs: string[] }) {
       <p className="mt-2 leading-7 text-muted">Come in through one of the demo campaign&apos;s links:</p>
       <div className="mt-5 flex flex-wrap gap-3">
         {slugs.map((slug) => (
-          <a key={slug} href={`/r/${slug}`} className="rounded-full bg-ink px-5 py-2.5 font-mono text-sm text-paper hover:opacity-90">
-            earnout.dev/r/{slug}
+          <a
+            key={slug}
+            href={`/r/${slug}`}
+            className="rounded-full bg-ink px-5 py-2.5 font-mono text-sm text-paper hover:opacity-90"
+          >
+            {linkText(slug)}
           </a>
         ))}
       </div>
@@ -161,7 +167,10 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
 
       <dl className="mt-6 divide-y divide-line border-y border-line font-mono text-sm">
         <Row label="Transaction">
-          <a href={explorerTx(result.signature)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+          <a
+            href={explorerTx(result.signature)}
+            className="underline decoration-line underline-offset-2 hover:decoration-ink"
+          >
             {short(result.signature)}
           </a>
         </Row>
@@ -178,9 +187,9 @@ function Deposited({ tag, result }: { tag: Tag; result: DepositResult }) {
       <Countdown endsAt={depositedAt + DEMO.retentionMinutes * 60_000} />
       <p className="mt-6 leading-7 text-muted">
         Next, the stay period: {DEMO.retentionMinutes} minutes for this demo, days or weeks in a real campaign. When it
-        ends, Earnout checks this wallet is still active and not part of a bot farm. If it passes, the influencer whose link
-        you used is owed {DEMO.payout} test dollars, paid on-chain for them to claim. If not, they get nothing and the
-        budget stays with the project.
+        ends, Earnout checks this wallet is still active and not part of a bot farm. If it passes, the influencer whose
+        link you used is owed {DEMO.payout} test dollars, paid on-chain for them to claim. If not, they get nothing and
+        the budget stays with the project.
       </p>
       <a
         href={`/dashboard/${tag.campaign}`}

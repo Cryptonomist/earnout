@@ -13,6 +13,3 @@ export const DEMO = {
   retentionMinutes: 10,
   payout: "5.00",
 };
-
-export const explorerTx = (sig: string) => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
-export const explorerAddress = (a: string) => `https://explorer.solana.com/address/${a}?cluster=devnet`;

@@ -112,7 +112,9 @@ body {
     linear-gradient(45deg, #d6d1c2 25%, transparent 25%, transparent 75%, #d6d1c2 75%),
     linear-gradient(45deg, #d6d1c2 25%, transparent 25%, transparent 75%, #d6d1c2 75%);
   background-size: 24px 24px;
-  background-position: 0 0, 12px 12px;
+  background-position:
+    0 0,
+    12px 12px;
 }
 
 /* Motion: a rise on load for the hero, and a reveal as sections scroll

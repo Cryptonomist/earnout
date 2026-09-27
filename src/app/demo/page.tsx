@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/SiteShell";
 import { DemoTag } from "@/components/DemoTag";
 import { registry } from "@/server/registry";
@@ -24,8 +23,8 @@ export default async function DemoPage() {
           This page plays <span className="font-serif font-normal italic">the project.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-          Think of it as a DeFi app running an Earnout campaign. You are the user here: you arrived through an influencer&apos;s
-          link, and this is what the app keeps, and what it will add to your deposit.
+          Think of it as a DeFi app running an Earnout campaign. You are the user here: you arrived through an
+          influencer&apos;s link, and this is what the app keeps, and what it will add to your deposit.
         </p>
         {/* Every registered link that lands here, so a new influencer's shows up too. */}
         <DemoTag

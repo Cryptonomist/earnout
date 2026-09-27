@@ -67,9 +67,13 @@ async function signedByAdvertiser(
   return { tx, campaign };
 }
 
-export async function registerCampaign(input: Record<string, unknown>, deps: RegistryDeps): Promise<Outcome<CampaignRow>> {
+export async function registerCampaign(
+  input: Record<string, unknown>,
+  deps: RegistryDeps,
+): Promise<Outcome<CampaignRow>> {
   const signature = String(input.signature ?? "");
-  if (!SIGNATURE.test(signature)) return refuse(400, "Send the signature of the transaction that created the campaign.");
+  if (!SIGNATURE.test(signature))
+    return refuse(400, "Send the signature of the transaction that created the campaign.");
   const campaignAddr = String(input.campaign ?? "");
   if (!isAddress(campaignAddr)) return refuse(400, "Send the campaign's address.");
   let rules: Rules;
@@ -86,7 +90,8 @@ export async function registerCampaign(input: Record<string, unknown>, deps: Reg
   if (campaign.identity !== deps.identity) {
     return refuse(400, "That campaign does not name Earnout's identity, so its links could not be signed here.");
   }
-  if (!tx.memos.some((m) => parseRulesMemo(m) === hash)) return refuse(400, "That transaction does not commit to these rules.");
+  if (!tx.memos.some((m) => parseRulesMemo(m) === hash))
+    return refuse(400, "That transaction does not commit to these rules.");
 
   const row: CampaignRow = {
     campaign: campaignAddr,
@@ -129,7 +134,8 @@ export async function registerLink(input: Record<string, unknown>, deps: Registr
   const row: LinkRow = { slug, campaign: campaignAddr, channel: index, link_tx: signature };
   const existing = await deps.findLink(slug);
   if (existing) {
-    if (existing.campaign === campaignAddr && existing.channel === index) return { ok: true, created: false, value: row };
+    if (existing.campaign === campaignAddr && existing.channel === index)
+      return { ok: true, created: false, value: row };
     return refuse(409, `/r/${slug} is taken.`);
   }
   const current = await deps.findChannelLink(campaignAddr, index);

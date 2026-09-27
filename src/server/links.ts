@@ -13,7 +13,13 @@
  * ended, or the secrets are missing, the visitor still goes; the redirect
  * just carries no tag. */
 
-import { createKeyPairFromBytes, createKeyPairSignerFromBytes, getAddressFromPublicKey, type Address, type KeyPairSigner } from "@solana/kit";
+import {
+  createKeyPairFromBytes,
+  createKeyPairSignerFromBytes,
+  getAddressFromPublicKey,
+  type Address,
+  type KeyPairSigner,
+} from "@solana/kit";
 import { encodeTagToken, signReference } from "../../sdk/identity.ts";
 import { TAG_PARAM } from "../../sdk/client.ts";
 import { issueReference, referenceKeys } from "../../sdk/reference.ts";
@@ -36,9 +42,7 @@ export type Secrets = {
   referenceSecret: Uint8Array;
 };
 
-export type Resolution =
-  | { status: 302; location: string; tagged: boolean }
-  | { status: 404 };
+export type Resolution = { status: 302; location: string; tagged: boolean } | { status: 404 };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
@@ -63,7 +67,11 @@ export async function resolveLink(
   const endsAt = deps.campaignEndsAt ? await deps.campaignEndsAt(entry.campaign).catch(() => null) : null;
   if (endsAt !== null && deps.now >= endsAt) return untagged();
 
-  const reference = issueReference(referenceKeys(deps.secrets.referenceSecret, entry.campaign), entry.channel, deps.now);
+  const reference = issueReference(
+    referenceKeys(deps.secrets.referenceSecret, entry.campaign),
+    entry.channel,
+    deps.now,
+  );
   const signature = await signReference(deps.secrets.identity, reference);
   destination.searchParams.set(
     TAG_PARAM,
@@ -79,7 +87,8 @@ export async function resolveLink(
 export async function loadSecrets(env: Record<string, string | undefined> = process.env): Promise<Secrets> {
   const rawKeypair = env.EARNOUT_IDENTITY_KEYPAIR;
   const rawSecret = env.EARNOUT_REFERENCE_SECRET;
-  if (!rawKeypair || !rawSecret) throw new Error("EARNOUT_IDENTITY_KEYPAIR and EARNOUT_REFERENCE_SECRET must both be set");
+  if (!rawKeypair || !rawSecret)
+    throw new Error("EARNOUT_IDENTITY_KEYPAIR and EARNOUT_REFERENCE_SECRET must both be set");
 
   const bytes = Uint8Array.from(JSON.parse(rawKeypair) as number[]);
   if (bytes.length !== 64) throw new Error("EARNOUT_IDENTITY_KEYPAIR must be a 64-byte keypair");
@@ -87,13 +96,32 @@ export async function loadSecrets(env: Record<string, string | undefined> = proc
   const identitySigner = await createKeyPairSignerFromBytes(bytes);
 
   const referenceSecret = loadReferenceSecret(env);
-  return { identity, identitySigner, identityAddress: await getAddressFromPublicKey(identity.publicKey), referenceSecret };
+  return {
+    identity,
+    identitySigner,
+    identityAddress: await getAddressFromPublicKey(identity.publicKey),
+    referenceSecret,
+  };
+}
+
+/** The secrets, read once per server instance and shared by every route
+ * that signs or reads as the identity. Null, with one line in the log,
+ * when the deployment has none: links then redirect untagged, and nothing
+ * can be registered or linked, but every page still serves. */
+let cached: Promise<Secrets | null> | null = null;
+export function getSecrets(): Promise<Secrets | null> {
+  cached ??= loadSecrets().catch((e) => {
+    console.error(`[links] no Earnout identity on this deployment: ${(e as Error).message}`);
+    return null;
+  });
+  return cached;
 }
 
 /** Just the reference secret: all the settler needs to open references. It
  * never signs one, so it is never given the identity. */
 export function loadReferenceSecret(env: Record<string, string | undefined> = process.env): Uint8Array {
   const raw = env.EARNOUT_REFERENCE_SECRET?.trim();
-  if (!raw || !/^([0-9a-f]{2}){32,}$/i.test(raw)) throw new Error("EARNOUT_REFERENCE_SECRET must be at least 32 bytes of hex");
+  if (!raw || !/^([0-9a-f]{2}){32,}$/i.test(raw))
+    throw new Error("EARNOUT_REFERENCE_SECRET must be at least 32 bytes of hex");
   return Uint8Array.from(Buffer.from(raw, "hex"));
 }

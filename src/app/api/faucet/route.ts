@@ -15,7 +15,10 @@ export async function POST(request: Request) {
   });
   const live = await deps;
   if (!live) {
-    return Response.json({ ok: false, reason: "unavailable", message: "The demo faucet is off. Use the Solana faucet instead." }, { status: 503 });
+    return Response.json(
+      { ok: false, reason: "unavailable", message: "The demo faucet is off. Use the Solana faucet instead." },
+      { status: 503 },
+    );
   }
 
   let wallet = "";
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
     return Response.json(result, { status, headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error(`[faucet] ${(e as Error).message}`);
-    return Response.json({ ok: false, reason: "unavailable", message: "Devnet did not answer. Try again in a moment." }, { status: 502 });
+    return Response.json(
+      { ok: false, reason: "unavailable", message: "Devnet did not answer. Try again in a moment." },
+      { status: 502 },
+    );
   }
 }

@@ -5,22 +5,24 @@ import { ClaimPanel } from "@/components/ClaimPanel";
 import { CopyLink } from "@/components/CopyLink";
 import { ChannelReceipt, SiteHeader } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
+import { linkText, linkUrl } from "@/lib/site";
 import { campaignChain, campaignMeta, campaignReport, duration, linkFor, money } from "@/server/dashboard";
 
 /* An influencer's page: their link, their receipt, and a claim button. Anyone
  * with the slug can see it, as anyone who sees the link could; only the
- * channel's payout wallet can claim. */
+ * channel's payout wallet can claim. Read fresh on every view: the claim
+ * button refreshes this page and expects to see the money move. */
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `earnout.dev/r/${slug}`, robots: { index: false } };
+  return { title: linkText(slug), robots: { index: false } };
 }
 
-export default async function CreatorPage({ params }: Params) {
+export default async function InfluencerPage({ params }: Params) {
   const { slug } = await params;
   const link = await linkFor(slug);
   if (!link) notFound();
@@ -30,7 +32,6 @@ export default async function CreatorPage({ params }: Params) {
     campaignReport(link.campaign),
   ]);
   const channel = chain?.channels.find((c) => c.index === link.channel);
-  const url = `https://earnout.dev/r/${slug}`;
 
   return (
     <>
@@ -38,8 +39,8 @@ export default async function CreatorPage({ params }: Params) {
       <main id="content" className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Influencer page</p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <h1 className="font-mono text-2xl font-semibold tracking-tight break-all sm:text-3xl">earnout.dev/r/{slug}</h1>
-          <CopyLink url={url} />
+          <h1 className="font-mono text-2xl font-semibold tracking-tight break-all sm:text-3xl">{linkText(slug)}</h1>
+          <CopyLink url={linkUrl(slug)} />
         </div>
 
         {!chain || !channel ? (
@@ -54,9 +55,9 @@ export default async function CreatorPage({ params }: Params) {
               ) : (
                 <>Added before X verification. </>
               )}
-              For {meta?.name ?? "this campaign"}: you earn {money(chain.payout, chain.decimals)} for each person who comes
-              through your link, joins, and is still there {duration(chain.retentionSecs)} later. Nobody else can see which
-              wallets you sent.
+              For {meta?.name ?? "this campaign"}: you earn {money(chain.payout, chain.decimals)} for each person who
+              comes through your link, joins, and is still there {duration(chain.retentionSecs)} later. Nobody else can
+              see which wallets you sent.
             </p>
 
             <div className="mt-10 grid gap-10 md:grid-cols-[1fr_1fr] md:items-start">
@@ -66,11 +67,13 @@ export default async function CreatorPage({ params }: Params) {
                 slug={slug}
                 payout={chain.payout}
                 decimals={chain.decimals}
-                showCreatorLink={false}
+                showInfluencerLink={false}
               />
               <section className="rounded-2xl border border-line p-7">
                 <h2 className="text-lg font-semibold tracking-tight">Claim your earnings</h2>
-                <p className="mt-2 text-3xl font-semibold tracking-tight">{money(channel.earned - channel.claimed, chain.decimals)}</p>
+                <p className="mt-2 text-3xl font-semibold tracking-tight">
+                  {money(channel.earned - channel.claimed, chain.decimals)}
+                </p>
                 <p className="text-sm text-muted">claimable now, from a vault that is already funded</p>
                 <ClaimPanel
                   campaign={chain.address}
@@ -84,7 +87,10 @@ export default async function CreatorPage({ params }: Params) {
             </div>
 
             <p className="mt-10 text-sm text-muted">
-              <Link href={`/dashboard/${chain.address}`} className="underline decoration-line underline-offset-4 hover:text-ink">
+              <Link
+                href={`/dashboard/${chain.address}`}
+                className="underline decoration-line underline-offset-4 hover:text-ink"
+              >
                 See the whole campaign
               </Link>
             </p>

@@ -1,6 +1,6 @@
 import "server-only";
 import { buildScorecards, findScorecard, type ChannelFacts, type Scorecard } from "@/lib/scorecard";
-import { campaignChain, campaignList, campaignReport, slugsByChannel } from "./dashboard";
+import { campaignList, campaignsWithReports, slugsByChannel } from "./dashboard";
 
 /* The facts behind every verified channel the dashboard knows, read the
  * same way the dashboard reads them: money from the chain, counts from the
@@ -9,9 +9,7 @@ import { campaignChain, campaignList, campaignReport, slugsByChannel } from "./d
 export async function channelFacts(): Promise<ChannelFacts[]> {
   const [slugs, campaigns] = await Promise.all([slugsByChannel(), campaignList()]);
   const facts: ChannelFacts[] = [];
-  for (const meta of campaigns) {
-    const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
-    if (!chain) continue;
+  for (const { meta, chain, report } of await campaignsWithReports(campaigns)) {
     for (const ch of chain.channels) {
       if (!ch.handle || ch.xId === null) continue;
       const r = report?.channels.find((c) => c.index === ch.index) ?? null;

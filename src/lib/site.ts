@@ -1,12 +1,18 @@
 export const SITE = {
   name: "Earnout",
   url: "https://earnout.dev",
+  /** How links are printed: earnout.dev/r/<slug>. */
+  host: "earnout.dev",
   tagline: "Pay influencers for users who stay",
   description:
     "Results-driven influencer marketing on Solana. Every influencer gets a link; when someone joins through it and is still active later, the influencer gets paid. Nothing for clicks, nothing for people who leave, and unspent budget comes back.",
   github: "https://github.com/Cryptonomist/earnout",
   contact: "mailto:hello@earnout.dev?subject=Earnout%20pilot",
 };
+
+/** An influencer's link as it is printed, and as a URL to copy. */
+export const linkText = (slug: string) => `${SITE.host}/r/${slug}`;
+export const linkUrl = (slug: string) => `${SITE.url}/r/${slug}`;
 
 /* Every number on the landing page, with where it came from. A figure that
  * is a company's own claim says so. */

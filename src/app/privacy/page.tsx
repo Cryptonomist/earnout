@@ -11,7 +11,9 @@ export default function PrivacyPage() {
       <main id="content" className="mx-auto max-w-3xl px-4 py-14 leading-7 sm:px-6">
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Privacy</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight">What Earnout keeps</h1>
-        <p className="mt-4 text-muted">Last updated 26 September 2026. Earnout runs on Solana devnet during its hackathon build.</p>
+        <p className="mt-4 text-muted">
+          Last updated 26 September 2026. Earnout runs on Solana devnet during its hackathon build.
+        </p>
 
         <Section title="On Solana, which is public">
           A tagged transaction shows that a wallet joined a campaign. It does not show which influencer sent it: the
@@ -21,20 +23,20 @@ export default function PrivacyPage() {
 
         <Section title="On our servers">
           Earnout keeps a private ledger of which wallet came through which influencer and whether it stayed. It never
-          publishes that; the dashboard shows counts only. The project may be given the list behind a payout so they
-          can check it against the chain. We keep no accounts, names or emails for people who join.
+          publishes that; the dashboard shows counts only. The project may be given the list behind a payout so they can
+          check it against the chain. We keep no accounts, names or emails for people who join.
         </Section>
 
         <Section title="In your browser">
-          An Earnout link leaves a tag in this browser&apos;s local storage for up to seven days, so a partner app can add it
-          to your transaction. On the demo, a guest wallet keeps a devnet-only key in local storage too. Clearing your
-          browser&apos;s site data removes both.
+          An Earnout link leaves a tag in this browser&apos;s local storage for up to seven days, so a partner app can
+          add it to your transaction. On the demo, a guest wallet keeps a devnet-only key in local storage too. Clearing
+          your browser&apos;s site data removes both.
         </Section>
 
         <Section title="Signing in with X">
           An influencer who links an X account lets us read their public profile (id, handle, picture) once, to write
-          &quot;this wallet belongs to this X account&quot; on chain. We ask for no permission to post, read messages or act
-          for them later, and keep no X token.
+          &quot;this wallet belongs to this X account&quot; on chain. We ask for no permission to post, read messages or
+          act for them later, and keep no X token.
         </Section>
 
         <Section title="What we do not do">

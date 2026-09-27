@@ -72,12 +72,16 @@ const solanaAddress = (v: unknown, what: string): string => {
 /** Base units as a decimal string; a bigint does not survive JSON. */
 const baseUnits = (v: unknown, what: string): string => {
   const s = String(v ?? "").trim();
-  return /^[0-9]{1,20}$/.test(s) && BigInt(s) > 0n ? BigInt(s).toString() : fail(`${what} must be a whole number of base units above zero`);
+  return /^[0-9]{1,20}$/.test(s) && BigInt(s) > 0n
+    ? BigInt(s).toString()
+    : fail(`${what} must be a whole number of base units above zero`);
 };
 
 const whole = (v: unknown, what: string, min: number, max: number): number => {
   const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
-  return typeof n === "number" && Number.isInteger(n) && n >= min && n <= max ? n : fail(`${what} must be a whole number from ${min} to ${max}`);
+  return typeof n === "number" && Number.isInteger(n) && n >= min && n <= max
+    ? n
+    : fail(`${what} must be a whole number from ${min} to ${max}`);
 };
 
 /** An https URL with nothing in it that could carry a credential, or a
@@ -102,7 +106,11 @@ export function validDestination(raw: string): string {
 function conversion(raw: unknown): ConversionRule {
   const r = (raw ?? {}) as Record<string, unknown>;
   if (r.kind === "sol-transfer") {
-    return { kind: "sol-transfer", to: solanaAddress(r.to, "The deposit address"), minLamports: baseUnits(r.minLamports, "The deposit size") };
+    return {
+      kind: "sol-transfer",
+      to: solanaAddress(r.to, "The deposit address"),
+      minLamports: baseUnits(r.minLamports, "The deposit size"),
+    };
   }
   if (r.kind === "program") return { kind: "program", programId: solanaAddress(r.programId, "The program id") };
   return fail("Pick what counts as a conversion");
@@ -110,15 +118,25 @@ function conversion(raw: unknown): ConversionRule {
 
 function retention(raw: unknown): RetentionRule {
   const r = (raw ?? {}) as Record<string, unknown>;
-  if (r.kind === "sol-balance") return { kind: "sol-balance", minLamports: baseUnits(r.minLamports, "The SOL a wallet must keep") };
+  if (r.kind === "sol-balance")
+    return { kind: "sol-balance", minLamports: baseUnits(r.minLamports, "The SOL a wallet must keep") };
   if (r.kind === "token-balance") {
-    return { kind: "token-balance", mint: solanaAddress(r.mint, "The token mint"), minAmount: baseUnits(r.minAmount, "The token amount a wallet must keep") };
+    return {
+      kind: "token-balance",
+      mint: solanaAddress(r.mint, "The token mint"),
+      minAmount: baseUnits(r.minAmount, "The token amount a wallet must keep"),
+    };
   }
   if (r.kind === "program-activity") {
     return {
       kind: "program-activity",
       programId: solanaAddress(r.programId, "The program id"),
-      minTransactions: whole(r.minTransactions ?? 1, "The number of return visits", LIMITS.minTransactions.min, LIMITS.minTransactions.max),
+      minTransactions: whole(
+        r.minTransactions ?? 1,
+        "The number of return visits",
+        LIMITS.minTransactions.min,
+        LIMITS.minTransactions.max,
+      ),
     };
   }
   return fail("Pick what counts as staying");
@@ -131,9 +149,13 @@ export function validateRules(raw: unknown): Rules {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) fail("Rules must be an object");
   const r = raw as Record<string, unknown>;
 
-  const name = text(r.name ?? "", "The name").trim().replace(/\s+/g, " ");
+  const name = text(r.name ?? "", "The name")
+    .trim()
+    .replace(/\s+/g, " ");
   if (!name || name.length > LIMITS.name) fail(`The name must be 1 to ${LIMITS.name} characters`);
-  const description = text(r.description ?? "", "The description").trim().replace(/\s+/g, " ");
+  const description = text(r.description ?? "", "The description")
+    .trim()
+    .replace(/\s+/g, " ");
   if (description.length > LIMITS.description) fail(`The description must be at most ${LIMITS.description} characters`);
   const destination = validDestination(text(r.destination ?? "", "The destination"));
 
@@ -148,9 +170,19 @@ export function validateRules(raw: unknown): Rules {
     destination,
     conversion: conversion(r.conversion),
     retention: retention(r.retention),
-    attributionWindowSecs: whole(r.attributionWindowSecs ?? 7 * 86_400, "The attribution window, in seconds", LIMITS.attributionWindowSecs.min, LIMITS.attributionWindowSecs.max),
+    attributionWindowSecs: whole(
+      r.attributionWindowSecs ?? 7 * 86_400,
+      "The attribution window, in seconds",
+      LIMITS.attributionWindowSecs.min,
+      LIMITS.attributionWindowSecs.max,
+    ),
     sybil: {
-      maxWalletsPerFunder: whole(sybil.maxWalletsPerFunder ?? 3, "The wallets-per-funder limit", LIMITS.maxWalletsPerFunder.min, LIMITS.maxWalletsPerFunder.max),
+      maxWalletsPerFunder: whole(
+        sybil.maxWalletsPerFunder ?? 3,
+        "The wallets-per-funder limit",
+        LIMITS.maxWalletsPerFunder.min,
+        LIMITS.maxWalletsPerFunder.max,
+      ),
       ignoreFunders,
     },
   };
@@ -191,7 +223,8 @@ export function parseRulesMemo(memo: string): string | null {
   return m ? m[1] : null;
 }
 
-export const linkMemo = (campaign: string, index: number, slug: string) => `${LINK_MEMO_PREFIX}${campaign}:${index}:${slug}`;
+export const linkMemo = (campaign: string, index: number, slug: string) =>
+  `${LINK_MEMO_PREFIX}${campaign}:${index}:${slug}`;
 
 export function parseLinkMemo(memo: string): { campaign: string; index: number; slug: string } | null {
   const m = /^earnout:link:v1:([1-9A-HJ-NP-Za-km-z]{32,44}):([0-9]{1,6}):([a-z0-9][a-z0-9-]{0,63})$/.exec(memo.trim());
@@ -206,18 +239,15 @@ export function slugFor(campaignName: string, handle: string): string {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
-  const slug = [part(campaignName), part(handle)]
-    .filter(Boolean)
-    .join("-")
-    .slice(0, 64)
-    .replace(/-+$/, "");
+  const slug = [part(campaignName), part(handle)].filter(Boolean).join("-").slice(0, 64).replace(/-+$/, "");
   return SLUG.test(slug) ? slug : part(handle) || "channel";
 }
 
 // ── in words ─────────────────────────────────────────────────────────────────
 
 const shortAddr = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-const solText = (lamports: string) => `${(Number(lamports) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 9 })} SOL`;
+const solText = (lamports: string) =>
+  `${(Number(lamports) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 9 })} SOL`;
 
 export function describeConversion(c: ConversionRule): string {
   return c.kind === "sol-transfer"

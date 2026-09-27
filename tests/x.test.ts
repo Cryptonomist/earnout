@@ -24,7 +24,11 @@ const SECRET = "client-secret-for-tests";
 const NOW = 1_800_000_000_000;
 
 describe("sealed X profile", () => {
-  const profile = { xId: "44196397", handle: "elon_alt", avatar: "https://pbs.twimg.com/profile_images/1/x_normal.jpg" };
+  const profile = {
+    xId: "44196397",
+    handle: "elon_alt",
+    avatar: "https://pbs.twimg.com/profile_images/1/x_normal.jpg",
+  };
 
   it("opens what it sealed, until it expires", () => {
     const token = sealProfile(SECRET, profile, 900, NOW);
@@ -37,7 +41,9 @@ describe("sealed X profile", () => {
     const token = sealProfile(SECRET, profile, 900, NOW);
     expect(openProfile("other", token, NOW)).to.equal(null);
     const [body, sig] = token.split(".");
-    const other = Buffer.from(JSON.stringify({ ...profile, handle: "someone_else", exp: NOW / 1000 + 900 })).toString("base64url");
+    const other = Buffer.from(JSON.stringify({ ...profile, handle: "someone_else", exp: NOW / 1000 + 900 })).toString(
+      "base64url",
+    );
     expect(openProfile(SECRET, `${other}.${sig}`, NOW)).to.equal(null);
     expect(openProfile(SECRET, `${body}.${sig.slice(0, -1)}A`, NOW)).to.equal(null);
     for (const t of ["", "x", "a.b", undefined]) expect(openProfile(SECRET, t, NOW)).to.equal(null);
@@ -56,7 +62,9 @@ describe("sealed X profile", () => {
   });
 
   it("keeps only avatars from X's own image host", () => {
-    expect(cleanAvatar("https://pbs.twimg.com/profile_images/1/x_normal.jpg")).to.equal("https://pbs.twimg.com/profile_images/1/x_normal.jpg");
+    expect(cleanAvatar("https://pbs.twimg.com/profile_images/1/x_normal.jpg")).to.equal(
+      "https://pbs.twimg.com/profile_images/1/x_normal.jpg",
+    );
     expect(cleanAvatar("http://pbs.twimg.com/a.jpg")).to.equal(null);
     expect(cleanAvatar("https://evil.example/pbs.twimg.com/a.jpg")).to.equal(null);
     expect(cleanAvatar("javascript:alert(1)")).to.equal(null);
@@ -81,16 +89,24 @@ describe("the half-signed link transaction", () => {
     const wallet = await generateKeyPairSigner();
     svm.airdrop(wallet.address, lamports(1_000_000_000n));
 
-    const half = await buildLinkTransaction({ identity, wallet: wallet.address, xId: 44196397n, handle: "elon_alt", lifetime: lifetime() });
+    const half = await buildLinkTransaction({
+      identity,
+      wallet: wallet.address,
+      xId: 44196397n,
+      handle: "elon_alt",
+      lifetime: lifetime(),
+    });
     const tx = getTransactionDecoder().decode(getBase64Encoder().encode(half));
     expect(tx.signatures[identity.address]).to.not.equal(null); // the voucher signed
     expect(tx.signatures[wallet.address]).to.equal(null); // the wallet has not
 
     const signed = await signTransaction([wallet.keyPair], tx);
-    const res = svm.sendTransaction(signed as any);
+    const res = svm.sendTransaction(signed);
     if (res instanceof FailedTransactionMetadata) throw new Error(res.meta().prettyLogs());
 
-    const link = decodeXLink(Uint8Array.from((svm.getAccount(await xlinkAddress(identity.address, wallet.address)) as any).data));
+    const account = svm.getAccount(await xlinkAddress(identity.address, wallet.address));
+    if (!account.exists) throw new Error("no link account was written");
+    const link = decodeXLink(Uint8Array.from(account.data));
     expect(link).to.include({ voucher: identity.address, wallet: wallet.address, xId: 44196397n, handle: "elon_alt" });
   });
 
@@ -100,7 +116,13 @@ describe("the half-signed link transaction", () => {
     const thief = await generateKeyPairSigner();
     svm.airdrop(thief.address, lamports(1_000_000_000n));
 
-    const half = await buildLinkTransaction({ identity, wallet: wallet.address, xId: 7n, handle: "victim", lifetime: lifetime() });
+    const half = await buildLinkTransaction({
+      identity,
+      wallet: wallet.address,
+      xId: 7n,
+      handle: "victim",
+      lifetime: lifetime(),
+    });
     const tx = getTransactionDecoder().decode(getBase64Encoder().encode(half));
     // The wrong key cannot even be put in the wallet's slot.
     let refused = false;
@@ -109,7 +131,7 @@ describe("the half-signed link transaction", () => {
     // And without the wallet's signature the transaction does not land.
     let landed = true;
     try {
-      landed = !(svm.sendTransaction(tx as any) instanceof FailedTransactionMetadata);
+      landed = !(svm.sendTransaction(tx) instanceof FailedTransactionMetadata);
     } catch {
       landed = false;
     }

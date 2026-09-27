@@ -6,27 +6,17 @@
  * the wallet to send would put the transaction on whatever network the
  * wallet is set to, and a Phantom left on mainnet would lose it. */
 
-import { useEffect, useState } from "react";
-import { useDisconnect, type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
+import { useState } from "react";
+import { type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
 import { useWalletAccountTransactionSigner } from "@solana/react";
-import {
-  address,
-  appendTransactionMessageInstructions,
-  createTransactionMessage,
-  getBase64EncodedWireTransaction,
-  getSignatureFromTransaction,
-  pipe,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-} from "@solana/kit";
 import { getTransferSolInstruction } from "@solana-program/system";
 import { tagInstructions, verifiedReferences, type Tag } from "../../sdk/identity";
 import { clearTag } from "../../sdk/client";
 import { DEMO } from "@/lib/demo";
-import { confirmSignature, describeError, rpc, shortAddress, sleep, sol, type BrowserRpc } from "@/lib/browser-rpc";
+import { describeError, rpc, sendInstructions, sleep, type BrowserRpc } from "@/lib/browser-rpc";
+import { shortAddress } from "@/lib/explorer";
 import { Faucet } from "./Faucet";
-import { ChooseWallet, useDevnetWallet } from "./Wallet";
+import { ChooseWallet, useBalances, useDevnetWallet, WalletStrip } from "./Wallet";
 
 export type DepositResult = {
   signature: string;
@@ -71,45 +61,20 @@ function Deposit({
   onDeposited: (r: DepositResult) => void;
 }) {
   const signer = useWalletAccountTransactionSigner(account, DEMO.chain);
-  const [, disconnect] = useDisconnect(wallet);
-  const [balance, setBalance] = useState<bigint | null>(null);
+  const { lamports, refresh } = useBalances(account.address);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
-
-  const refreshBalance = () =>
-    rpc()
-      .getBalance(address(account.address), { commitment: "confirmed" })
-      .send()
-      .then((r) => setBalance(r.value))
-      .catch(() => setBalance(null));
-
-  useEffect(() => {
-    void refreshBalance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account.address]);
 
   async function deposit() {
     const client = rpc();
     try {
       setPhase({ kind: "signing" });
-      const { value: blockhash } = await client.getLatestBlockhash({ commitment: "confirmed" }).send();
-      const message = pipe(
-        createTransactionMessage({ version: 0 }),
-        (m) => setTransactionMessageFeePayerSigner(signer, m),
-        (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-        (m) =>
-          appendTransactionMessageInstructions(
-            [getTransferSolInstruction({ source: signer, destination: DEMO.treasury, amount: DEMO.deposit }), ...tagInstructions(tag)],
-            m,
-          ),
+      const ixs = [
+        getTransferSolInstruction({ source: signer, destination: DEMO.treasury, amount: DEMO.deposit }),
+        ...tagInstructions(tag),
+      ];
+      const signature = await sendInstructions(client, signer, ixs, (s) =>
+        setPhase({ kind: "confirming", signature: s }),
       );
-      const signed = await signTransactionMessageWithSigners(message);
-      const signature = getSignatureFromTransaction(signed);
-
-      setPhase({ kind: "confirming", signature });
-      await client
-        .sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: "base64", preflightCommitment: "confirmed" })
-        .send();
-      await confirmSignature(client, signature);
       clearTag();
 
       // Look it up the way the settler will: by its reference.
@@ -126,27 +91,17 @@ function Deposit({
     }
   }
 
-  const tooLow = balance !== null && balance < DEMO.minBalance;
+  const tooLow = lamports !== null && lamports < DEMO.minBalance;
   const busy = phase.kind === "signing" || phase.kind === "confirming";
 
   return (
     <div className="mt-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 font-mono text-sm">
-        <span>
-          {wallet.name} {shortAddress(account.address)}
-        </span>
-        <span className="text-muted">
-          {balance === null ? "balance unknown" : `${sol(balance)} devnet SOL`}
-          <button onClick={() => void disconnect()} className="ml-4 underline decoration-line underline-offset-2 hover:text-ink">
-            disconnect
-          </button>
-        </span>
-      </div>
+      <WalletStrip wallet={wallet} account={account} lamports={lamports} />
 
       {tooLow && (
         <Faucet
           wallet={account.address}
-          onFunded={refreshBalance}
+          onFunded={refresh}
           need="The deposit needs about 0.0101 devnet SOL, and this wallet has less."
         />
       )}
@@ -164,7 +119,9 @@ function Deposit({
       </button>
 
       {phase.kind === "confirming" && (
-        <p className="mt-3 font-mono text-xs text-muted">sent {shortAddress(phase.signature)}, waiting for confirmation</p>
+        <p className="mt-3 font-mono text-xs text-muted">
+          sent {shortAddress(phase.signature)}, waiting for confirmation
+        </p>
       )}
       {phase.kind === "error" && <p className="mt-3 text-sm leading-6 text-unpaid">{phase.message}</p>}
     </div>
@@ -174,7 +131,7 @@ function Deposit({
 /* An RPC can take a moment to index a new transaction by address. */
 async function findByReference(client: BrowserRpc, tag: Tag, signature: string) {
   for (let i = 0; i < 6; i++) {
-    const list = await client.getSignaturesForAddress(tag.reference, { commitment: "confirmed" }).send();
+    const list = await client.getSignaturesForAddress(tag.reference, { commitment: "confirmed", limit: 100 }).send();
     const hit = list.find((s) => s.signature === signature);
     if (hit) return hit;
     await sleep(1_500);

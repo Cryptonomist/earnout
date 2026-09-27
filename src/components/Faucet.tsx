@@ -40,7 +40,9 @@ export function Faucet({
   kind?: keyof typeof KINDS;
 }) {
   const t = KINDS[kind];
-  const [state, setState] = useState<{ kind: "idle" | "asking" } | { kind: "done" } | { kind: "refused"; message: string }>({
+  const [state, setState] = useState<
+    { kind: "idle" | "asking" } | { kind: "done" } | { kind: "refused"; message: string }
+  >({
     kind: "idle",
   });
 

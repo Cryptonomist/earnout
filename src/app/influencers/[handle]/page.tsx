@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader, StatTile } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
-import { explorer, money, short } from "@/server/dashboard";
+import { explorerAddress, shortAddress as short } from "@/lib/explorer";
+import { money } from "@/server/dashboard";
 import { scorecard } from "@/server/scorecard";
 
 /* An influencer's public record: what their links brought, across every
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 const pct = (r: number | null) => (r === null ? "n/a" : `${Math.round(r * 100)}%`);
 
-export default async function CreatorScorecard({ params }: Params) {
+export default async function InfluencerRecordPage({ params }: Params) {
   const { handle } = await params;
   const card = await scorecard(decodeURIComponent(handle));
   if (!card) notFound();
@@ -37,17 +38,25 @@ export default async function CreatorScorecard({ params }: Params) {
         <div className="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-2">
           <h1 className="font-mono text-4xl font-semibold tracking-tight sm:text-5xl">@{card.handle}</h1>
           <span className="rounded-full bg-paid-soft px-3 py-1 text-sm text-paid">verified X</span>
-          <a href={`https://x.com/${card.handle}`} className="text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink">
+          <a
+            href={`https://x.com/${card.handle}`}
+            className="text-sm text-muted underline decoration-line underline-offset-4 hover:text-ink"
+          >
             x.com/{card.handle}
           </a>
         </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          {card.campaigns} campaign{card.campaigns === 1 ? "" : "s"} on Earnout. Every number here comes from Earnout&apos;s
-          checks or the chain. None of it can be edited, and it stays with this X account whatever wallet it pays to.
+          {card.campaigns} campaign{card.campaigns === 1 ? "" : "s"} on Earnout. Every number here comes from
+          Earnout&apos;s checks or the chain. None of it can be edited, and it stays with this X account whatever wallet
+          it pays to.
         </p>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Record">
-          <StatTile label="Users sent" value={String(card.tagged)} note={card.pending ? `${card.pending} still in the stay period` : "Through their links"} />
+          <StatTile
+            label="Users sent"
+            value={String(card.tagged)}
+            note={card.pending ? `${card.pending} still in the stay period` : "Through their links"}
+          />
           <StatTile label="Stayed and paid for" value={String(card.stayed)} note="Paid on-chain" />
           <StatTile label="Stay rate" value={pct(card.stayRate)} note="Of users past the stay period" />
           <StatTile
@@ -84,17 +93,23 @@ export default async function CreatorScorecard({ params }: Params) {
                 {card.rows.map((r) => (
                   <tr key={`${r.campaign}-${r.index}`} className="border-b border-line last:border-0">
                     <td className="px-4 py-3 font-sans">
-                      <Link href={`/dashboard/${r.campaign}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                      <Link
+                        href={`/dashboard/${r.campaign}`}
+                        className="underline decoration-line underline-offset-2 hover:decoration-ink"
+                      >
                         {r.campaignName}
                       </Link>
                     </td>
                     <td className="px-4 py-3">
                       {r.slug ? (
-                        <Link href={`/c/${r.slug}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                        <Link
+                          href={`/c/${r.slug}`}
+                          className="underline decoration-line underline-offset-2 hover:decoration-ink"
+                        >
                           /r/{r.slug}
                         </Link>
                       ) : (
-                        `channel ${r.index}`
+                        `Influencer ${r.index}`
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">{r.reported ? r.tagged : "n/a"}</td>
@@ -115,7 +130,10 @@ export default async function CreatorScorecard({ params }: Params) {
             {card.payees.map((p, i) => (
               <span key={p}>
                 {i > 0 && ", earlier "}
-                <a href={explorer("address", p)} className="font-mono underline decoration-line underline-offset-2 hover:text-ink">
+                <a
+                  href={explorerAddress(p)}
+                  className="font-mono underline decoration-line underline-offset-2 hover:text-ink"
+                >
                   {short(p)}
                 </a>
               </span>

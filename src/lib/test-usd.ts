@@ -10,4 +10,8 @@ export const TEST_USD = {
   symbol: "tUSD",
   /** What the faucet hands out, in base units: $1,000.00. */
   grant: 1_000_000_000n,
+  /** The faucet key: the mint authority, and the wallet that funds demo
+   * users with SOL, which is why demo campaigns list it as a funder to
+   * ignore in the bot check. */
+  faucet: address("EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK"),
 } as const;

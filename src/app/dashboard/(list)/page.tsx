@@ -14,7 +14,10 @@ export const revalidate = 30;
 export default async function DashboardPage() {
   const campaigns = await Promise.all(
     (await campaignList()).map(async (meta) => {
-      const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
+      const [chain, report] = await Promise.all([
+        campaignChain(meta.address).catch(() => null),
+        campaignReport(meta.address),
+      ]);
       return { meta, chain, report };
     }),
   );
@@ -26,13 +29,16 @@ export default async function DashboardPage() {
         <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Dashboard</p>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Campaigns</h1>
-          <Link href="/dashboard/new" className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90">
+          <Link
+            href="/dashboard/new"
+            className="rounded-full bg-ink px-5 py-2.5 font-medium text-paper hover:opacity-90"
+          >
             Start a campaign
           </Link>
         </div>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          Each campaign pays its influencers only for users who stayed. Money is read live from Solana; the counts come from
-          Earnout&apos;s latest check. Public while Earnout runs on devnet.
+          Each campaign pays its influencers only for users who stayed. Money is read live from Solana; the counts come
+          from Earnout&apos;s latest check. Public while Earnout runs on devnet.
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">

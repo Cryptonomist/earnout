@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdvertiserPanel } from "@/components/advertiser/AdvertiserPanel";
 import { BudgetMeter, ChannelReceipt, SiteHeader, StatTile } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
+import { explorerAddress, explorerTx, shortAddress as short } from "@/lib/explorer";
 import { describeConversion, describeRetention } from "@/lib/rules";
 import {
   ago,
@@ -11,9 +12,8 @@ import {
   campaignMeta,
   campaignReport,
   duration,
-  explorer,
   money,
-  short,
+  nowSecs,
   slugsByChannel,
 } from "@/server/dashboard";
 
@@ -37,7 +37,11 @@ function status(now: number, endsAt: number, deadline: number): string {
 export default async function CampaignPage({ params }: Params) {
   const meta = await campaignMeta((await params).campaign);
   if (!meta) notFound();
-  const [chain, report, slugs] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address), slugsByChannel()]);
+  const [chain, report, slugs] = await Promise.all([
+    campaignChain(meta.address).catch(() => null),
+    campaignReport(meta.address),
+    slugsByChannel(),
+  ]);
 
   if (!chain) {
     return (
@@ -52,7 +56,7 @@ export default async function CampaignPage({ params }: Params) {
     );
   }
 
-  const now = Math.floor(Date.now() / 1000);
+  const now = nowSecs();
   const d = chain.decimals;
   const byIndex = new Map(report?.channels.map((c) => [c.index, c]) ?? []);
   const sum = (f: (c: NonNullable<typeof report>["channels"][number]) => number) =>
@@ -66,22 +70,26 @@ export default async function CampaignPage({ params }: Params) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <main id="content" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <Link href="/dashboard" className="text-sm text-muted hover:text-ink">
           All campaigns
         </Link>
         <div className="mt-6 flex flex-wrap items-baseline justify-between gap-4">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{meta.name}</h1>
-          <span className="rounded-full border border-line px-3 py-1 text-sm">{status(now, chain.endsAt, chain.settleDeadline)}</span>
+          <span className="rounded-full border border-line px-3 py-1 text-sm">
+            {status(now, chain.endsAt, chain.settleDeadline)}
+          </span>
         </div>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-muted">
           Pays {money(chain.payout, d)} per user who stays {duration(chain.retentionSecs)}. New users count until{" "}
-          {new Date(chain.endsAt * 1000).toUTCString().slice(5, 16)}.
-          {meta.description ? ` ${meta.description}` : ""}
+          {new Date(chain.endsAt * 1000).toUTCString().slice(5, 16)}.{meta.description ? ` ${meta.description}` : ""}
         </p>
         <p className="mt-3 font-mono text-xs text-muted">
           campaign{" "}
-          <a href={explorer("address", chain.address)} className="underline decoration-line underline-offset-2 hover:text-ink">
+          <a
+            href={explorerAddress(chain.address)}
+            className="underline decoration-line underline-offset-2 hover:text-ink"
+          >
             {short(chain.address)}
           </a>{" "}
           · project {short(chain.advertiser)} · checked by {short(chain.settler)}
@@ -97,10 +105,16 @@ export default async function CampaignPage({ params }: Params) {
           source={meta.source}
           endsAt={chain.endsAt}
           settleDeadline={chain.settleDeadline}
+          refundOpen={now > chain.settleDeadline}
           funded={String(chain.funded)}
           committed={String(chain.committed)}
           refunded={String(chain.refunded)}
-          channels={chain.channels.map((ch) => ({ index: ch.index, slug: slugOf(ch.index), handle: ch.handle, payee: ch.payee }))}
+          channels={chain.channels.map((ch) => ({
+            index: ch.index,
+            slug: slugOf(ch.index),
+            handle: ch.handle,
+            payee: ch.payee,
+          }))}
         />
 
         {meta.rules && meta.rulesHash && (
@@ -112,7 +126,9 @@ export default async function CampaignPage({ params }: Params) {
                 <dd>{describeConversion(meta.rules.conversion)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">They have stayed if, {duration(chain.retentionSecs)} later, their wallet</dt>
+                <dt className="text-sm text-muted">
+                  They have stayed if, {duration(chain.retentionSecs)} later, their wallet
+                </dt>
                 <dd>{describeRetention(meta.rules.retention)}</dd>
               </div>
               <div>
@@ -120,7 +136,9 @@ export default async function CampaignPage({ params }: Params) {
                 <dd>{duration(meta.rules.attributionWindowSecs)}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted">Bot check: users from one quiet funder before they count as a farm</dt>
+                <dt className="text-sm text-muted">
+                  Bot check: users from one quiet funder before they count as a farm
+                </dt>
                 <dd>{meta.rules.sybil.maxWalletsPerFunder}</dd>
               </div>
             </dl>
@@ -129,7 +147,10 @@ export default async function CampaignPage({ params }: Params) {
               {meta.rulesTx && (
                 <>
                   , in{" "}
-                  <a href={explorer("tx", meta.rulesTx)} className="underline decoration-line underline-offset-2 hover:text-ink">
+                  <a
+                    href={explorerTx(meta.rulesTx)}
+                    className="underline decoration-line underline-offset-2 hover:text-ink"
+                  >
                     the transaction that created the campaign
                   </a>
                 </>
@@ -140,18 +161,36 @@ export default async function CampaignPage({ params }: Params) {
         )}
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Headline numbers">
-          <StatTile label="Users sent" value={tagged === null ? "not checked yet" : String(tagged)} note="Came through an influencer's link and joined" />
+          <StatTile
+            label="Users sent"
+            value={tagged === null ? "not checked yet" : String(tagged)}
+            note="Came through an influencer's link and joined"
+          />
           <StatTile
             label="Stayed and paid for"
             value={String(settled)}
             note={waiting ? `${waiting} more still in the stay period or being paid` : "Paid on-chain"}
           />
-          <StatTile label="Not paid for" value={notPaid === null ? "not checked yet" : String(notPaid)} note="Left early, or flagged as bots" />
-          <StatTile label="Price per user who stayed" value={money(chain.payout, d)} note="Set by the project, paid only after the stay period" />
+          <StatTile
+            label="Not paid for"
+            value={notPaid === null ? "not checked yet" : String(notPaid)}
+            note="Left early, or flagged as bots"
+          />
+          <StatTile
+            label="Price per user who stayed"
+            value={money(chain.payout, d)}
+            note="Set by the project, paid only after the stay period"
+          />
         </section>
 
         <section className="mt-6 rounded-2xl border border-line p-6 sm:p-8">
-          <BudgetMeter funded={chain.funded} committed={chain.committed} claimed={chain.claimed} refunded={chain.refunded} decimals={d} />
+          <BudgetMeter
+            funded={chain.funded}
+            committed={chain.committed}
+            claimed={chain.claimed}
+            refunded={chain.refunded}
+            decimals={d}
+          />
         </section>
 
         <section className="mt-14">
@@ -162,11 +201,20 @@ export default async function CampaignPage({ params }: Params) {
           {chain.channels.length ? (
             <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {chain.channels.map((ch) => (
-                <ChannelReceipt key={ch.index} chain={ch} report={byIndex.get(ch.index) ?? null} slug={slugOf(ch.index)} payout={chain.payout} decimals={d} />
+                <ChannelReceipt
+                  key={ch.index}
+                  chain={ch}
+                  report={byIndex.get(ch.index) ?? null}
+                  slug={slugOf(ch.index)}
+                  payout={chain.payout}
+                  decimals={d}
+                />
               ))}
             </div>
           ) : (
-            <p className="mt-4 leading-7 text-muted">No influencers yet. The project adds them by X handle above; each one gets a link and a receipt here.</p>
+            <p className="mt-4 leading-7 text-muted">
+              No influencers yet. The project adds them by X handle above; each one gets a link and a receipt here.
+            </p>
           )}
         </section>
 
@@ -188,14 +236,19 @@ export default async function CampaignPage({ params }: Params) {
                 <tbody className="font-mono">
                   {[...report.batches].reverse().map((b) => (
                     <tr key={`${b.channel}-${b.batch}`} className="border-b border-line last:border-0">
-                      <td className="px-4 py-3 font-sans">{slugOf(b.channel) ?? `channel ${b.channel}`}</td>
+                      <td className="px-4 py-3 font-sans">{slugOf(b.channel) ?? `Influencer ${b.channel}`}</td>
                       <td className="px-4 py-3 tabular-nums">{b.batch + 1}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{b.conversions}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{money(BigInt(b.conversions) * chain.payout, d)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {money(BigInt(b.conversions) * chain.payout, d)}
+                      </td>
                       <td className="px-4 py-3">{`${b.evidence.slice(0, 8)}...${b.evidence.slice(-4)}`}</td>
                       <td className="px-4 py-3">
                         {b.tx ? (
-                          <a href={explorer("tx", b.tx)} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                          <a
+                            href={explorerTx(b.tx)}
+                            className="underline decoration-line underline-offset-2 hover:decoration-ink"
+                          >
                             {short(b.tx)}
                           </a>
                         ) : (
@@ -211,14 +264,16 @@ export default async function CampaignPage({ params }: Params) {
             <p className="mt-4 leading-7 text-muted">No payouts yet.</p>
           )}
           <p className="mt-4 text-sm leading-6 text-muted">
-            Each proof is stored on-chain with the influencer&apos;s account. The project holds the list of users behind it and
-            can check every one against the chain.
+            Each proof is stored on-chain with the influencer&apos;s account. The project holds the list of users behind
+            it and can check every one against the chain.
           </p>
         </section>
 
         <p className="mt-14 border-t border-line pt-6 text-sm text-muted">
-          {report ? `Counts from Earnout's check ${ago(report.updatedAt)}.` : "Earnout has not checked this campaign yet; it checks every ten minutes."} Money
-          read from Solana devnet just now. Amounts are a devnet test token standing in for USDC.
+          {report
+            ? `Counts from Earnout's check ${ago(report.updatedAt)}.`
+            : "Earnout has not checked this campaign yet; it checks every ten minutes."}{" "}
+          Money read from Solana devnet just now. Amounts are a devnet test token standing in for USDC.
         </p>
       </main>
       <SiteFooter />

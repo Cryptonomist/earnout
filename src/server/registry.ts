@@ -32,7 +32,15 @@ export type CampaignEntry = {
 
 type RawLink = { campaign: string; channel: number; destination: string; label?: string };
 type RawFile = { campaigns: Record<string, { name?: string; description?: string }>; links: Record<string, RawLink> };
-type CampaignRow = { campaign: string; name: string; description: string | null; destination: string; rules: Rules; rules_hash: string; rules_tx: string };
+type CampaignRow = {
+  campaign: string;
+  name: string;
+  description: string | null;
+  destination: string;
+  rules: Rules;
+  rules_hash: string;
+  rules_tx: string;
+};
 type LinkRow = { slug: string; campaign: string; channel: number };
 
 const FILES: Record<string, RawFile> = { devnet: devnet as unknown as RawFile };
@@ -130,7 +138,8 @@ export async function registry(): Promise<Registry> {
   const byAddress = new Map(all.filter((c) => c.source === "db").map((c) => [c.address as string, c]));
   for (const l of links) {
     const c = byAddress.get(l.campaign);
-    if (!c || !SLUG.test(l.slug) || Object.hasOwn(out, l.slug) || !Number.isInteger(l.channel) || l.channel < 0) continue;
+    if (!c || !SLUG.test(l.slug) || Object.hasOwn(out, l.slug) || !Number.isInteger(l.channel) || l.channel < 0)
+      continue;
     out[l.slug] = { campaign: c.address, channel: l.channel, destination: c.destination, label: l.slug };
   }
   return out;

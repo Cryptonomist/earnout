@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/dashboard/Pieces";
 import { SiteFooter } from "@/components/SiteShell";
 
-export const metadata: Metadata = { title: "Terms", description: "The terms for using Earnout while it runs on devnet." };
+export const metadata: Metadata = {
+  title: "Terms",
+  description: "The terms for using Earnout while it runs on devnet.",
+};
 
 export default function TermsPage() {
   return (
@@ -14,13 +17,14 @@ export default function TermsPage() {
         <p className="mt-4 text-muted">Last updated 26 September 2026.</p>
 
         <Section title="A devnet build">
-          Earnout currently runs on Solana devnet, a test network. Tokens and SOL on devnet have no value, and campaigns,
-          payouts and links here are demonstrations. Do not send anything of value to any address this site shows.
+          Earnout currently runs on Solana devnet, a test network. Tokens and SOL on devnet have no value, and
+          campaigns, payouts and links here are demonstrations. Do not send anything of value to any address this site
+          shows.
         </Section>
 
         <Section title="No warranty">
-          The software is provided as it is, without warranty of any kind. The program and the checker may have bugs, and the
-          service may change, pause or stop.
+          The software is provided as it is, without warranty of any kind. The program and the checker may have bugs,
+          and the service may change, pause or stop.
         </Section>
 
         <Section title="The guest wallet">
@@ -29,10 +33,9 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Influencers and projects">
-          An influencer is paid only for users Earnout counts under a campaign&apos;s published rules; users who
-          leave before the stay period ends, or look like a bot farm, are not paid for. Paid partnerships made
-          through Earnout are disclosed as such, and influencers remain responsible for following the disclosure rules where
-          they post.
+          An influencer is paid only for users Earnout counts under a campaign&apos;s published rules; users who leave
+          before the stay period ends, or look like a bot farm, are not paid for. Paid partnerships made through Earnout
+          are disclosed as such, and influencers remain responsible for following the disclosure rules where they post.
         </Section>
 
         <Section title="Open source">

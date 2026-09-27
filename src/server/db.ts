@@ -4,12 +4,14 @@
  * db-admin.ts, on the server only. */
 
 export const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://rglvyzffulvsyawnrenw.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_FnShmwGT2wZnIWnItam2Ng_7Myr77E9";
+export const SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_FnShmwGT2wZnIWnItam2Ng_7Myr77E9";
 
 /** Rows of a public table, or none when the database cannot be reached:
  * every reader degrades to what the repo's registry file says. With
- * `revalidateSecs`, Next keeps the answer that long; without it, each call
- * asks the database. */
+ * `revalidateSecs`, a page that is statically rendered keeps the answer
+ * that long; a page marked force-dynamic asks the database on every view
+ * whatever is passed here. */
 export async function publicRows<T>(table: string, query: string, revalidateSecs?: number): Promise<T[]> {
   try {
     const init: RequestInit & { next?: { revalidate: number } } = { headers: { apikey: SUPABASE_PUBLISHABLE_KEY } };

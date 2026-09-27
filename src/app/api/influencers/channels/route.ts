@@ -1,6 +1,6 @@
 import "server-only";
 import { isAddress } from "@solana/kit";
-import { campaignChain, campaignList, money, slugsByChannel } from "@/server/dashboard";
+import { campaignList, campaignsWithReports, money, slugsByChannel } from "@/server/dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +12,7 @@ export async function GET(request: Request) {
 
   const [slugs, campaigns] = await Promise.all([slugsByChannel(), campaignList()]);
   const rows: unknown[] = [];
-  for (const meta of campaigns) {
-    const chain = await campaignChain(meta.address).catch(() => null);
-    if (!chain) continue;
+  for (const { meta, chain } of await campaignsWithReports(campaigns)) {
     for (const ch of chain.channels) {
       if (ch.payee !== wallet) continue;
       rows.push({

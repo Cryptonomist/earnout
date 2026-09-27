@@ -12,7 +12,12 @@
 import { useId, useState } from "react";
 
 const usd = (n: number, digits = 0) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: digits, minimumFractionDigits: digits });
+  n.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  });
 const num = (n: number) => n.toLocaleString("en-US");
 
 export function Calculator() {
@@ -33,15 +38,47 @@ export function Calculator() {
   return (
     <div>
       <p className="max-w-3xl text-2xl leading-[1.6] font-medium tracking-tight text-balance sm:text-3xl">
-        My budget is <Num>{usd(budget)}</Num>. My influencers bring <Num>{num(users)}</Num> users. <Num>{stay}%</Num> are still there a
-        week later. I pay <Num>{usd(price)}</Num> per user who stays.
+        My budget is <Num>{usd(budget)}</Num>. My influencers bring <Num>{num(users)}</Num> users. <Num>{stay}%</Num>{" "}
+        are still there a week later. I pay <Num>{usd(price)}</Num> per user who stays.
       </p>
 
       <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Slider label="Budget" value={budget} display={usd(budget)} min={1_000} max={100_000} step={1_000} onChange={setBudget} />
-        <Slider label="Users the influencers bring" value={users} display={num(users)} min={100} max={20_000} step={100} onChange={setUsers} />
-        <Slider label="Share still there a week later" value={stay} display={`${stay}%`} min={1} max={100} step={1} onChange={setStay} />
-        <Slider label="Price per user who stays" value={price} display={usd(price)} min={1} max={100} step={1} onChange={setPrice} />
+        <Slider
+          label="Budget"
+          value={budget}
+          display={usd(budget)}
+          min={1_000}
+          max={100_000}
+          step={1_000}
+          onChange={setBudget}
+        />
+        <Slider
+          label="Users the influencers bring"
+          value={users}
+          display={num(users)}
+          min={100}
+          max={20_000}
+          step={100}
+          onChange={setUsers}
+        />
+        <Slider
+          label="Share still there a week later"
+          value={stay}
+          display={`${stay}%`}
+          min={1}
+          max={100}
+          step={1}
+          onChange={setStay}
+        />
+        <Slider
+          label="Price per user who stays"
+          value={price}
+          display={usd(price)}
+          min={1}
+          max={100}
+          step={1}
+          onChange={setPrice}
+        />
       </div>
 
       <div className="mt-10 grid gap-4 md:grid-cols-2">
@@ -64,7 +101,9 @@ export function Calculator() {
           bar={budget > 0 ? earnoutSpend / budget : 0}
           lines={[
             `${usd(earnoutSpend)} paid, ${usd(back)} back to you.`,
-            capped ? `${num(paidFor)} of the ${num(stayed)} who stayed paid for; the budget ran out.` : `${num(stayed)} users stayed.`,
+            capped
+              ? `${num(paidFor)} of the ${num(stayed)} who stayed paid for; the budget ran out.`
+              : `${num(stayed)} users stayed.`,
             `$0 went to the ${num(left)} who left.`,
           ]}
         />
@@ -75,8 +114,8 @@ export function Calculator() {
           ? `Paying up front costs ${usd(upfrontPer - price, 2)} more for every user who stayed, and you only find out after the money is gone.`
           : `Here paying up front comes out cheaper, but only because you already knew ${stay}% would stay. Up front is a bet on that number; Earnout pays for the result.`}{" "}
         <span className="text-muted">
-          An illustration: nothing here changes who shows up or who stays, only what you pay for. You set the price, and influencers
-          see it before they send anyone.
+          An illustration: nothing here changes who shows up or who stays, only what you pay for. You set the price, and
+          influencers see it before they send anyone.
         </span>
       </p>
     </div>
@@ -84,7 +123,11 @@ export function Calculator() {
 }
 
 function Num({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-md bg-card px-2 py-0.5 font-mono text-[0.85em] tabular-nums ring-1 ring-line">{children}</span>;
+  return (
+    <span className="rounded-md bg-card px-2 py-0.5 font-mono text-[0.85em] tabular-nums ring-1 ring-line">
+      {children}
+    </span>
+  );
 }
 
 function Slider(p: {
@@ -121,7 +164,14 @@ function Slider(p: {
   );
 }
 
-function Outcome(p: { title: string; headline: string; caption: string; bar: number; lines: string[]; highlight?: boolean }) {
+function Outcome(p: {
+  title: string;
+  headline: string;
+  caption: string;
+  bar: number;
+  lines: string[];
+  highlight?: boolean;
+}) {
   return (
     <div className={`rounded-xl border p-6 ${p.highlight ? "border-ink bg-card" : "border-line"}`}>
       <div className="text-sm font-medium">{p.title}</div>
@@ -129,7 +179,10 @@ function Outcome(p: { title: string; headline: string; caption: string; bar: num
       <div className="text-sm text-muted">{p.caption}</div>
       {/* Share of the budget spent: ink for spent, bare track for what stayed with you. */}
       <div className="mt-5 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
-        <div className="h-full rounded-full bg-ink transition-[width] duration-300" style={{ width: `${Math.round(p.bar * 100)}%` }} />
+        <div
+          className="h-full rounded-full bg-ink transition-[width] duration-300"
+          style={{ width: `${Math.round(p.bar * 100)}%` }}
+        />
       </div>
       <ul className="mt-5 space-y-1.5 text-[15px] leading-7">
         {p.lines.map((l) => (

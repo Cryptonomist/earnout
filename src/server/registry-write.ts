@@ -6,7 +6,7 @@ import { parseTransaction, type RawTx } from "../../settler/parse";
 import type { RegistryDeps } from "./campaign-registry";
 import { rpcUrl } from "./chain";
 import { adminDb } from "./db-admin";
-import { loadSecrets, type Secrets } from "./links";
+import { getSecrets } from "./links";
 import { CLUSTER, fileLinks, forgetRegistry } from "./registry";
 
 /* The live wiring for campaign-registry.ts: devnet through RPC_URL, the
@@ -14,15 +14,14 @@ import { CLUSTER, fileLinks, forgetRegistry } from "./registry";
  * registry's cache and the pages that showed the old state, so the
  * advertiser sees the campaign the moment its row lands. */
 
-let secrets: Promise<Secrets | null> | null = null;
-const getSecrets = () => (secrets ??= loadSecrets().catch(() => null));
-
 type DbError = { message: string } | null;
 function check(what: string, error: DbError): void {
   if (error) throw new Error(`${what}: ${error.message}`);
 }
 
-export async function liveRegistryDeps(): Promise<{ deps: RegistryDeps; reason?: undefined } | { deps: null; reason: string }> {
+export async function liveRegistryDeps(): Promise<
+  { deps: RegistryDeps; reason?: undefined } | { deps: null; reason: string }
+> {
   const db = adminDb();
   if (!db) return { deps: null, reason: "Registering campaigns is not enabled on this deployment." };
   const s = await getSecrets();
@@ -35,7 +34,11 @@ export async function liveRegistryDeps(): Promise<{ deps: RegistryDeps; reason?:
       identity: s.identityAddress,
       async fetchTransaction(signature) {
         const raw = await rpc
-          .getTransaction(signature as Signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" })
+          .getTransaction(signature as Signature, {
+            encoding: "json",
+            maxSupportedTransactionVersion: 0,
+            commitment: "confirmed",
+          })
           .send();
         return raw ? parseTransaction(raw as unknown as RawTx) : null;
       },
@@ -55,7 +58,12 @@ export async function liveRegistryDeps(): Promise<{ deps: RegistryDeps; reason?:
         return data ? { campaign: String(data.campaign), channel: Number(data.channel) } : null;
       },
       async findChannelLink(campaign, channel) {
-        const { data, error } = await db.from("links").select("slug").eq("campaign", campaign).eq("channel", channel).maybeSingle();
+        const { data, error } = await db
+          .from("links")
+          .select("slug")
+          .eq("campaign", campaign)
+          .eq("channel", channel)
+          .maybeSingle();
         check("read channel link", error);
         return data ? String(data.slug) : null;
       },

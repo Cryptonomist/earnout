@@ -3,12 +3,9 @@ import { createSolanaRpc } from "@solana/kit";
 import { isHandle } from "../../../../../sdk/program";
 import { findXLinkByHandle } from "../../../../../sdk/read";
 import { rpcUrl } from "@/server/chain";
-import { loadSecrets, type Secrets } from "@/server/links";
+import { getSecrets } from "@/server/links";
 
 export const dynamic = "force-dynamic";
-
-let secrets: Promise<Secrets | null> | null = null;
-const getSecrets = () => (secrets ??= loadSecrets().catch(() => null));
 
 /* Which wallet an X handle is linked to, under Earnout's identity, so an
  * advertiser can add an influencer by name. Public information: the link is on
@@ -21,7 +18,9 @@ export async function GET(request: Request) {
 
   try {
     const link = await findXLinkByHandle(createSolanaRpc(rpcUrl()), s.identityAddress, handle);
-    const body = link ? { found: true, handle: link.handle, xId: String(link.xId), wallet: link.wallet } : { found: false, handle };
+    const body = link
+      ? { found: true, handle: link.handle, xId: String(link.xId), wallet: link.wallet }
+      : { found: false, handle };
     return Response.json(body, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error(`[influencers/lookup] ${(e as Error).message}`);

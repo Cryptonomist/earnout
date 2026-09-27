@@ -127,7 +127,8 @@ function makeWallet() {
             inputs.map(async ({ transaction, chain }) => {
               if (chain && chain !== "solana:devnet") throw new Error("The guest wallet signs for devnet only");
               const tx = getTransactionDecoder().decode(transaction);
-              if (!(k.account.address in tx.signatures)) throw new Error("This transaction does not ask the guest wallet to sign");
+              if (!(k.account.address in tx.signatures))
+                throw new Error("This transaction does not ask the guest wallet to sign");
               const signature: SignatureBytes = await signBytes(k.keyPair.privateKey, tx.messageBytes);
               const signed = { ...tx, signatures: { ...tx.signatures, [k.account.address]: signature } };
               return { signedTransaction: new Uint8Array(getTransactionEncoder().encode(signed)) };

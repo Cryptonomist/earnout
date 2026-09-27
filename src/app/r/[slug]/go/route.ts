@@ -1,6 +1,6 @@
 import "server-only";
 import { campaignEndsAt } from "@/server/chain";
-import { loadSecrets, resolveLink, type Secrets } from "@/server/links";
+import { getSecrets, resolveLink } from "@/server/links";
 import { registry } from "@/server/registry";
 
 /* The redirect behind a link, reached from the disclosure page's Continue
@@ -13,15 +13,6 @@ const HEADERS = {
   "X-Robots-Tag": "noindex, nofollow",
   "Referrer-Policy": "no-referrer",
 };
-
-let secrets: Promise<Secrets | null> | null = null;
-function getSecrets(): Promise<Secrets | null> {
-  secrets ??= loadSecrets().catch((e) => {
-    console.error(`[links] untagged redirects until fixed: ${(e as Error).message}`);
-    return null;
-  });
-  return secrets;
-}
 
 export async function GET(request: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;

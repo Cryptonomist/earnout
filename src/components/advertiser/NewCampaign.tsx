@@ -12,19 +12,29 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useDisconnect, type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
+import { type UiWallet, type UiWalletAccount } from "@wallet-standard/react";
 import { useWalletAccountTransactionSigner } from "@solana/react";
-import { address, isAddress, type Address } from "@solana/kit";
+import { address, isAddress } from "@solana/kit";
 import { memoIx } from "../../../sdk/identity";
 import { ataAddress, campaignAddress, createCampaignIx, fundIx } from "../../../sdk/program";
-import { describeError, mintDecimals, rpc, sendInstructions, shortAddress, sleep, sol, tokenBalance } from "@/lib/browser-rpc";
+import { describeError, mintDecimals, postUntilIndexed, rpc, sendInstructions, sleep } from "@/lib/browser-rpc";
 import { DEMO } from "@/lib/demo";
+import { explorerTx, shortAddress } from "@/lib/explorer";
 import { registerGuestWallet } from "@/lib/guest-wallet";
 import { duration, money, toBaseUnits } from "@/lib/money";
-import { describeConversion, describeRetention, LIMITS, RulesError, rulesHash, rulesMemo, validateRules, type Rules } from "@/lib/rules";
+import {
+  describeConversion,
+  describeRetention,
+  LIMITS,
+  RulesError,
+  rulesHash,
+  rulesMemo,
+  validateRules,
+  type Rules,
+} from "@/lib/rules";
 import { TEST_USD } from "@/lib/test-usd";
 import { Faucet } from "../Faucet";
-import { CHAIN, ChooseWallet, useDevnetWallet } from "../Wallet";
+import { CHAIN, ChooseWallet, useBalances, useDevnetWallet, WalletStrip } from "../Wallet";
 
 type Props = {
   /** The Earnout identity every hub campaign names, or null when the deployment has none. */
@@ -108,7 +118,8 @@ const EMPTY: Form = {
  * funds demo wallets is listed so the cluster check ignores it. */
 const DEMO_PRESET: Partial<Form> = {
   name: "My demo campaign",
-  description: "A pretend DeFi app on devnet. A user counts when they deposit 0.01 SOL into its treasury, and has stayed if they still hold 0.005 SOL ten minutes later.",
+  description:
+    "A pretend DeFi app on devnet. A user counts when they deposit 0.01 SOL into its treasury, and has stayed if they still hold 0.005 SOL ten minutes later.",
   destination: "/demo",
   convKind: "sol-transfer",
   convTo: DEMO.treasury,
@@ -116,7 +127,7 @@ const DEMO_PRESET: Partial<Form> = {
   retKind: "sol-balance",
   retSol: "0.005",
   retentionSecs: 600,
-  ignoreFunders: "EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK",
+  ignoreFunders: TEST_USD.faucet,
 };
 
 const lamportsText = (solText: string): string => {
@@ -135,7 +146,11 @@ function toRules(f: Form, retDecimals: number | null): Rules {
   if (f.retKind === "sol-balance") retention = { kind: "sol-balance", minLamports: lamportsText(f.retSol) };
   else if (f.retKind === "token-balance") {
     if (retDecimals === null) throw new RulesError("Enter the mint of the token a wallet must keep");
-    retention = { kind: "token-balance", mint: f.retMint, minAmount: (toBaseUnits(f.retAmount, retDecimals) ?? "").toString() };
+    retention = {
+      kind: "token-balance",
+      mint: f.retMint,
+      minAmount: (toBaseUnits(f.retAmount, retDecimals) ?? "").toString(),
+    };
   } else retention = { kind: "program-activity", programId: f.retProgram, minTransactions: Number(f.retVisits) };
   return validateRules({
     name: f.name,
@@ -154,7 +169,6 @@ function toRules(f: Form, retDecimals: number | null): Rules {
 export function NewCampaign(p: Props) {
   const { wallets, connected } = useDevnetWallet({ allowGuest: true });
   const [form, setForm] = useState<Form>(EMPTY);
-  const [retDecimals, setRetDecimals] = useState<number | null>(null);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   // The advertiser's money here is devnet test dollars, so the wallet that
@@ -163,15 +177,21 @@ export function NewCampaign(p: Props) {
     registerGuestWallet();
   }, []);
 
-  // The decimals of the token a wallet must keep, read when a mint is typed.
+  // The decimals of the token a wallet must keep, read when a mint is
+  // typed. Kept with the mint they belong to, so a stale answer for the
+  // last mint never dresses up the next one.
+  const [decimalsOf, setDecimalsOf] = useState<{ mint: string; decimals: number | null } | null>(null);
   useEffect(() => {
-    if (form.retKind !== "token-balance" || !isAddress(form.retMint)) return setRetDecimals(null);
+    if (form.retKind !== "token-balance" || !isAddress(form.retMint)) return;
+    const mint = form.retMint;
     let live = true;
-    mintDecimals(rpc(), address(form.retMint)).then((d) => live && setRetDecimals(d));
+    mintDecimals(rpc(), address(mint)).then((decimals) => live && setDecimalsOf({ mint, decimals }));
     return () => {
       live = false;
     };
   }, [form.retKind, form.retMint]);
+  const retDecimals =
+    form.retKind === "token-balance" && decimalsOf?.mint === form.retMint ? decimalsOf.decimals : null;
 
   const checked = useMemo<{ rules: Rules; problem: null } | { rules: null; problem: string }>(() => {
     try {
@@ -199,19 +219,42 @@ export function NewCampaign(p: Props) {
       <div className="space-y-6">
         <Card n={1} title="The campaign">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <p className="text-sm leading-6 text-muted">What the disclosure page calls you, and where your links send people.</p>
-            <button type="button" onClick={() => setForm((f) => ({ ...f, ...DEMO_PRESET }))} className="text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
+            <p className="text-sm leading-6 text-muted">
+              What the disclosure page calls you, and where your links send people.
+            </p>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, ...DEMO_PRESET }))}
+              className="text-sm underline decoration-line underline-offset-4 hover:decoration-ink"
+            >
               Start from the demo partner&apos;s rules
             </button>
           </div>
           <Field label="Name" hint={`Up to ${LIMITS.name} characters`}>
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={LIMITS.name} placeholder="Stonk Wars" className={INPUT} />
+            <input
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              maxLength={LIMITS.name}
+              placeholder="Stonk Wars"
+              className={INPUT}
+            />
           </Field>
           <Field label="One line about it" hint="Optional; shown on the campaign page">
-            <input value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={LIMITS.description} placeholder="Stock-picking duels on Solana, settled by Pyth." className={INPUT} />
+            <input
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              maxLength={LIMITS.description}
+              placeholder="Stock-picking duels on Solana, settled by Pyth."
+              className={INPUT}
+            />
           </Field>
           <Field label="Destination" hint="An https URL in your app. Every link lands there with the tag in ?eo=">
-            <input value={form.destination} onChange={(e) => set("destination", e.target.value)} placeholder="https://stonkwars.fun/new" className={`${INPUT} font-mono`} />
+            <input
+              value={form.destination}
+              onChange={(e) => set("destination", e.target.value)}
+              placeholder="https://stonkwars.fun/new"
+              className={`${INPUT} font-mono`}
+            />
           </Field>
         </Card>
 
@@ -219,62 +262,140 @@ export function NewCampaign(p: Props) {
           <fieldset>
             <legend className="text-sm text-muted">A new user counts when they...</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <Choice on={form.convKind === "sol-transfer"} onClick={() => set("convKind", "sol-transfer")} title="Deposits SOL" text="Sends at least this much SOL to your treasury" />
-              <Choice on={form.convKind === "program"} onClick={() => set("convKind", "program")} title="Uses your program" text="Makes any transaction with your program" />
+              <Choice
+                on={form.convKind === "sol-transfer"}
+                onClick={() => set("convKind", "sol-transfer")}
+                title="Deposits SOL"
+                text="Sends at least this much SOL to your treasury"
+              />
+              <Choice
+                on={form.convKind === "program"}
+                onClick={() => set("convKind", "program")}
+                title="Uses your program"
+                text="Makes any transaction with your program"
+              />
             </div>
           </fieldset>
           {form.convKind === "sol-transfer" ? (
             <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
               <Field label="Treasury address">
-                <input value={form.convTo} onChange={(e) => set("convTo", e.target.value)} placeholder="HoYb..." className={`${INPUT} font-mono`} />
+                <input
+                  value={form.convTo}
+                  onChange={(e) => set("convTo", e.target.value)}
+                  placeholder="HoYb..."
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
               <Field label="At least, in SOL">
-                <input value={form.convSol} onChange={(e) => set("convSol", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
+                <input
+                  value={form.convSol}
+                  onChange={(e) => set("convSol", e.target.value)}
+                  inputMode="decimal"
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
             </div>
           ) : (
             <Field label="Program id">
-              <input value={form.convProgram} onChange={(e) => set("convProgram", e.target.value)} placeholder="Hxr3..." className={`${INPUT} font-mono`} />
+              <input
+                value={form.convProgram}
+                onChange={(e) => set("convProgram", e.target.value)}
+                placeholder="Hxr3..."
+                className={`${INPUT} font-mono`}
+              />
             </Field>
           )}
 
           <fieldset className="mt-6">
             <legend className="text-sm text-muted">...and they have stayed if, after the stay period, they...</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              <Choice on={form.retKind === "sol-balance"} onClick={() => set("retKind", "sol-balance")} title="Still holds SOL" text="Did not drain the wallet" />
-              <Choice on={form.retKind === "token-balance"} onClick={() => set("retKind", "token-balance")} title="Still holds a token" text="Kept a position or receipt" />
-              <Choice on={form.retKind === "program-activity"} onClick={() => set("retKind", "program-activity")} title="Came back" text="Used your program again" />
+              <Choice
+                on={form.retKind === "sol-balance"}
+                onClick={() => set("retKind", "sol-balance")}
+                title="Still holds SOL"
+                text="Did not drain the wallet"
+              />
+              <Choice
+                on={form.retKind === "token-balance"}
+                onClick={() => set("retKind", "token-balance")}
+                title="Still holds a token"
+                text="Kept a position or receipt"
+              />
+              <Choice
+                on={form.retKind === "program-activity"}
+                onClick={() => set("retKind", "program-activity")}
+                title="Came back"
+                text="Used your program again"
+              />
             </div>
           </fieldset>
           {form.retKind === "sol-balance" && (
             <Field label="At least, in SOL">
-              <input value={form.retSol} onChange={(e) => set("retSol", e.target.value)} inputMode="decimal" className={`${INPUT} max-w-[200px] font-mono`} />
+              <input
+                value={form.retSol}
+                onChange={(e) => set("retSol", e.target.value)}
+                inputMode="decimal"
+                className={`${INPUT} max-w-[200px] font-mono`}
+              />
             </Field>
           )}
           {form.retKind === "token-balance" && (
             <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
-              <Field label="Token mint" hint={retDecimals === null ? (isAddress(form.retMint) ? "Reading the mint..." : undefined) : `${retDecimals} decimals`}>
-                <input value={form.retMint} onChange={(e) => set("retMint", e.target.value)} placeholder="Mint address" className={`${INPUT} font-mono`} />
+              <Field
+                label="Token mint"
+                hint={
+                  retDecimals === null
+                    ? isAddress(form.retMint)
+                      ? "Reading the mint..."
+                      : undefined
+                    : `${retDecimals} decimals`
+                }
+              >
+                <input
+                  value={form.retMint}
+                  onChange={(e) => set("retMint", e.target.value)}
+                  placeholder="Mint address"
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
               <Field label="At least, in tokens">
-                <input value={form.retAmount} onChange={(e) => set("retAmount", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
+                <input
+                  value={form.retAmount}
+                  onChange={(e) => set("retAmount", e.target.value)}
+                  inputMode="decimal"
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
             </div>
           )}
           {form.retKind === "program-activity" && (
             <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
               <Field label="Program id">
-                <input value={form.retProgram} onChange={(e) => set("retProgram", e.target.value)} placeholder="Hxr3..." className={`${INPUT} font-mono`} />
+                <input
+                  value={form.retProgram}
+                  onChange={(e) => set("retProgram", e.target.value)}
+                  placeholder="Hxr3..."
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
               <Field label="Return visits, at least">
-                <input value={form.retVisits} onChange={(e) => set("retVisits", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
+                <input
+                  value={form.retVisits}
+                  onChange={(e) => set("retVisits", e.target.value)}
+                  inputMode="numeric"
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
             </div>
           )}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <Field label="They must stay for" hint="The stay period">
-              <select value={form.retentionSecs} onChange={(e) => set("retentionSecs", Number(e.target.value))} className={INPUT}>
+              <select
+                value={form.retentionSecs}
+                onChange={(e) => set("retentionSecs", Number(e.target.value))}
+                className={INPUT}
+              >
                 {RETENTION_OPTIONS.map(([v, label]) => (
                   <option key={v} value={v}>
                     {label}
@@ -283,10 +404,19 @@ export function NewCampaign(p: Props) {
               </select>
             </Field>
             <Field label="Campaign runs for" hint="Days new users count">
-              <input value={form.lengthDays} onChange={(e) => set("lengthDays", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
+              <input
+                value={form.lengthDays}
+                onChange={(e) => set("lengthDays", e.target.value)}
+                inputMode="numeric"
+                className={`${INPUT} font-mono`}
+              />
             </Field>
             <Field label="A link click counts for" hint="Time from click to joining">
-              <select value={form.attributionWindowSecs} onChange={(e) => set("attributionWindowSecs", Number(e.target.value))} className={INPUT}>
+              <select
+                value={form.attributionWindowSecs}
+                onChange={(e) => set("attributionWindowSecs", Number(e.target.value))}
+                className={INPUT}
+              >
                 {WINDOW_OPTIONS.map(([v, label]) => (
                   <option key={v} value={v}>
                     {label}
@@ -297,13 +427,28 @@ export function NewCampaign(p: Props) {
           </div>
 
           <details className="mt-6 text-sm">
-            <summary className="cursor-pointer text-muted hover:text-ink">Bot check: {form.maxWallets || "3"} users per funder</summary>
+            <summary className="cursor-pointer text-muted hover:text-ink">
+              Bot check: {form.maxWallets || "3"} users per funder
+            </summary>
             <div className="mt-3 grid gap-4 sm:grid-cols-[180px_1fr]">
               <Field label="Users per funder" hint="More than this from one quiet source is a bot farm">
-                <input value={form.maxWallets} onChange={(e) => set("maxWallets", e.target.value)} inputMode="numeric" className={`${INPUT} font-mono`} />
+                <input
+                  value={form.maxWallets}
+                  onChange={(e) => set("maxWallets", e.target.value)}
+                  inputMode="numeric"
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
-              <Field label="Funders to ignore" hint="A faucet you run, one address per line. Each one is a way around the check.">
-                <textarea value={form.ignoreFunders} onChange={(e) => set("ignoreFunders", e.target.value)} rows={2} className={`${INPUT} font-mono`} />
+              <Field
+                label="Funders to ignore"
+                hint="A faucet you run, one address per line. Each one is a way around the check."
+              >
+                <textarea
+                  value={form.ignoreFunders}
+                  onChange={(e) => set("ignoreFunders", e.target.value)}
+                  rows={2}
+                  className={`${INPUT} font-mono`}
+                />
               </Field>
             </div>
           </details>
@@ -311,16 +456,30 @@ export function NewCampaign(p: Props) {
 
         <Card n={3} title="The money">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="An influencer earns, per user who stays" hint={`In ${TEST_USD.symbol}, the devnet test dollar`}>
-              <input value={form.price} onChange={(e) => set("price", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
+            <Field
+              label="An influencer earns, per user who stays"
+              hint={`In ${TEST_USD.symbol}, the devnet test dollar`}
+            >
+              <input
+                value={form.price}
+                onChange={(e) => set("price", e.target.value)}
+                inputMode="decimal"
+                className={`${INPUT} font-mono`}
+              />
             </Field>
             <Field label="Fund it now with" hint="Empty to fund later; top-ups are always open">
-              <input value={form.budget} onChange={(e) => set("budget", e.target.value)} inputMode="decimal" className={`${INPUT} font-mono`} />
+              <input
+                value={form.budget}
+                onChange={(e) => set("budget", e.target.value)}
+                inputMode="decimal"
+                className={`${INPUT} font-mono`}
+              />
             </Field>
           </div>
           {payout !== null && budget !== null && budget > 0n && (
             <p className="mt-3 text-sm leading-6 text-muted">
-              {money(budget, p.decimals)} pays for {(Number(budget) / Number(payout)).toLocaleString("en-US", { maximumFractionDigits: 0 })} users who stay{" "}
+              {money(budget, p.decimals)} pays for{" "}
+              {(Number(budget) / Number(payout)).toLocaleString("en-US", { maximumFractionDigits: 0 })} users who stay{" "}
               {duration(form.retentionSecs)}. Whatever nobody earns comes back to you after the deadline.
             </p>
           )}
@@ -330,10 +489,21 @@ export function NewCampaign(p: Props) {
           {p.reason ? (
             <p className="text-sm leading-6 text-unpaid">{p.reason}</p>
           ) : connected ? (
-            <Create wallet={connected.wallet} account={connected.account} form={form} rules={checked.rules} payout={payout} budget={budget ?? 0n} problem={problem} {...p} />
+            <Create
+              wallet={connected.wallet}
+              account={connected.account}
+              form={form}
+              rules={checked.rules}
+              payout={payout}
+              budget={budget ?? 0n}
+              problem={problem}
+              {...p}
+            />
           ) : (
             <>
-              <p className="text-sm leading-6 text-muted">The wallet that signs owns the campaign: it funds it, adds influencers, and gets the refund.</p>
+              <p className="text-sm leading-6 text-muted">
+                The wallet that signs owns the campaign: it funds it, adds influencers, and gets the refund.
+              </p>
               <ChooseWallet wallets={wallets} />
             </>
           )}
@@ -347,11 +517,15 @@ export function NewCampaign(p: Props) {
 
 // ── the signature ────────────────────────────────────────────────────────────
 
+type Created = { signature: string; campaign: string; rules: Rules };
+
 type Phase =
   | { kind: "idle" }
   | { kind: "signing" }
   | { kind: "confirming"; signature: string }
-  | { kind: "registering"; signature: string; campaign: string }
+  | { kind: "listing"; created: Created }
+  /** On chain, but the site could not list it: the advertiser can ask again. */
+  | { kind: "unlisted"; created: Created; message: string }
   | { kind: "error"; message: string };
 
 function Create(
@@ -366,36 +540,16 @@ function Create(
   },
 ) {
   const signer = useWalletAccountTransactionSigner(p.account, CHAIN);
-  const [, disconnect] = useDisconnect(p.wallet);
   const router = useRouter();
-  const [lamports, setLamports] = useState<bigint | null>(null);
-  const [tokens, setTokens] = useState<bigint | null>(null);
+  const { lamports, tokens, refresh } = useBalances(p.account.address, p.mint);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const mint = address(p.mint);
   const owner = address(p.account.address);
 
-  const refresh = async () => {
-    const client = rpc();
-    const [l, t] = await Promise.all([
-      client
-        .getBalance(owner, { commitment: "confirmed" })
-        .send()
-        .then((r) => r.value)
-        .catch(() => null),
-      tokenBalance(client, owner, mint),
-    ]);
-    setLamports(l);
-    setTokens(t);
-  };
-
-  useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.account.address]);
-
   async function create() {
     if (!p.rules || p.payout === null || !p.identity) return;
     const client = rpc();
+    let created: Created;
     try {
       setPhase({ kind: "signing" });
       const rules = p.rules;
@@ -417,42 +571,60 @@ function Create(
           settler: address(p.settler),
           identity: address(p.identity),
         }),
-        ...(p.budget > 0n ? [await fundIx({ funder: signer, campaign, mint, source: await ataAddress(owner, mint), amount: p.budget })] : []),
+        ...(p.budget > 0n
+          ? [await fundIx({ funder: signer, campaign, mint, source: await ataAddress(owner, mint), amount: p.budget })]
+          : []),
         memoIx(rulesMemo(hash)),
       ];
-      const signature = await sendInstructions(client, signer, ixs, (s) => setPhase({ kind: "confirming", signature: s }));
-
-      setPhase({ kind: "registering", signature, campaign });
-      await register({ signature, campaign, rules });
-      // Another server instance may hold the registry for two seconds more.
-      await sleep(2_500);
-      router.push(`/dashboard/${campaign}`);
+      const signature = await sendInstructions(client, signer, ixs, (s) =>
+        setPhase({ kind: "confirming", signature: s }),
+      );
+      created = { signature, campaign, rules };
     } catch (e) {
       setPhase({ kind: "error", message: describeError(e) });
+      return;
+    }
+    await list(created);
+  }
+
+  /** Ask the site to list a campaign that is already on chain. Listing is
+   * idempotent, so a failure here (the RPC or the database was slow) costs
+   * nothing but a second click. */
+  async function list(created: Created) {
+    setPhase({ kind: "listing", created });
+    try {
+      await postUntilIndexed("/api/campaigns", created, "The campaign was created but could not be listed.");
+      // Another server instance may hold the registry for two seconds more.
+      await sleep(2_500);
+      router.push(`/dashboard/${created.campaign}`);
+    } catch (e) {
+      setPhase({ kind: "unlisted", created, message: describeError(e) });
     }
   }
 
   const tooLittleSol = lamports !== null && lamports < CREATE_MIN_LAMPORTS;
   const tooFewTokens = tokens !== null && tokens < p.budget;
-  const busy = phase.kind === "signing" || phase.kind === "confirming" || phase.kind === "registering";
+  const busy = phase.kind === "signing" || phase.kind === "confirming" || phase.kind === "listing";
   const isTestUsd = mint === TEST_USD.mint;
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-paper px-4 py-3 font-mono text-sm">
-        <span>
-          {p.wallet.name} {shortAddress(p.account.address)}
-        </span>
-        <span className="text-muted">
-          {lamports === null ? "" : `${sol(lamports)} SOL`}
-          {tokens === null ? "" : ` · ${money(tokens, p.decimals)} ${TEST_USD.symbol}`}
-          <button onClick={() => void disconnect()} className="ml-4 underline decoration-line underline-offset-2 hover:text-ink">
-            disconnect
-          </button>
-        </span>
-      </div>
+      <WalletStrip
+        wallet={p.wallet}
+        account={p.account}
+        lamports={lamports}
+        tokens={tokens}
+        token={TEST_USD}
+        surface="paper"
+      />
 
-      {tooLittleSol && <Faucet wallet={p.account.address} onFunded={refresh} need="Creating a campaign writes two accounts on devnet: about 0.005 devnet SOL in rent and fees, and this wallet has less." />}
+      {tooLittleSol && (
+        <Faucet
+          wallet={p.account.address}
+          onFunded={refresh}
+          need="Creating a campaign writes two accounts on devnet: about 0.005 devnet SOL in rent and fees, and this wallet has less."
+        />
+      )}
       {tooFewTokens &&
         (isTestUsd ? (
           <Faucet
@@ -462,58 +634,89 @@ function Create(
             need={`Funding ${money(p.budget, p.decimals)} needs that much ${TEST_USD.symbol} in this wallet, and it holds ${money(tokens ?? 0n, p.decimals)}.`}
           />
         ) : (
-          <p className="mt-4 text-sm leading-6 text-unpaid">This wallet holds {money(tokens ?? 0n, p.decimals)} of the payout token. Lower the budget, or fund later.</p>
+          <p className="mt-4 text-sm leading-6 text-unpaid">
+            This wallet holds {money(tokens ?? 0n, p.decimals)} of the payout token. Lower the budget, or fund later.
+          </p>
         ))}
 
-      <button
-        onClick={() => void create()}
-        disabled={busy || !!p.problem || tooLittleSol || tooFewTokens || !p.identity}
-        className="mt-5 rounded-full bg-ink px-6 py-3 font-medium text-paper hover:opacity-90 disabled:opacity-50"
-      >
-        {phase.kind === "signing"
-          ? "Approve in your wallet..."
-          : phase.kind === "confirming"
-            ? "Confirming on devnet..."
-            : phase.kind === "registering"
-              ? "Listing the campaign..."
-              : p.budget > 0n && p.payout !== null
-                ? `Create and fund ${money(p.budget, p.decimals)}`
-                : "Create the campaign"}
-      </button>
-      {p.problem && !busy && <p className="mt-3 text-sm leading-6 text-muted">{p.problem}.</p>}
-      {phase.kind === "confirming" && <p className="mt-3 font-mono text-xs text-muted">sent {shortAddress(phase.signature)}, waiting for confirmation</p>}
+      {phase.kind === "unlisted" ? (
+        <div className="mt-5 rounded-xl border border-line p-4 text-sm leading-6">
+          <p>
+            The campaign is on devnet (
+            <a
+              href={explorerTx(phase.created.signature)}
+              className="underline decoration-line underline-offset-2 hover:decoration-ink"
+            >
+              transaction {shortAddress(phase.created.signature)}
+            </a>
+            ) but the site could not list it: {phase.message}
+          </p>
+          <button
+            onClick={() => void list(phase.created)}
+            className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:opacity-90"
+          >
+            List it again
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => void create()}
+          disabled={busy || !!p.problem || tooLittleSol || tooFewTokens || !p.identity}
+          className="mt-5 rounded-full bg-ink px-6 py-3 font-medium text-paper hover:opacity-90 disabled:opacity-50"
+        >
+          {phase.kind === "signing"
+            ? "Approve in your wallet..."
+            : phase.kind === "confirming"
+              ? "Confirming on devnet..."
+              : phase.kind === "listing"
+                ? "Listing the campaign..."
+                : p.budget > 0n && p.payout !== null
+                  ? `Create and fund ${money(p.budget, p.decimals)}`
+                  : "Create the campaign"}
+        </button>
+      )}
+      {p.problem && !busy && phase.kind !== "unlisted" && (
+        <p className="mt-3 text-sm leading-6 text-muted">{p.problem}.</p>
+      )}
+      {phase.kind === "confirming" && (
+        <p className="mt-3 font-mono text-xs text-muted">
+          sent {shortAddress(phase.signature)}, waiting for confirmation
+        </p>
+      )}
       {phase.kind === "error" && <p className="mt-3 text-sm leading-6 text-unpaid">{phase.message}</p>}
       <p className="mt-4 text-sm leading-6 text-muted">
-        One transaction: create the campaign{p.budget > 0n ? ", fund it" : ""}, and lock the rules by their hash. Earnout&apos;s checker ({shortAddress(p.settler)}) can only ever pay out of this budget, never more.
+        One transaction: create the campaign{p.budget > 0n ? ", fund it" : ""}, and lock the rules by their hash.
+        Earnout&apos;s checker ({shortAddress(p.settler)}) can only ever pay out of this budget, never more.
       </p>
     </div>
   );
 }
 
-/** Ask the site to list the campaign. The RPC can take a moment to index a
- * new transaction, so a "not on chain yet" is retried. */
-async function register(body: { signature: string; campaign: string; rules: Rules }): Promise<void> {
-  for (let i = 0; ; i++) {
-    const res = await fetch("/api/campaigns", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) return;
-    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-    if (res.status !== 404 || i >= 8) throw new Error(error ?? "The campaign was created but could not be listed. Open it from the dashboard.");
-    await sleep(1_500);
-  }
-}
-
 // ── the preview ──────────────────────────────────────────────────────────────
 
-function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules | null; payout: bigint | null; decimals: number }) {
-  const [hash, setHash] = useState<string | null>(null);
+function Preview({
+  form,
+  rules,
+  payout,
+  decimals,
+}: {
+  form: Form;
+  rules: Rules | null;
+  payout: bigint | null;
+  decimals: number;
+}) {
+  // The hash is kept with the rules it was computed from, so the preview
+  // never shows last rules' hash under the next rules.
+  const [hashed, setHashed] = useState<{ rules: Rules; hash: string } | null>(null);
   useEffect(() => {
-    if (!rules) return setHash(null);
+    if (!rules) return;
     let live = true;
-    rulesHash(rules).then((h) => live && setHash(h));
+    rulesHash(rules).then((hash) => live && setHashed({ rules, hash }));
     return () => {
       live = false;
     };
   }, [rules]);
+  const hash = rules && hashed?.rules === rules ? hashed.hash : null;
 
   const name = form.name.trim() || "your project";
   const price = payout === null ? "$—" : money(payout, decimals);
@@ -526,8 +729,8 @@ function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules |
           <span className="font-mono">@handle</span> sent you here.
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-muted">
-          They are paid by {name} only if you stay: {price} for each user who is still there {duration(form.retentionSecs)} later. Nothing is
-          paid for a click, a visit, or a sign-up that leaves.
+          They are paid by {name} only if you stay: {price} for each user who is still there{" "}
+          {duration(form.retentionSecs)} later. Nothing is paid for a click, a visit, or a sign-up that leaves.
         </p>
         <dl className="mt-5 space-y-0.5 font-mono text-[13px] leading-6">
           <Row label="Paid by">{name}</Row>
@@ -542,18 +745,23 @@ function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules |
         {rules ? (
           <>
             <p className="mt-2">
-              A user counts when their wallet {describeConversion(rules.conversion)}. They have stayed if, {duration(form.retentionSecs)} later, their wallet{" "}
-              {describeRetention(rules.retention)}.
+              A user counts when their wallet {describeConversion(rules.conversion)}. They have stayed if,{" "}
+              {duration(form.retentionSecs)} later, their wallet {describeRetention(rules.retention)}.
             </p>
             <p className="mt-2 text-muted">
-              A link click counts for {duration(rules.attributionWindowSecs)}. More than {rules.sybil.maxWalletsPerFunder} new users funded by one quiet source
-              count as bots, and none of them is paid for.
+              A link click counts for {duration(rules.attributionWindowSecs)}. More than{" "}
+              {rules.sybil.maxWalletsPerFunder} new users funded by one quiet source count as bots, and none of them is
+              paid for.
             </p>
             <p className="mt-3 font-mono text-xs text-muted break-all">rules hash {hash ?? "..."}</p>
-            <p className="mt-1 text-sm text-muted">This hash goes into the transaction that creates the campaign. The rules cannot change afterwards.</p>
+            <p className="mt-1 text-sm text-muted">
+              This hash goes into the transaction that creates the campaign. The rules cannot change afterwards.
+            </p>
           </>
         ) : (
-          <p className="mt-2 text-muted">Fill in the campaign and the rules appear here, along with the hash the transaction will commit to.</p>
+          <p className="mt-2 text-muted">
+            Fill in the campaign and the rules appear here, along with the hash the transaction will commit to.
+          </p>
         )}
       </div>
     </aside>
@@ -562,13 +770,16 @@ function Preview({ form, rules, payout, decimals }: { form: Form; rules: Rules |
 
 // ── pieces ───────────────────────────────────────────────────────────────────
 
-const INPUT = "mt-1.5 w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-[15px] outline-none focus:border-ink";
+const INPUT =
+  "mt-1.5 w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-[15px] outline-none focus:border-ink";
 
 function Card({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-line bg-card p-7">
       <div className="flex items-center gap-3">
-        <span className="flex size-7 items-center justify-center rounded-full border border-line font-mono text-xs text-muted">{n}</span>
+        <span className="flex size-7 items-center justify-center rounded-full border border-line font-mono text-xs text-muted">
+          {n}
+        </span>
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       </div>
       <div className="mt-5 space-y-4">{children}</div>

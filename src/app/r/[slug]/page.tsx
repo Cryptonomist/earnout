@@ -23,13 +23,16 @@ export default async function DisclosurePage({ params }: Params) {
   const { slug } = await params;
   const link = await linkFor(slug);
   if (!link) notFound();
-  const [meta, chain] = await Promise.all([campaignMeta(link.campaign), campaignChain(link.campaign).catch(() => null)]);
+  const [meta, chain] = await Promise.all([
+    campaignMeta(link.campaign),
+    campaignChain(link.campaign).catch(() => null),
+  ]);
   const channel = chain?.channels.find((c) => c.index === link.channel) ?? null;
   const name = meta?.name ?? "the project";
   const handle = channel?.handle ?? null;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-12 sm:px-6">
+    <main id="content" className="flex min-h-dvh items-center justify-center px-4 py-12 sm:px-6">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-2 font-semibold tracking-tight">
           <Mark />
@@ -51,13 +54,14 @@ export default async function DisclosurePage({ params }: Params) {
         <p className="mt-4 leading-7 text-muted">
           {chain ? (
             <>
-              {name} pays {handle ? "them" : "for it"} only if you stay: {money(chain.payout, chain.decimals)} for each user still
-              active {duration(chain.retentionSecs)} later. Nothing for a click, a visit, or a sign-up that leaves.
+              {name} pays {handle ? "them" : "for it"} only if you stay: {money(chain.payout, chain.decimals)} for each
+              user still active {duration(chain.retentionSecs)} later. Nothing for a click, a visit, or a sign-up that
+              leaves.
             </>
           ) : (
             <>
-              {name} pays {handle ? "them" : "for it"} only for users who stay. Nothing for a click, a visit, or a sign-up that
-              leaves.
+              {name} pays {handle ? "them" : "for it"} only for users who stay. Nothing for a click, a visit, or a
+              sign-up that leaves.
             </>
           )}
         </p>
@@ -66,7 +70,10 @@ export default async function DisclosurePage({ params }: Params) {
           <Row label="Influencer">
             {handle ? (
               <>
-                <Link href={`/influencers/${handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+                <Link
+                  href={`/influencers/${handle}`}
+                  className="underline decoration-line underline-offset-2 hover:decoration-ink"
+                >
                   @{handle}
                 </Link>{" "}
                 <span className="text-paid">verified X</span>
@@ -93,8 +100,8 @@ export default async function DisclosurePage({ params }: Params) {
         </a>
 
         <p className="mt-6 text-sm leading-6 text-muted">
-          Every Earnout link says who is paid, and for what, before you decide. Your wallet is never tied to the influencer
-          on-chain. Only the project can see which link you used.{" "}
+          Every Earnout link says who is paid, and for what, before you decide. Your wallet is never tied to the
+          influencer on-chain. Only the project can see which link you used.{" "}
           <Link href="/" className="underline decoration-line underline-offset-2 hover:text-ink">
             About Earnout
           </Link>

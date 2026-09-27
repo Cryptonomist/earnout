@@ -1,8 +1,11 @@
 /* Test dollars for the advertiser hub: $1,000.00 of the devnet test token
  * every hub campaign pays in (lib/test-usd.ts), minted to whoever asks by
  * the faucet key, which holds the token's mint authority. Devnet play money,
- * so the limits are the SOL faucet's: none to a wallet that already has
- * enough, three grants per IP address an hour, per server instance. */
+ * so the limits are the SOL faucet's, best effort every one: none to a
+ * wallet that already has enough; once per wallet, checked on chain (a
+ * token account that shares a transaction with the faucet's recent history
+ * has had its grant); three grants per IP address an hour, per server
+ * instance. */
 
 import {
   address,
@@ -23,27 +26,45 @@ import {
 import { getCreateAssociatedTokenIdempotentInstructionAsync, getMintToInstruction } from "@solana-program/token";
 import { ataAddress } from "../../sdk/program";
 import { TEST_USD } from "../lib/test-usd";
-import type { FaucetResult, Limiter } from "./faucet";
+import { PER_IP_PER_HOUR, type FaucetResult, type Limiter } from "./faucet";
 
 /** A wallet with this much already has enough to fund a campaign. */
 export const USD_ENOUGH = 100_000_000n;
-const PER_IP_PER_HOUR = 3;
 
 export type UsdDeps = {
   balance(wallet: Address): Promise<bigint>;
+  /** Recent signatures touching the wallet's token account, if it has one. */
+  tokenAccountSignatures(wallet: Address): Promise<string[]>;
+  /** Recent signatures of the faucet itself. */
+  faucetSignatures(): Promise<string[]>;
   send(wallet: Address): Promise<string>;
 };
 
-export async function grantUsd(wallet: string, ip: string, deps: UsdDeps, limiter: Limiter, now = Date.now()): Promise<FaucetResult> {
+export async function grantUsd(
+  wallet: string,
+  ip: string,
+  deps: UsdDeps,
+  limiter: Limiter,
+  now = Date.now(),
+): Promise<FaucetResult> {
   if (!isAddress(wallet)) return { ok: false, reason: "bad address", message: "That is not a Solana address." };
   const w = address(wallet);
 
   const recent = (limiter.get(ip) ?? []).filter((t) => now - t < 3_600_000);
   if (recent.length >= PER_IP_PER_HOUR) {
-    return { ok: false, reason: "rate limited", message: "This connection has had its test dollars for the hour. Try again later." };
+    return {
+      ok: false,
+      reason: "rate limited",
+      message: "This connection has had its test dollars for the hour. Try again later.",
+    };
   }
   if ((await deps.balance(w)) >= USD_ENOUGH) {
     return { ok: false, reason: "has enough", message: "This wallet already has enough test dollars." };
+  }
+  const [mine, faucets] = await Promise.all([deps.tokenAccountSignatures(w), deps.faucetSignatures()]);
+  const granted = new Set(faucets);
+  if (mine.some((s) => granted.has(s))) {
+    return { ok: false, reason: "already granted", message: "This wallet has already had test dollars from Earnout." };
   }
   limiter.set(ip, [...recent, now]);
   return { ok: true, signature: await deps.send(w) };
@@ -59,12 +80,24 @@ export async function liveUsdDeps(rpcUrl: string, keypairJson: string | undefine
   return {
     balance: async (w) => {
       try {
-        const { value } = await rpc.getTokenAccountBalance(await ataAddress(w, TEST_USD.mint), { commitment: "confirmed" }).send();
+        const { value } = await rpc
+          .getTokenAccountBalance(await ataAddress(w, TEST_USD.mint), { commitment: "confirmed" })
+          .send();
         return BigInt(value.amount);
       } catch {
         return 0n; // No token account yet.
       }
     },
+    tokenAccountSignatures: async (w) =>
+      (
+        await rpc
+          .getSignaturesForAddress(await ataAddress(w, TEST_USD.mint), { limit: 100, commitment: "confirmed" })
+          .send()
+      ).map((s) => s.signature),
+    faucetSignatures: async () =>
+      (await rpc.getSignaturesForAddress(faucet.address, { limit: 1000, commitment: "confirmed" }).send()).map(
+        (s) => s.signature,
+      ),
     send: async (w) => {
       const token = await ataAddress(w, TEST_USD.mint);
       const ixs = [
@@ -85,7 +118,8 @@ export async function liveUsdDeps(rpcUrl: string, keypairJson: string | undefine
       for (let i = 0; i < 20; i++) {
         const { value } = await rpc.getSignatureStatuses([signature as Signature]).send();
         if (value[0]?.err) throw new Error("The faucet mint failed on chain");
-        if (value[0]?.confirmationStatus === "confirmed" || value[0]?.confirmationStatus === "finalized") return signature;
+        if (value[0]?.confirmationStatus === "confirmed" || value[0]?.confirmationStatus === "finalized")
+          return signature;
         await sleep(1_000);
       }
       return signature;

@@ -30,7 +30,9 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="hidden rounded-full border border-line px-2.5 py-1 font-mono text-[11px] text-muted sm:inline">devnet</span>
+          <span className="hidden rounded-full border border-line px-2.5 py-1 font-mono text-[11px] text-muted sm:inline">
+            devnet
+          </span>
           <Link
             href="/dashboard/new"
             className="hidden rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition-opacity hover:opacity-90 sm:inline-block"
@@ -57,7 +59,10 @@ export function SiteHeader() {
                   {n.label}
                 </Link>
               ))}
-              <Link href="/dashboard/new" className="mt-1 block rounded-xl bg-ink px-3 py-2.5 text-center text-sm font-medium text-paper">
+              <Link
+                href="/dashboard/new"
+                className="mt-1 block rounded-xl bg-ink px-3 py-2.5 text-center text-sm font-medium text-paper"
+              >
                 Start a campaign
               </Link>
             </nav>
@@ -100,7 +105,11 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     title: "Open source",
     links: [
       { href: SITE.github, label: "GitHub", external: true },
-      { href: `https://explorer.solana.com/address/${PROGRAM_ADDRESS}?cluster=devnet`, label: "Program on Solana", external: true },
+      {
+        href: `https://explorer.solana.com/address/${PROGRAM_ADDRESS}?cluster=devnet`,
+        label: "Program on Solana",
+        external: true,
+      },
       { href: "https://solana.com/docs/tools/actions", label: "Solana Actions spec", external: true },
     ],
   },
@@ -140,7 +149,9 @@ export function SiteFooter() {
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>Built on Solana. Running on devnet during the Colosseum Crypto World&apos;s Fair. © 2026 Earnout.</p>
-          <p className="font-mono">program {PROGRAM_ADDRESS.slice(0, 4)}...{PROGRAM_ADDRESS.slice(-4)}</p>
+          <p className="font-mono">
+            program {PROGRAM_ADDRESS.slice(0, 4)}...{PROGRAM_ADDRESS.slice(-4)}
+          </p>
         </div>
       </div>
     </footer>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Fragment } from "react";
 import { Calculator } from "@/components/Calculator";
 import { LiveNow } from "@/components/LiveNow";
@@ -105,10 +106,28 @@ const PROBLEMS = [
 /* By category, not by name: what each way of paying for growth actually
  * buys, who measures it, who holds the money, and whether the user is told. */
 const COMPARE: { who: string; pays: string; measured: string; money: string; told: string; earnout?: true }[] = [
-  { who: "Influencer deals and agencies", pays: "A post", measured: "Nobody", money: "The influencer, up front", told: "Rarely" },
+  {
+    who: "Influencer deals and agencies",
+    pays: "A post",
+    measured: "Nobody",
+    money: "The influencer, up front",
+    told: "Rarely",
+  },
   { who: "Quest platforms", pays: "Tasks, on claim day", measured: "The platform", money: "The platform", told: "No" },
-  { who: "Creator marketplaces", pays: "Posts, clicks, sign-ups, mindshare", measured: "The platform's own data", money: "The platform", told: "Sometimes" },
-  { who: "Attribution dashboards", pays: "Nothing; they only measure", measured: "Pixels and on-chain data", money: "You", told: "No" },
+  {
+    who: "Creator marketplaces",
+    pays: "Posts, clicks, sign-ups, mindshare",
+    measured: "The platform's own data",
+    money: "The platform",
+    told: "Sometimes",
+  },
+  {
+    who: "Attribution dashboards",
+    pays: "Nothing; they only measure",
+    measured: "Pixels and on-chain data",
+    money: "You",
+    told: "No",
+  },
   {
     who: "Earnout",
     pays: "Users who stayed",
@@ -149,26 +168,39 @@ export default async function Home() {
 
 function Hero({ live }: { live: LiveReceipt | null }) {
   return (
-    <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 sm:px-6 md:pt-20 lg:grid-cols-[1.15fr_0.85fr]">
+    <section
+      id="top"
+      className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 sm:px-6 md:pt-20 lg:grid-cols-[1.15fr_0.85fr]"
+    >
       <div>
-        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN INFLUENCER MARKETING ON SOLANA</p>
+        <p className="rise font-mono text-xs tracking-[0.2em] text-muted">
+          RESULTS-DRIVEN INFLUENCER MARKETING ON SOLANA
+        </p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
           Pay influencers for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Think of it as a sales commission. Influencers are paid only for the users they bring who are still active a week
-          later. Nothing for clicks. Nothing for people who leave.
+          Think of it as a sales commission. Influencers are paid only for the users they bring who are still active a
+          week later. Nothing for clicks. Nothing for people who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
-          <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
+          <Link
+            href="/r/demo-alice"
+            className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90"
+          >
             Try the demo
-          </a>
-          <a href="/dashboard/new" className="rounded-full border border-line px-6 py-3 font-medium transition-colors hover:border-ink">
+          </Link>
+          <Link
+            href="/dashboard/new"
+            className="rounded-full border border-line px-6 py-3 font-medium transition-colors hover:border-ink"
+          >
             Start a campaign
-          </a>
+          </Link>
         </div>
         <p className="rise rise-4 mt-4 text-sm text-muted">
-          {live ? "This receipt is live on Solana devnet. Three clicks to make your own, no wallet needed." : "Live on Solana devnet. Three clicks, no wallet needed."}
+          {live
+            ? "This receipt is live on Solana devnet. Three clicks to make your own, no wallet needed."
+            : "Live on Solana devnet. Three clicks, no wallet needed."}
         </p>
       </div>
       <div className="rise rise-3 lift">
@@ -188,7 +220,9 @@ function Flow() {
           <Fragment key={n.who}>
             <li className="flex flex-col rounded-2xl border border-line bg-card p-5">
               <div className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-muted uppercase">
-                <span className="flex size-5 items-center justify-center rounded-full bg-ink text-[10px] text-paper">{i + 1}</span>
+                <span className="flex size-5 items-center justify-center rounded-full bg-ink text-[10px] text-paper">
+                  {i + 1}
+                </span>
                 {n.who}
               </div>
               <h2 className="mt-3 text-lg font-semibold tracking-tight">{n.head}</h2>
@@ -206,14 +240,25 @@ function Flow() {
                 </ul>
               )}
               {n.cta && (
-                <a href={n.cta.href} className="mt-4 inline-block self-start rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-paper">
+                <Link
+                  href={n.cta.href}
+                  className="mt-4 inline-block self-start rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-paper"
+                >
                   {n.cta.label}
-                </a>
+                </Link>
               )}
             </li>
             {i < FLOW.length - 1 && (
               <li aria-hidden="true" className="flex items-center justify-center py-1 text-muted md:px-2 md:py-0">
-                <svg viewBox="0 0 24 24" className="size-5 rotate-90 md:rotate-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="size-5 rotate-90 md:rotate-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </li>
@@ -292,11 +337,18 @@ function Compare() {
     ["Is the user told?", "told"],
   ];
   return (
-    <Section band eyebrow="How it compares" title="Quantity is clicks, posts and sign‑ups. Quality is a user who is still there.">
+    <Section
+      band
+      eyebrow="How it compares"
+      title="Quantity is clicks, posts and sign‑ups. Quality is a user who is still there."
+    >
       {/* On a phone the table would scroll sideways and hide its point, so each row becomes a card. */}
       <div className="space-y-3 md:hidden">
         {COMPARE.map((r) => (
-          <div key={r.who} className={`rounded-2xl border p-5 ${r.earnout ? "border-paid bg-paid-soft" : "border-line"}`}>
+          <div
+            key={r.who}
+            className={`rounded-2xl border p-5 ${r.earnout ? "border-paid bg-paid-soft" : "border-line"}`}
+          >
             <div className="font-semibold">{r.who}</div>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm leading-6">
               {cols.map(([label, key]) => (
@@ -323,7 +375,10 @@ function Compare() {
           </thead>
           <tbody>
             {COMPARE.map((r) => (
-              <tr key={r.who} className={`border-b border-line last:border-0 ${r.earnout ? "bg-paid-soft font-medium" : ""}`}>
+              <tr
+                key={r.who}
+                className={`border-b border-line last:border-0 ${r.earnout ? "bg-paid-soft font-medium" : ""}`}
+              >
                 <td className="px-4 py-3 font-semibold">{r.who}</td>
                 {cols.map(([, key]) => (
                   <td key={key} className={`px-4 py-3 leading-6 ${r.earnout ? "" : "text-muted"}`}>
@@ -336,8 +391,8 @@ function Compare() {
         </table>
       </div>
       <p className="mt-4 text-sm leading-6 text-muted">
-        Categories, not names. Mobile apps have paid per retained user for a decade; crypto could not, because the proof lived
-        off-chain. On Solana the proof is the user&apos;s own transaction.
+        Categories, not names. Mobile apps have paid per retained user for a decade; crypto could not, because the proof
+        lived off-chain. On Solana the proof is the user&apos;s own transaction.
       </p>
     </Section>
   );
@@ -369,15 +424,18 @@ function Trust() {
         </ul>
         <div className="space-y-6 leading-7 text-muted">
           <p>
-            <strong className="font-semibold text-ink">Private by design.</strong> The chain shows that a user joined, not
-            which influencer sent them. Only the project can see that.
+            <strong className="font-semibold text-ink">Private by design.</strong> The chain shows that a user joined,
+            not which influencer sent them. Only the project can see that.
           </p>
           <p>
-            <strong className="font-semibold text-ink">Honest about trust.</strong> Earnout does the counting. The program
-            holds it to your budget and your deadline, and every payout comes with evidence anyone can check.
+            <strong className="font-semibold text-ink">Honest about trust.</strong> Earnout does the counting. The
+            program holds it to your budget and your deadline, and every payout comes with evidence anyone can check.
           </p>
           <p>
-            <a href={SITE.github} className="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+            <a
+              href={SITE.github}
+              className="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink"
+            >
               Read the program on GitHub
             </a>
             . Open source, MIT.
@@ -410,8 +468,8 @@ function Developers() {
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div className="space-y-5 leading-7 text-muted">
           <p>
-            Earnout follows the Solana Actions spec, so any Actions indexer can read its tags. The SDK is checked against
-            the official <code className="font-mono text-sm text-ink">@solana/actions</code> package both ways.
+            Earnout follows the Solana Actions spec, so any Actions indexer can read its tags. The SDK is checked
+            against the official <code className="font-mono text-sm text-ink">@solana/actions</code> package both ways.
           </p>
           <p>The tag reads nothing and writes nothing. It can never break a user&apos;s transaction.</p>
         </div>
@@ -435,10 +493,13 @@ function Closing() {
           Create one on devnet in minutes, with test dollars. Or talk to us about mainnet.
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <a href="/dashboard/new" className="rounded-full bg-paper px-6 py-3 font-medium text-ink hover:opacity-90">
+          <Link href="/dashboard/new" className="rounded-full bg-paper px-6 py-3 font-medium text-ink hover:opacity-90">
             Start a campaign
-          </a>
-          <a href={SITE.contact} className="rounded-full border border-paper/30 px-6 py-3 font-medium hover:border-paper">
+          </Link>
+          <a
+            href={SITE.contact}
+            className="rounded-full border border-paper/30 px-6 py-3 font-medium hover:border-paper"
+          >
             Talk to us
           </a>
         </div>
@@ -466,7 +527,9 @@ function Section({
   const section = (
     <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 md:py-24">
       <p className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{eyebrow}</p>
-      <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
+      <h2 className="mt-4 mb-12 max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">
+        {title}
+      </h2>
       {children}
     </section>
   );

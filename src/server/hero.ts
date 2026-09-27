@@ -1,6 +1,7 @@
 import "server-only";
 import type { LiveReceipt } from "@/components/Receipt";
-import { campaignChain, campaignList, campaignReport, duration, money, short, slugsByChannel } from "./dashboard";
+import { shortAddress } from "@/lib/explorer";
+import { campaignList, campaignsWithReports, duration, money, slugsByChannel } from "./dashboard";
 
 /* The receipt on the front page is a real one: the influencer with the
  * most users sent across the campaigns the dashboard lists, verified ones
@@ -10,9 +11,8 @@ export async function heroReceipt(): Promise<LiveReceipt | null> {
   const [campaigns, slugs] = await Promise.all([campaignList({ limit: 12 }), slugsByChannel()]);
   let best: { score: number; value: LiveReceipt } | null = null;
 
-  for (const meta of campaigns) {
-    const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
-    if (!chain || !report) continue;
+  for (const { meta, chain, report } of await campaignsWithReports(campaigns)) {
+    if (!report) continue;
     const d = chain.decimals;
     for (const ch of chain.channels) {
       const r = report.channels.find((c) => c.index === ch.index);
@@ -24,7 +24,9 @@ export async function heroReceipt(): Promise<LiveReceipt | null> {
         score,
         value: {
           campaign: meta.name,
-          influencer: ch.handle ? `@${ch.handle}` : (slugs.get(`${chain.address}:${ch.index}`) ?? `channel ${ch.index}`),
+          influencer: ch.handle
+            ? `@${ch.handle}`
+            : (slugs.get(`${chain.address}:${ch.index}`) ?? `Influencer ${ch.index}`),
           mustStay: duration(chain.retentionSecs),
           sent: r.tagged,
           gone: r.gone,
@@ -34,7 +36,7 @@ export async function heroReceipt(): Promise<LiveReceipt | null> {
           paid: money(ch.earned, d),
           notPaidUsers,
           notPaid: money(BigInt(notPaidUsers) * chain.payout, d),
-          proof: ch.batches ? short(ch.evidence) : "pending",
+          proof: ch.batches ? shortAddress(ch.evidence) : "pending",
           payouts: ch.batches,
           href: `/dashboard/${chain.address}`,
         },

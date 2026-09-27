@@ -5,13 +5,7 @@
 
 import { expect } from "chai";
 import { randomBytes } from "node:crypto";
-import {
-  address,
-  generateKeyPair,
-  getAddressDecoder,
-  getAddressEncoder,
-  getAddressFromPublicKey,
-} from "@solana/kit";
+import { address, generateKeyPair, getAddressDecoder, getAddressEncoder, getAddressFromPublicKey } from "@solana/kit";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { createActionIdentifierMemo, validateActionIdentifierMemo } from "@solana/actions";
 import { issueReference, openReference, referenceKeys } from "../sdk/reference.ts";
@@ -129,7 +123,7 @@ describe("identity memo", () => {
 
   it("skips malformed memos without throwing", () => {
     for (const m of ["", "solana-action:a:b", "other:1:2:3", "solana-action:x:y:z", null, undefined]) {
-      expect(parseIdentifierMemos(m as any)).to.deep.equal([]);
+      expect(parseIdentifierMemos(m as string)).to.deep.equal([]);
     }
   });
 });

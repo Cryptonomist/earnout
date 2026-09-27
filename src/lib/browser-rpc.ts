@@ -15,6 +15,7 @@ import {
   type Address,
   type Instruction,
   type Signature,
+  type Transaction,
   type TransactionSigner,
 } from "@solana/kit";
 import { ataAddress } from "../../sdk/program";
@@ -39,9 +40,22 @@ export async function sendInstructions(
       (m) => appendTransactionMessageInstructions(ixs, m),
     ),
   );
+  return sendSignedTransaction(client, signed, onSent);
+}
+
+/** Send a transaction every signer has already signed, and wait for it.
+ * The wallet only ever signs; the page sends, so the transaction goes to
+ * devnet whatever network the wallet is set to. */
+export async function sendSignedTransaction(
+  client: BrowserRpc,
+  signed: Transaction,
+  onSent?: (signature: string) => void,
+): Promise<string> {
   const signature = getSignatureFromTransaction(signed);
   onSent?.(signature);
-  await client.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: "base64", preflightCommitment: "confirmed" }).send();
+  await client
+    .sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: "base64", preflightCommitment: "confirmed" })
+    .send();
   await confirmSignature(client, signature);
   return signature;
 }
@@ -49,7 +63,9 @@ export async function sendInstructions(
 /** A wallet's balance of a token, in base units; 0 when it has no account. */
 export async function tokenBalance(client: BrowserRpc, owner: Address, mint: Address): Promise<bigint> {
   try {
-    const { value } = await client.getTokenAccountBalance(await ataAddress(owner, mint), { commitment: "confirmed" }).send();
+    const { value } = await client
+      .getTokenAccountBalance(await ataAddress(owner, mint), { commitment: "confirmed" })
+      .send();
     return BigInt(value.amount);
   } catch {
     return 0n;
@@ -69,7 +85,6 @@ export async function mintDecimals(client: BrowserRpc, mint: Address): Promise<n
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-export const shortAddress = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
 export const sol = (lamports: bigint) => (Number(lamports) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 4 });
 
 /** Poll until confirmed, for about a minute. */
@@ -82,6 +97,25 @@ export async function confirmSignature(client: BrowserRpc, signature: string): P
     await sleep(1_500);
   }
   throw new Error("Not confirmed after a minute. It may still land; check the explorer.");
+}
+
+/** POST to one of the site's own endpoints that reads a transaction from
+ * the RPC before it answers. The RPC can take a moment to index a new
+ * transaction, so a "not on chain yet" (404) is asked again for about
+ * twelve seconds; any other refusal is the endpoint's own sentence, or
+ * `fallback` when it gave none. */
+export async function postUntilIndexed(path: string, body: unknown, fallback: string): Promise<void> {
+  for (let i = 0; ; i++) {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return;
+    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+    if (res.status !== 404 || i >= 8) throw new Error(error ?? fallback);
+    await sleep(1_500);
+  }
 }
 
 /** A sentence a person can act on, from whatever a wallet or RPC threw.

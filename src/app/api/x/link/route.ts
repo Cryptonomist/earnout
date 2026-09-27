@@ -1,7 +1,8 @@
 import "server-only";
+import type { NextRequest } from "next/server";
 import { createSolanaRpc, isAddress, address } from "@solana/kit";
 import { rpcUrl } from "@/server/chain";
-import { loadSecrets, type Secrets } from "@/server/links";
+import { getSecrets } from "@/server/links";
 import { COOKIE_PROFILE, openProfile, xConfig } from "@/server/x-auth";
 import { buildLinkTransaction } from "@/server/x-link-tx";
 
@@ -14,22 +15,13 @@ export const dynamic = "force-dynamic";
  * for the wallet to complete and send. A wallet that will not sign gets
  * nothing written; a server without a signed-in profile writes nothing. */
 
-let secrets: Promise<Secrets | null> | null = null;
-const getSecrets = () => (secrets ??= loadSecrets().catch(() => null));
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const cfg = xConfig();
   if (!cfg) return Response.json({ error: "X sign-in is not configured on this deployment" }, { status: 503 });
   const s = await getSecrets();
   if (!s) return Response.json({ error: "The Earnout identity is not configured on this deployment" }, { status: 503 });
 
-  const cookie = request.headers
-    .get("cookie")
-    ?.split(";")
-    .map((c) => c.trim())
-    .find((c) => c.startsWith(`${COOKIE_PROFILE}=`))
-    ?.slice(COOKIE_PROFILE.length + 1);
-  const profile = openProfile(cfg.clientSecret, cookie);
+  const profile = openProfile(cfg.clientSecret, request.cookies.get(COOKIE_PROFILE)?.value);
   if (!profile) return Response.json({ error: "Sign in with X again: that sign-in has expired" }, { status: 401 });
 
   let wallet = "";

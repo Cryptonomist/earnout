@@ -23,9 +23,15 @@ export async function POST(request: Request) {
   try {
     const r = await registerCampaign(body, live.deps);
     if (!r.ok) return Response.json({ error: r.error }, { status: r.status, headers: NO_STORE });
-    return Response.json({ ok: true, created: r.created, campaign: r.value.campaign }, { status: r.created ? 201 : 200, headers: NO_STORE });
+    return Response.json(
+      { ok: true, created: r.created, campaign: r.value.campaign },
+      { status: r.created ? 201 : 200, headers: NO_STORE },
+    );
   } catch (e) {
     console.error(`[campaigns] ${(e as Error).message}`);
-    return Response.json({ error: "Devnet or the database did not answer. Try again in a moment." }, { status: 502, headers: NO_STORE });
+    return Response.json(
+      { error: "Devnet or the database did not answer. Try again in a moment." },
+      { status: 502, headers: NO_STORE },
+    );
   }
 }

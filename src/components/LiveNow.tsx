@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { campaignChain, campaignList, campaignReport, money } from "@/server/dashboard";
+import { campaignList, campaignsWithReports, money } from "@/server/dashboard";
 
 /* One line of proof under the hero: what Earnout has done on devnet, read
  * live from the chain and the settler's report. Every figure is a real
  * count; if nothing can be read, the line is simply absent. */
 export async function LiveNow() {
   // The pilots and the newest dozen from the hub: a bounded number of reads.
-  const campaigns = await campaignList({ limit: 12 });
+  const campaigns = await campaignsWithReports(await campaignList({ limit: 12 }));
   let tagged = 0;
   let paidFor = 0;
   let notPaid = 0;
@@ -15,9 +15,7 @@ export async function LiveNow() {
   const influencers = new Set<string>();
   let first: string | null = null;
 
-  for (const meta of campaigns) {
-    const [chain, report] = await Promise.all([campaignChain(meta.address).catch(() => null), campaignReport(meta.address)]);
-    if (!chain) continue;
+  for (const { chain, report } of campaigns) {
     first ??= chain.address;
     decimals ??= chain.decimals;
     for (const ch of chain.channels) {
@@ -52,7 +50,10 @@ export async function LiveNow() {
             {i.text}
           </span>
         ))}
-        <Link href={`/dashboard/${first}`} className="ml-auto underline decoration-line underline-offset-4 hover:decoration-ink">
+        <Link
+          href={`/dashboard/${first}`}
+          className="ml-auto underline decoration-line underline-offset-4 hover:decoration-ink"
+        >
           Open the campaign
         </Link>
       </div>

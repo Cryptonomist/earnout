@@ -51,12 +51,17 @@ export function Receipt({ live }: { live?: LiveReceipt | null }) {
             <div className="text-base font-semibold tracking-tight">Payout receipt</div>
           </div>
           {live ? (
-            <Link href={live.href} className="flex items-center gap-1.5 rounded-sm border border-paid px-1.5 text-[10px] tracking-[0.15em] text-paid">
+            <Link
+              href={live.href}
+              className="flex items-center gap-1.5 rounded-sm border border-paid px-1.5 text-[10px] tracking-[0.15em] text-paid"
+            >
               <span className="live-dot size-1.5 rounded-full bg-paid" aria-hidden="true" />
               LIVE
             </Link>
           ) : (
-            <span className="rounded-sm border border-line px-1.5 text-[10px] tracking-[0.15em] text-muted">EXAMPLE</span>
+            <span className="rounded-sm border border-line px-1.5 text-[10px] tracking-[0.15em] text-muted">
+              EXAMPLE
+            </span>
           )}
         </div>
 
@@ -71,7 +76,11 @@ export function Receipt({ live }: { live?: LiveReceipt | null }) {
         <dl className="space-y-0.5">
           <Row label="Users sent" value={String(r.sent)} />
           <Row label="Left early" value={r.gone ? `-${r.gone}` : "0"} tone={r.gone ? "unpaid" : undefined} />
-          <Row label="Flagged as bots" value={r.flagged ? `-${r.flagged}` : "0"} tone={r.flagged ? "unpaid" : undefined} />
+          <Row
+            label="Flagged as bots"
+            value={r.flagged ? `-${r.flagged}` : "0"}
+            tone={r.flagged ? "unpaid" : undefined}
+          />
         </dl>
 
         <hr className="rule my-4" />
@@ -109,8 +118,8 @@ export function Receipt({ live }: { live?: LiveReceipt | null }) {
         </dl>
       </div>
       <figcaption className="sr-only">
-        {live ? "A live payout on Solana devnet" : "An example payout"}: {r.sent} users sent, {r.stayed} still active and not bots after{" "}
-        {r.mustStay}, {r.paid} paid to the influencer and {r.notPaid} never spent.
+        {live ? "A live payout on Solana devnet" : "An example payout"}: {r.sent} users sent, {r.stayed} still active
+        and not bots after {r.mustStay}, {r.paid} paid to the influencer and {r.notPaid} never spent.
       </figcaption>
     </figure>
   );
@@ -118,7 +127,9 @@ export function Receipt({ live }: { live?: LiveReceipt | null }) {
 
 function Row({ label, value, tone, strong }: { label: string; value: string; tone?: "unpaid"; strong?: boolean }) {
   return (
-    <div className={`flex justify-between gap-4 ${tone === "unpaid" ? "text-unpaid" : ""} ${strong ? "font-semibold" : ""}`}>
+    <div
+      className={`flex justify-between gap-4 ${tone === "unpaid" ? "text-unpaid" : ""} ${strong ? "font-semibold" : ""}`}
+    >
       <dt className={tone || strong ? "" : "text-muted"}>{label}</dt>
       <dd className="truncate text-right">{value}</dd>
     </div>

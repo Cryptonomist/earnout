@@ -2,8 +2,9 @@
  * browser except the hover values, which are CSS. */
 
 import Link from "next/link";
+import { explorerAddress, shortAddress as short } from "@/lib/explorer";
 import type { ChannelReport } from "@/lib/report";
-import { explorer, money, short, type ChannelChain } from "@/server/dashboard";
+import { money, type ChannelChain } from "@/server/dashboard";
 
 export { SiteHeader } from "@/components/SiteShell";
 
@@ -50,15 +51,20 @@ export function BudgetMeter(p: {
           <span className="text-muted">Budget</span>
           <span className="font-medium">{money(p.funded, p.decimals)} funded</span>
         </div>
-        <div className="mt-3 flex h-4 gap-[2px] overflow-visible rounded-md bg-paid-soft" role="img" aria-label="Budget meter; values in the table beside it">
+        <div className="mt-3 flex h-4 gap-[2px] overflow-visible rounded-md bg-paid-soft">
           {segments.map((s, i) => (
             <div
               key={s.key}
               tabIndex={0}
+              role="img"
+              aria-label={`${s.label}: ${money(s.value, p.decimals)}`}
               className={`group relative h-full ${s.className} ${i === 0 ? "rounded-l-md" : ""} outline-offset-2`}
               style={{ width: `${pct(s.value)}%`, minWidth: "6px" }}
             >
-              <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded-md bg-ink px-2 py-1 font-mono text-xs whitespace-nowrap text-paper group-hover:block group-focus:block">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded-md bg-ink px-2 py-1 font-mono text-xs whitespace-nowrap text-paper group-hover:block group-focus:block"
+              >
                 {s.label}: {money(s.value, p.decimals)}
               </span>
             </div>
@@ -90,14 +96,14 @@ export function ChannelReceipt({
   slug,
   payout,
   decimals,
-  showCreatorLink = true,
+  showInfluencerLink = true,
 }: {
   chain: ChannelChain;
   report: ChannelReport | null;
   slug: string | null;
   payout: bigint;
   decimals: number;
-  showCreatorLink?: boolean;
+  showInfluencerLink?: boolean;
 }) {
   const claimable = chain.earned - chain.claimed;
   const notPaid = report ? report.gone + report.flagged + report.otherRejected : 0;
@@ -106,10 +112,13 @@ export function ChannelReceipt({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-[11px] tracking-[0.2em] text-muted">INFLUENCER {chain.index}</div>
-          <div className="text-base font-semibold tracking-tight">{slug ?? `channel ${chain.index}`}</div>
+          <div className="text-base font-semibold tracking-tight">{slug ?? `Influencer ${chain.index}`}</div>
           {chain.handle ? (
             <div className="mt-0.5 text-[12px]">
-              <Link href={`/influencers/${chain.handle}`} className="underline decoration-line underline-offset-2 hover:decoration-ink">
+              <Link
+                href={`/influencers/${chain.handle}`}
+                className="underline decoration-line underline-offset-2 hover:decoration-ink"
+              >
                 @{chain.handle}
               </Link>{" "}
               <span className="text-paid">verified X</span>
@@ -118,7 +127,10 @@ export function ChannelReceipt({
             <div className="mt-0.5 text-[12px] text-unpaid">unverified: added before X verification</div>
           )}
         </div>
-        <a href={explorer("address", chain.payee)} className="text-[11px] text-muted underline decoration-line underline-offset-2 hover:text-ink">
+        <a
+          href={explorerAddress(chain.payee)}
+          className="text-[11px] text-muted underline decoration-line underline-offset-2 hover:text-ink"
+        >
           pays {short(chain.payee)}
         </a>
       </div>
@@ -128,7 +140,11 @@ export function ChannelReceipt({
           <Row label="Users sent" value={String(report.tagged)} />
           <Row label="Still in the stay period" value={String(report.waiting)} />
           <Row label="Left early" value={report.gone ? `-${report.gone}` : "0"} unpaid={report.gone > 0} />
-          <Row label="Flagged as bots" value={report.flagged ? `-${report.flagged}` : "0"} unpaid={report.flagged > 0} />
+          <Row
+            label="Flagged as bots"
+            value={report.flagged ? `-${report.flagged}` : "0"}
+            unpaid={report.flagged > 0}
+          />
           {report.otherRejected > 0 && <Row label="Not counted" value={`-${report.otherRejected}`} unpaid />}
         </dl>
       ) : (
@@ -147,15 +163,27 @@ export function ChannelReceipt({
       <dl className="mt-1.5 space-y-0.5 px-2">
         <Row label="Claimed" value={money(chain.claimed, decimals)} />
         <Row label="Claimable now" value={money(claimable, decimals)} strong={claimable > 0n} />
-        {report && notPaid > 0 && <Row label={`Not paid, ${notPaid} user${notPaid === 1 ? "" : "s"}`} value={money(BigInt(notPaid) * payout, decimals)} unpaid />}
+        {report && notPaid > 0 && (
+          <Row
+            label={`Not paid, ${notPaid} user${notPaid === 1 ? "" : "s"}`}
+            value={money(BigInt(notPaid) * payout, decimals)}
+            unpaid
+          />
+        )}
       </dl>
       <hr className="rule my-4" />
       <dl className="space-y-0.5 text-[11px] text-muted">
         <Row label="Payouts" value={String(chain.batches)} />
-        <Row label="Latest proof" value={chain.batches ? `${chain.evidence.slice(0, 6)}...${chain.evidence.slice(-4)}` : "none yet"} />
+        <Row
+          label="Latest proof"
+          value={chain.batches ? `${chain.evidence.slice(0, 6)}...${chain.evidence.slice(-4)}` : "none yet"}
+        />
       </dl>
-      {showCreatorLink && slug && (
-        <Link href={`/c/${slug}`} className="mt-4 inline-block font-sans text-sm underline decoration-line underline-offset-4 hover:decoration-ink">
+      {showInfluencerLink && slug && (
+        <Link
+          href={`/c/${slug}`}
+          className="mt-4 inline-block font-sans text-sm underline decoration-line underline-offset-4 hover:decoration-ink"
+        >
           Influencer page for {slug}
         </Link>
       )}

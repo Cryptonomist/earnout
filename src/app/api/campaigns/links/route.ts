@@ -23,9 +23,15 @@ export async function POST(request: Request) {
   try {
     const r = await registerLink(body, live.deps);
     if (!r.ok) return Response.json({ error: r.error }, { status: r.status, headers: NO_STORE });
-    return Response.json({ ok: true, created: r.created, slug: r.value.slug }, { status: r.created ? 201 : 200, headers: NO_STORE });
+    return Response.json(
+      { ok: true, created: r.created, slug: r.value.slug },
+      { status: r.created ? 201 : 200, headers: NO_STORE },
+    );
   } catch (e) {
     console.error(`[campaigns/links] ${(e as Error).message}`);
-    return Response.json({ error: "Devnet or the database did not answer. Try again in a moment." }, { status: 502, headers: NO_STORE });
+    return Response.json(
+      { error: "Devnet or the database did not answer. Try again in a moment." },
+      { status: 502, headers: NO_STORE },
+    );
   }
 }

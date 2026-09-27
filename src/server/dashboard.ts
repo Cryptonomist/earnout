@@ -5,8 +5,15 @@
  * Which campaigns and slugs exist comes from the registry (./registry.ts). */
 
 import "server-only";
+import { cache } from "react";
 import { createSolanaRpc, getBase64Encoder, type Address } from "@solana/kit";
-import { channelAddress, channelIdentityAddress, decodeCampaign, decodeChannel, decodeChannelIdentity } from "../../sdk/program";
+import {
+  channelAddress,
+  channelIdentityAddress,
+  decodeCampaign,
+  decodeChannel,
+  decodeChannelIdentity,
+} from "../../sdk/program";
 import type { PublicReport } from "@/lib/report";
 import { rpcUrl } from "./chain";
 import { publicRows } from "./db";
@@ -59,7 +66,10 @@ export type CampaignChain = {
 
 const bytes = (b64: string) => getBase64Encoder().encode(b64) as Uint8Array;
 
-export async function campaignChain(a: Address): Promise<CampaignChain | null> {
+/** The campaign and every channel, read from the chain in two round trips.
+ * Cached for the request: the front page reads the same campaigns for its
+ * receipt and its live line, and pays for them once. */
+export const campaignChain = cache(async (a: Address): Promise<CampaignChain | null> => {
   const rpc = createSolanaRpc(rpcUrl());
   const { value } = await rpc.getAccountInfo(a, { encoding: "base64", commitment: "confirmed" }).send();
   if (!value) return null;
@@ -68,7 +78,10 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
   const channelAddresses = await Promise.all(Array.from({ length: c.channels }, (_, i) => channelAddress(a, i)));
   const identityAddresses = await Promise.all(channelAddresses.map((ch) => channelIdentityAddress(ch)));
   const { value: accounts } = await rpc
-    .getMultipleAccounts([c.mint, ...channelAddresses, ...identityAddresses], { encoding: "base64", commitment: "confirmed" })
+    .getMultipleAccounts([c.mint, ...channelAddresses, ...identityAddresses], {
+      encoding: "base64",
+      commitment: "confirmed",
+    })
     .send();
   const mint = accounts[0];
   const channels = accounts.slice(1, 1 + channelAddresses.length);
@@ -110,14 +123,39 @@ export async function campaignChain(a: Address): Promise<CampaignChain | null> {
       ];
     }),
   };
-}
+});
 
-export async function campaignReport(a: Address): Promise<PublicReport | null> {
-  const [r] = await publicRows<{ data: PublicReport }>("reports", `select=data&campaign=eq.${a}&cluster=eq.${CLUSTER}`, 30);
+/** The settler's last published report for a campaign, cached for the request. */
+export const campaignReport = cache(async (a: Address): Promise<PublicReport | null> => {
+  const [r] = await publicRows<{ data: PublicReport }>(
+    "reports",
+    `select=data&campaign=eq.${a}&cluster=eq.${CLUSTER}`,
+    30,
+  );
   return r?.data ?? null;
+});
+
+/** The chain and the report for every campaign in the list, read side by
+ * side; campaigns the chain cannot give up right now are left out. */
+export async function campaignsWithReports(
+  list: CampaignEntry[],
+): Promise<{ meta: CampaignEntry; chain: CampaignChain; report: PublicReport | null }[]> {
+  const read = await Promise.all(
+    list.map(async (meta) => {
+      const [chain, report] = await Promise.all([
+        campaignChain(meta.address).catch(() => null),
+        campaignReport(meta.address),
+      ]);
+      return chain ? { meta, chain, report } : null;
+    }),
+  );
+  return read.filter((r) => r !== null);
 }
 
-// ── formatting ───────────────────────────────────────────────────────────────
+// ── time and formatting ──────────────────────────────────────────────────────
+
+/** The clock, read once per render by the pages that compare deadlines. */
+export const nowSecs = () => Math.floor(Date.now() / 1000);
 
 export function ago(iso: string, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
@@ -126,6 +164,3 @@ export function ago(iso: string, now = Date.now()): string {
   if (s < 129_600) return `${Math.round(s / 3_600)} hours ago`;
   return `${Math.round(s / 86_400)} days ago`;
 }
-
-export const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-export const explorer = (kind: "address" | "tx", v: string) => `https://explorer.solana.com/${kind}/${v}?cluster=${CLUSTER}`;
