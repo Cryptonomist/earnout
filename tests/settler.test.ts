@@ -86,17 +86,19 @@ describe("settler", () => {
   });
 
   /** A tagged deposit, correct unless told otherwise. */
-  async function tagged(o: {
-    channel?: number;
-    issuedAt?: number;
-    blockTime?: number;
-    wallet?: Address;
-    tagIdentity?: Address;
-    signer?: CryptoKeyPair;
-    reference?: Address;
-    lamports?: bigint;
-    to?: Address;
-  } = {}): Promise<ParsedTx> {
+  async function tagged(
+    o: {
+      channel?: number;
+      issuedAt?: number;
+      blockTime?: number;
+      wallet?: Address;
+      tagIdentity?: Address;
+      signer?: CryptoKeyPair;
+      reference?: Address;
+      lamports?: bigint;
+      to?: Address;
+    } = {},
+  ): Promise<ParsedTx> {
     const wallet = o.wallet ?? (await newAddress());
     const reference = o.reference ?? issueReference(keys, o.channel ?? 0, o.issuedAt ?? T0);
     const signature = await signReference(o.signer ?? identity, reference);
@@ -137,12 +139,24 @@ describe("settler", () => {
     const cases: [string, () => Promise<ParsedTx>, string][] = [];
     before(() => {
       cases.push(
-        ["another identity in the tag", async () => tagged({ tagIdentity: address("11111111111111111111111111111112") }), "wrong identity"],
+        [
+          "another identity in the tag",
+          async () => tagged({ tagIdentity: address("11111111111111111111111111111112") }),
+          "wrong identity",
+        ],
         ["a memo signed by someone else", async () => tagged({ signer: await generateKeyPair() }), "memo not signed"],
         ["a reference we did not issue", async () => tagged({ reference: await newAddress() }), "reference not ours"],
         ["a channel the campaign does not have", async () => tagged({ channel: 2 }), "unknown channel"],
-        ["a conversion before the campaign", async () => tagged({ blockTime: T0 - 2_000, issuedAt: T0 - 2_000 }), "outside campaign"],
-        ["a conversion after it ended", async () => tagged({ blockTime: T0 + 10 * 86_400, issuedAt: T0 + 10 * 86_400 - 60 }), "outside campaign"],
+        [
+          "a conversion before the campaign",
+          async () => tagged({ blockTime: T0 - 2_000, issuedAt: T0 - 2_000 }),
+          "outside campaign",
+        ],
+        [
+          "a conversion after it ended",
+          async () => tagged({ blockTime: T0 + 10 * 86_400, issuedAt: T0 + 10 * 86_400 - 60 }),
+          "outside campaign",
+        ],
         ["a click older than the window", async () => tagged({ blockTime: T0 + 7 * 86_400 + 1 }), "click expired"],
         ["a deposit that is too small", async () => tagged({ lamports: 9_999_999n }), "no qualifying action"],
         ["a deposit to somewhere else", async () => tagged({ to: ADVERTISER }), "no qualifying action"],
@@ -226,7 +240,8 @@ describe("settler", () => {
       ...fauceted.map((t) => [t.signature, { stayed: true, funder: faucet, funderBusy: true }]),
     ]);
     applyRetention(ledger, facts, view, cfg);
-    for (const t of farmed) expect(ledger.records[t.signature]).to.include({ status: "rejected", reason: "wallet cluster" });
+    for (const t of farmed)
+      expect(ledger.records[t.signature]).to.include({ status: "rejected", reason: "wallet cluster" });
     for (const t of fauceted) expect(ledger.records[t.signature].status).to.equal("qualified");
   });
 
@@ -235,7 +250,12 @@ describe("settler", () => {
     const txs = await Promise.all(Array.from({ length: 5 }, () => tagged()));
     const ledger = await ledgerWith(...txs);
     const listed = { ...cfg, sybil: { ...cfg.sybil, ignoreFunders: [faucet] } };
-    applyRetention(ledger, Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder: faucet, funderBusy: false }])), view, listed);
+    applyRetention(
+      ledger,
+      Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder: faucet, funderBusy: false }])),
+      view,
+      listed,
+    );
     for (const t of txs) expect(ledger.records[t.signature].status).to.equal("qualified");
   });
 
@@ -243,7 +263,12 @@ describe("settler", () => {
     const funder = await newAddress();
     const txs = await Promise.all(Array.from({ length: 3 }, () => tagged()));
     const ledger = await ledgerWith(...txs);
-    applyRetention(ledger, Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder, funderBusy: false }])), view, cfg);
+    applyRetention(
+      ledger,
+      Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder, funderBusy: false }])),
+      view,
+      cfg,
+    );
     for (const t of txs) expect(ledger.records[t.signature].status).to.equal("qualified");
   });
 
@@ -253,7 +278,12 @@ describe("settler", () => {
     const txs: ParsedTx[] = [];
     for (let i = 0; i < channels.length; i++) txs.push(await tagged({ channel: channels[i], blockTime: T0 + 60 + i }));
     const ledger = await ledgerWith(...txs);
-    applyRetention(ledger, Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder: null, funderBusy: false }])), view, cfg);
+    applyRetention(
+      ledger,
+      Object.fromEntries(txs.map((t) => [t.signature, { stayed: true, funder: null, funderBusy: false }])),
+      view,
+      cfg,
+    );
     return { ledger, txs };
   }
 
@@ -327,8 +357,18 @@ describe("settler", () => {
 
   it("publishes counts and settlement links, never a wallet or a conversion", async () => {
     const { ledger, txs } = await qualifiedLedger([0, 1, 0]);
-    ledger.batches.push({ channel: 0, batch: 0, signatures: [txs[0].signature], evidence: "ab".repeat(32), tx: "settleTx" });
-    const report = buildReport(ledger, view, { cluster: "devnet", name: "test", slugs: new Map([[`${CAMPAIGN}:0`, "alice-link"]]) });
+    ledger.batches.push({
+      channel: 0,
+      batch: 0,
+      signatures: [txs[0].signature],
+      evidence: "ab".repeat(32),
+      tx: "settleTx",
+    });
+    const report = buildReport(ledger, view, {
+      cluster: "devnet",
+      name: "test",
+      slugs: new Map([[`${CAMPAIGN}:0`, "alice-link"]]),
+    });
     const text = JSON.stringify(report);
     for (const t of txs) {
       expect(text).to.not.include(t.feePayer);
@@ -336,7 +376,9 @@ describe("settler", () => {
     }
     expect(report.channels[0]).to.include({ slug: "alice-link", tagged: 2, qualified: 2 });
     expect(report.channels[1]).to.include({ slug: null, tagged: 1 });
-    expect(report.batches).to.deep.equal([{ channel: 0, batch: 0, conversions: 1, evidence: "ab".repeat(32), tx: "settleTx" }]);
+    expect(report.batches).to.deep.equal([
+      { channel: 0, batch: 0, conversions: 1, evidence: "ab".repeat(32), tx: "settleTx" },
+    ]);
   });
 
   it("parses a program-activity retention rule, for apps where staying means coming back", async () => {
@@ -349,7 +391,14 @@ describe("settler", () => {
     });
     expect(c.conversion).to.deep.equal({ kind: "program", programId: program });
     expect(c.retention).to.deep.equal({ kind: "program-activity", programId: program, minTransactions: 2 });
-    expect(() => parseCampaigns({ [CAMPAIGN]: { conversion: { kind: "program", programId: program }, retention: { kind: "program-activity", programId: program, minTransactions: 0 } } })).to.throw("at least 1");
+    expect(() =>
+      parseCampaigns({
+        [CAMPAIGN]: {
+          conversion: { kind: "program", programId: program },
+          retention: { kind: "program-activity", programId: program, minTransactions: 0 },
+        },
+      }),
+    ).to.throw("at least 1");
   });
 
   // ── evidence ────────────────────────────────────────────────────────────
@@ -358,9 +407,24 @@ describe("settler", () => {
     const sigs = Array.from({ length: 5 }, randomSig);
     expect(evidenceHex(sigs)).to.equal(evidenceHex([...sigs].reverse()));
     expect(evidenceHex(sigs)).to.not.equal(evidenceHex(sigs.slice(1)));
+    // A leaf is domain-separated from an inner node: 0x00 before a
+    // signature, 0x01 before two children.
     const one = randomSig();
-    const leaf = createHash("sha256").update(b58.dec.encode(one) as Uint8Array).digest();
+    const leaf = createHash("sha256")
+      .update(Uint8Array.of(0))
+      .update(b58.dec.encode(one) as Uint8Array)
+      .digest();
     expect(Buffer.from(evidenceRoot([one])).equals(leaf)).to.equal(true);
+    const two = randomSig();
+    const leaves = [
+      leaf,
+      createHash("sha256")
+        .update(Uint8Array.of(0))
+        .update(b58.dec.encode(two) as Uint8Array)
+        .digest(),
+    ].sort(Buffer.compare);
+    const parent = createHash("sha256").update(Uint8Array.of(1)).update(leaves[0]).update(leaves[1]).digest();
+    expect(Buffer.from(evidenceRoot([one, two])).equals(parent)).to.equal(true);
     expect(() => evidenceRoot([])).to.throw();
   });
 

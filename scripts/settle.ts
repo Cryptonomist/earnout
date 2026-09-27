@@ -13,31 +13,14 @@
  * Supabase project's private `ledgers` table when SUPABASE_URL and
  * SUPABASE_SECRET_KEY are set, else in var/settler/<cluster>/ (gitignored).
  *
- * The settler key is SETTLER_KEYPAIR_JSON, SETTLER_KEYPAIR (a keyfile), or the deploy
- * wallet at ~/.config/solana/id.json. It must be the campaign's settler. */
+ * The settler key is SETTLER_KEYPAIR_JSON, SETTLER_KEYPAIR (a keyfile), or
+ * the deploy wallet at ~/.config/solana/id.json. It must be the campaign's
+ * settler. */
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import {
-  address,
-  appendTransactionMessageInstructions,
-  createKeyPairSignerFromBytes,
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  createTransactionMessage,
-  getBase64Encoder,
-  getSignatureFromTransaction,
-  pipe,
-  sendAndConfirmTransactionFactory,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-  type Address,
-  type KeyPairSigner,
-} from "@solana/kit";
-import { getSetComputeUnitPriceInstruction } from "@solana-program/compute-budget";
+import { address, createKeyPairSignerFromBytes, getBase64Encoder, type Address, type KeyPairSigner } from "@solana/kit";
 import { settleIx } from "../sdk/program.ts";
 import { referenceKeys } from "../sdk/reference.ts";
 import { loadReferenceSecret } from "../src/server/links.ts";
@@ -56,9 +39,19 @@ import {
   type ConvRecord,
   type RetentionFacts,
 } from "../settler/core.ts";
-import { fetchParsed, firstUse, loadCampaignView, retentionFacts, signaturesSince, withRetry } from "../settler/chain.ts";
+import {
+  factsCache,
+  fetchParsed,
+  firstUse,
+  loadCampaignView,
+  refusedByProgram,
+  retentionFacts,
+  signaturesSince,
+  withRetry,
+} from "../settler/chain.ts";
 import { storeFromEnv } from "../settler/store.ts";
 import { buildReport } from "../src/lib/report.ts";
+import { chainFromEnv, CLUSTER, explorerTx, short, solanaConfig } from "./lib.ts";
 
 const { values } = parseArgs({
   options: {
@@ -68,17 +61,11 @@ const { values } = parseArgs({
   },
 });
 
-const CLUSTER = process.env.EARNOUT_CLUSTER ?? "devnet";
-const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 const DRY = values["dry-run"]!;
 const STATE = path.resolve("var/settler", CLUSTER);
-const rpc = createSolanaRpc(RPC_URL);
-const sendAndConfirm = sendAndConfirmTransactionFactory({
-  rpc,
-  rpcSubscriptions: createSolanaRpcSubscriptions(RPC_URL.replace(/^http/, "ws")),
-});
+const chain = chainFromEnv();
+const { rpc } = chain;
 const log = (s = "") => console.log(s);
-const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
 
 // ── state ────────────────────────────────────────────────────────────────────
 
@@ -94,35 +81,24 @@ async function mintDecimals(mint: Address): Promise<number> {
   return value ? (getBase64Encoder().encode(value.data[0]) as Uint8Array)[44] : 0;
 }
 
-async function sendBatch(settler: KeyPairSigner, v: CampaignView, b: Batch): Promise<string> {
-  const { value: blockhash } = await withRetry(() => rpc.getLatestBlockhash().send());
-  const tx = await signTransactionMessageWithSigners(
-    pipe(
-      createTransactionMessage({ version: 0 }),
-      (m) => setTransactionMessageFeePayerSigner(settler, m),
-      (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-      (m) =>
-        appendTransactionMessageInstructions(
-          [
-            getSetComputeUnitPriceInstruction({ microLamports: 20_000n }),
-            settleIx({
-              settler,
-              campaign: v.address,
-              channel: v.channels[b.channel].address,
-              batch: b.batch,
-              conversions: b.signatures.length,
-              evidence: Uint8Array.from(Buffer.from(b.evidence, "hex")),
-            }),
-          ],
-          m,
-        ),
-    ),
-  );
-  await sendAndConfirm(tx as any, { commitment: "confirmed" });
-  return getSignatureFromTransaction(tx);
+function sendBatch(settler: KeyPairSigner, v: CampaignView, b: Batch): Promise<string> {
+  const ix = settleIx({
+    settler,
+    campaign: v.address,
+    channel: v.channels[b.channel].address,
+    batch: b.batch,
+    conversions: b.signatures.length,
+    evidence: Uint8Array.from(Buffer.from(b.evidence, "hex")),
+  });
+  return chain.send([ix], settler);
 }
 
-async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: Uint8Array, slugs: Map<string, string>) {
+async function runCampaign(
+  cfg: CampaignConfig,
+  settler: KeyPairSigner,
+  secret: Uint8Array,
+  slugs: Map<string, string>,
+) {
   const loaded = await store.load(cfg.campaign);
   const ledger = loaded.ledger;
   let version = loaded.version;
@@ -133,36 +109,55 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
   const keys = referenceKeys(secret, cfg.campaign);
   const decimals = await mintDecimals(v.mint);
   const amount = (n: bigint) => (Number(n) / 10 ** decimals).toFixed(2);
+  const who = (channel: number) => slugs.get(`${cfg.campaign}:${channel}`) ?? `channel ${channel}`;
 
   log(`\n${cfg.name}  ${cfg.campaign}`);
-  log(`  pays ${amount(v.payout)} per user who stays ${Math.round(v.retentionSecs / 60)} min; ${amount(v.funded - v.committed)} of ${amount(v.funded)} uncommitted`);
+  log(
+    `  pays ${amount(v.payout)} per user who stays ${Math.round(v.retentionSecs / 60)} min; ${amount(v.funded - v.committed)} of ${amount(v.funded)} uncommitted`,
+  );
 
   reconcile(ledger, v);
 
-  // New tagged transactions, oldest first.
+  // New tagged transactions, oldest first. The cursor moves past them all
+  // at the end, so a transaction the RPC would not give up even after the
+  // retries is logged and left behind rather than blocking the campaign.
   const { signatures, newest } = await signaturesSince(rpc, cfg.campaign, ledger.cursor);
   for (const sig of signatures) {
-    const known = ledger.records[sig];
-    if (known) continue;
+    if (ledger.records[sig]) continue;
     const tx = await fetchParsed(rpc, sig);
-    if (!tx) continue;
+    if (!tx) {
+      log(`  skipped ${short(sig)}: the RPC never returned it; look it up by hand if it was a conversion`);
+      continue;
+    }
     const rec = await screen(tx, v, cfg, keys, (ref) => firstUse(rpc, ref));
     if (!rec) continue;
     admit(ledger, rec);
     const r: ConvRecord = ledger.records[sig];
-    const where = r.channel === null ? "?" : slugs.get(`${cfg.campaign}:${r.channel}`) ?? `channel ${r.channel}`;
+    const where = r.channel === null ? "?" : who(r.channel);
     log(`  found  ${short(sig)}  ${short(r.wallet)} via ${where}: ${r.status}${r.reason ? `, ${r.reason}` : ""}`);
   }
   ledger.cursor = newest;
+  await saveLedger();
 
-  // Wallets whose window has closed.
+  // Wallets whose window has closed. One wallet the RPC will not answer
+  // for stays waiting until the next pass; it does not hold up the rest.
   const now = Math.floor(Date.now() / 1000);
   const facts: Record<string, RetentionFacts> = {};
-  for (const r of Object.values(ledger.records)) if (due(r, v, now)) facts[r.signature] = await retentionFacts(rpc, r, cfg, r.blockTime + v.retentionSecs);
+  const cache = factsCache();
+  for (const r of Object.values(ledger.records)) {
+    if (!due(r, v, now)) continue;
+    try {
+      facts[r.signature] = await retentionFacts(rpc, r, cfg, r.blockTime + v.retentionSecs, cache);
+    } catch (e) {
+      log(`  could not check ${short(r.wallet)} this pass: ${(e as Error).message}`);
+    }
+  }
   applyRetention(ledger, facts, v, cfg);
   for (const sig of Object.keys(facts)) {
     const r = ledger.records[sig];
-    log(`  window closed for ${short(r.wallet)}: ${r.status}${r.reason ? `, ${r.reason}` : ""}${r.funder ? ` (funded by ${short(r.funder)})` : ""}`);
+    log(
+      `  window closed for ${short(r.wallet)}: ${r.status}${r.reason ? `, ${r.reason}` : ""}${r.funder ? ` (funded by ${short(r.funder)})` : ""}`,
+    );
   }
   await saveLedger();
 
@@ -174,8 +169,9 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
     log(`  this key (${short(settler.address)}) is not the campaign's settler (${short(v.settler)}); not sending`);
   } else {
     for (const b of plans) {
-      const who = slugs.get(`${cfg.campaign}:${b.channel}`) ?? `channel ${b.channel}`;
-      log(`  settle ${who} batch ${b.batch}: ${b.signatures.length} conversion(s), ${amount(BigInt(b.signatures.length) * v.payout)}, evidence ${b.evidence.slice(0, 12)}...`);
+      log(
+        `  settle ${who(b.channel)} batch ${b.batch}: ${b.signatures.length} conversion(s), ${amount(BigInt(b.signatures.length) * v.payout)}, evidence ${b.evidence.slice(0, 12)}...`,
+      );
       if (DRY) continue;
       ledger.pending[b.channel] = b;
       await saveLedger();
@@ -186,12 +182,12 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
         delete ledger.pending[b.channel];
         v.channels[b.channel].batches += 1;
         v.committed += BigInt(b.signatures.length) * v.payout;
-        log(`    https://explorer.solana.com/tx/${b.tx}?cluster=${CLUSTER}`);
+        log(`    ${explorerTx(b.tx)}`);
       } catch (e) {
-        const text = `${(e as Error).message} ${String((e as { cause?: unknown }).cause ?? "")}`;
-        // A program error means the batch was refused whole; replan next run.
-        // Anything else may have landed; keep it pending for the chain to say.
-        if (/custom program error|Error Code|InstructionError/i.test(text)) delete ledger.pending[b.channel];
+        // Refused by the program (over budget after a refund, say) means the
+        // batch was rejected whole: drop it and replan next pass. Anything
+        // else may have landed; keep it pending for the chain to say.
+        if (refusedByProgram(e)) delete ledger.pending[b.channel];
         log(`    not settled: ${(e as Error).message}`);
       }
       await saveLedger();
@@ -201,8 +197,9 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
   // Receipts.
   for (const r of receipts(ledger, v)) {
     if (!r.tagged) continue;
-    const who = slugs.get(`${cfg.campaign}:${r.channel}`) ?? `channel ${r.channel}`;
-    log(`  receipt ${who}: tagged ${r.tagged}, waiting ${r.waiting}, gone ${r.gone}, flagged ${r.flagged}, other ${r.otherRejected}, qualified ${r.qualified}, settled ${r.settled}, paid ${amount(r.paid)}`);
+    log(
+      `  receipt ${who(r.channel)}: tagged ${r.tagged}, waiting ${r.waiting}, gone ${r.gone}, flagged ${r.flagged}, other ${r.otherRejected}, qualified ${r.qualified}, settled ${r.settled}, paid ${amount(r.paid)}`,
+    );
   }
 
   // The dashboard's copy: counts and settlement links, no wallets.
@@ -216,8 +213,7 @@ async function runCampaign(cfg: CampaignConfig, settler: KeyPairSigner, secret: 
  * else the deploy wallet. */
 function settlerKeyJson(): string {
   if (process.env.SETTLER_KEYPAIR_JSON) return process.env.SETTLER_KEYPAIR_JSON;
-  const keyFile = process.env.SETTLER_KEYPAIR ?? path.join(os.homedir(), ".config/solana/id.json");
-  return fs.readFileSync(keyFile, "utf8");
+  return fs.readFileSync(process.env.SETTLER_KEYPAIR ?? solanaConfig(), "utf8");
 }
 
 async function pass() {

@@ -44,37 +44,68 @@ export type CampaignConfig = {
   };
 };
 
-type Raw = Record<string, any>;
+/** The shape of the JSON before it is checked: anything at all. */
+type Raw = Record<string, unknown>;
+
+const obj = (v: unknown, what: string): Raw => {
+  if (typeof v !== "object" || v === null) throw new Error(`${what} is missing`);
+  return v as Raw;
+};
+
+/** A number-like field as text, for `address` and `BigInt` to check. */
+const text = (v: unknown, what: string): string => {
+  if (typeof v !== "string" && typeof v !== "number" && typeof v !== "bigint") throw new Error(`${what} is missing`);
+  return String(v);
+};
 
 function conversion(r: Raw): ConversionRule {
-  if (r.kind === "sol-transfer") return { kind: r.kind, to: address(r.to), minLamports: BigInt(r.minLamports) };
-  if (r.kind === "program") return { kind: r.kind, programId: address(r.programId) };
-  throw new Error(`unknown conversion rule ${r.kind}`);
+  if (r.kind === "sol-transfer") {
+    return {
+      kind: "sol-transfer",
+      to: address(text(r.to, "conversion.to")),
+      minLamports: BigInt(text(r.minLamports, "conversion.minLamports")),
+    };
+  }
+  if (r.kind === "program") return { kind: "program", programId: address(text(r.programId, "conversion.programId")) };
+  throw new Error(`unknown conversion rule ${String(r.kind)}`);
 }
 
 function retention(r: Raw): RetentionRule {
-  if (r.kind === "sol-balance") return { kind: r.kind, minLamports: BigInt(r.minLamports) };
-  if (r.kind === "token-balance") return { kind: r.kind, mint: address(r.mint), minAmount: BigInt(r.minAmount) };
+  if (r.kind === "sol-balance")
+    return { kind: "sol-balance", minLamports: BigInt(text(r.minLamports, "retention.minLamports")) };
+  if (r.kind === "token-balance") {
+    return {
+      kind: "token-balance",
+      mint: address(text(r.mint, "retention.mint")),
+      minAmount: BigInt(text(r.minAmount, "retention.minAmount")),
+    };
+  }
   if (r.kind === "program-activity") {
     const min = Number(r.minTransactions ?? 1);
     if (!(min >= 1)) throw new Error("program-activity needs minTransactions of at least 1");
-    return { kind: r.kind, programId: address(r.programId), minTransactions: min };
+    return {
+      kind: "program-activity",
+      programId: address(text(r.programId, "retention.programId")),
+      minTransactions: min,
+    };
   }
-  throw new Error(`unknown retention rule ${r.kind}`);
+  throw new Error(`unknown retention rule ${String(r.kind)}`);
 }
 
 export function parseCampaigns(raw: Record<string, Raw>): CampaignConfig[] {
   return Object.entries(raw).map(([key, c]) => {
+    const sybil = (c.sybil ?? {}) as Raw;
     const window = Number(c.attributionWindowSecs ?? 7 * 86_400);
-    const max = Number(c.sybil?.maxWalletsPerFunder ?? 3);
+    const max = Number(sybil.maxWalletsPerFunder ?? 3);
     if (!(window > 0) || !(max >= 1)) throw new Error(`campaign ${key}: bad window or sybil limit`);
+    const ignore = Array.isArray(sybil.ignoreFunders) ? sybil.ignoreFunders : [];
     return {
       campaign: address(key),
       name: String(c.name ?? key),
-      conversion: conversion(c.conversion),
-      retention: retention(c.retention),
+      conversion: conversion(obj(c.conversion, "conversion")),
+      retention: retention(obj(c.retention, "retention")),
       attributionWindowSecs: window,
-      sybil: { maxWalletsPerFunder: max, ignoreFunders: ((c.sybil?.ignoreFunders ?? []) as string[]).map((a) => address(a)) },
+      sybil: { maxWalletsPerFunder: max, ignoreFunders: ignore.map((a) => address(text(a, "sybil.ignoreFunders"))) },
     };
   });
 }

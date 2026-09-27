@@ -3,65 +3,37 @@
  *   npx tsx scripts/claim.ts --slug demo-alice --signer ~/.config/solana/earnout-demo-alice.json
  *
  * The signer must be the channel's payee and pays for its own token
- * account the first time. */
+ * account the first time. The slug must be in registry/<cluster>.json; an
+ * influencer on a hub campaign claims from their page on the site. */
 
-import fs from "node:fs";
-import path from "node:path";
 import { parseArgs } from "node:util";
-import {
-  address,
-  appendTransactionMessageInstructions,
-  createKeyPairSignerFromBytes,
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  createTransactionMessage,
-  getBase64Encoder,
-  getSignatureFromTransaction,
-  pipe,
-  sendAndConfirmTransactionFactory,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-} from "@solana/kit";
-import { ataAddress, channelAddress, claimIx, decodeCampaign, decodeChannel } from "../sdk/program.ts";
+import { address, getBase64Encoder } from "@solana/kit";
+import { ataAddress, channelAddress, claimIx, decodeChannel } from "../sdk/program.ts";
+import { chainFromEnv, explorerTx, fetchCampaign, linkFromRegistry, loadKeypair } from "./lib.ts";
 
 const { values } = parseArgs({ options: { slug: { type: "string" }, signer: { type: "string" } } });
 
 async function main() {
   if (!values.slug || !values.signer) throw new Error("Give --slug and --signer");
-  const cluster = process.env.EARNOUT_CLUSTER ?? "devnet";
-  const link = JSON.parse(fs.readFileSync(path.resolve("registry", `${cluster}.json`), "utf8")).links?.[values.slug];
-  if (!link) throw new Error(`No link ${values.slug}`);
-
-  const rpcUrl = process.env.RPC_URL ?? "https://api.devnet.solana.com";
-  const rpc = createSolanaRpc(rpcUrl);
-  const payee = await createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(fs.readFileSync(values.signer, "utf8"))));
+  const link = linkFromRegistry(values.slug);
+  const chain = chainFromEnv();
+  const payee = await loadKeypair(values.signer);
   const campaign = address(link.campaign);
   const channel = await channelAddress(campaign, link.channel);
-  const read = async (a: typeof campaign) =>
-    getBase64Encoder().encode((await rpc.getAccountInfo(a, { encoding: "base64" }).send()).value!.data[0]) as Uint8Array;
-  const c = decodeCampaign(await read(campaign));
-  const ch = decodeChannel(await read(channel));
+
+  const c = await fetchCampaign(chain.rpc, campaign);
+  const { value } = await chain.rpc.getAccountInfo(channel, { encoding: "base64" }).send();
+  if (!value) throw new Error(`No channel account at ${channel}`);
+  const ch = decodeChannel(getBase64Encoder().encode(value.data[0]) as Uint8Array);
   if (ch.payee !== payee.address) throw new Error(`${values.slug} pays ${ch.payee}, not this signer`);
   console.log(`${values.slug}: earned ${ch.earned}, claimed ${ch.claimed} (base units)`);
 
-  const ix = await claimIx({ payee, campaign, channel, mint: c.mint });
-  const { value: blockhash } = await rpc.getLatestBlockhash().send();
-  const signed = await signTransactionMessageWithSigners(
-    pipe(
-      createTransactionMessage({ version: 0 }),
-      (m) => setTransactionMessageFeePayerSigner(payee, m),
-      (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-      (m) => appendTransactionMessageInstructions([ix], m),
-    ),
-  );
-  await sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions: createSolanaRpcSubscriptions(rpcUrl.replace(/^http/, "ws")) })(
-    signed as any,
-    { commitment: "confirmed" },
-  );
-  const { value } = await rpc.getTokenAccountBalance(await ataAddress(payee.address, c.mint)).send();
-  console.log(`claimed; ${values.slug}'s wallet now holds ${value.uiAmountString} of the campaign token`);
-  console.log(`https://explorer.solana.com/tx/${getSignatureFromTransaction(signed)}?cluster=${cluster}`);
+  const signature = await chain.send([await claimIx({ payee, campaign, channel, mint: c.mint })], payee, {
+    priority: false,
+  });
+  const balance = await chain.rpc.getTokenAccountBalance(await ataAddress(payee.address, c.mint)).send();
+  console.log(`claimed; ${values.slug}'s wallet now holds ${balance.value.uiAmountString} of the campaign token`);
+  console.log(explorerTx(signature));
 }
 
 main().catch((e) => {

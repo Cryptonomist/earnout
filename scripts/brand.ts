@@ -23,7 +23,8 @@ const PAPER = "#f4f2eb";
 const PAID = "#0b7349";
 
 // The mark, on a 24-unit grid. Bottom edge torn like a slip off a roll.
-const SLIP = "M5.5 2h13A1.5 1.5 0 0 1 20 3.5V22l-2.67-1.6L14.67 22 12 20.4 9.33 22l-2.66-1.6L4 22V3.5A1.5 1.5 0 0 1 5.5 2Z";
+const SLIP =
+  "M5.5 2h13A1.5 1.5 0 0 1 20 3.5V22l-2.67-1.6L14.67 22 12 20.4 9.33 22l-2.66-1.6L4 22V3.5A1.5 1.5 0 0 1 5.5 2Z";
 const TICK = "m8.25 11.25 2.5 2.5 5-5";
 const TICK_WIDTH = 2.2;
 
@@ -52,7 +53,8 @@ function markSvg(fill: string, id = "m"): string {
   return `<defs><mask id="${id}"><path d="${SLIP}" fill="#fff"/><path d="${TICK}" fill="none" stroke="#000" stroke-width="${TICK_WIDTH}" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect width="${MARK}" height="${MARK}" fill="${fill}" mask="url(#${id})"/>`;
 }
 
-const svg = (viewBox: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>\n`;
+const svg = (viewBox: string, body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>\n`;
 
 function mark(fill: string): string {
   return svg(`0 0 ${MARK} ${MARK}`, markSvg(fill));
@@ -151,7 +153,9 @@ async function main() {
 
   const lw = wordPath(MARK + GAP);
   console.log(`Wrote ${Object.keys(files).length} SVGs and ${pngs.length} PNGs to public/brand`);
-  console.log(`  wordmark: Geist SemiBold at ${SIZE.toFixed(2)} units, x-height ${X_HEIGHT}; lockup ${round(MARK + GAP + lw.width)} x ${MARK}`);
+  console.log(
+    `  wordmark: Geist SemiBold at ${SIZE.toFixed(2)} units, x-height ${X_HEIGHT}; lockup ${round(MARK + GAP + lw.width)} x ${MARK}`,
+  );
 }
 
 main().catch((e) => {

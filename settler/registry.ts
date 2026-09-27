@@ -20,7 +20,11 @@ export type CampaignRow = { campaign: string; rules: unknown; rules_hash: string
 export type LinkRow = { slug: string; campaign: string; channel: number };
 export type Rows = { campaigns: CampaignRow[]; links: LinkRow[] };
 
-export async function mergeRegistry(file: FileShape, rows: Rows, warn: (s: string) => void = console.warn): Promise<Registry> {
+export async function mergeRegistry(
+  file: FileShape,
+  rows: Rows,
+  warn: (s: string) => void = console.warn,
+): Promise<Registry> {
   const campaigns = parseCampaigns((file.campaigns ?? {}) as Record<string, Record<string, unknown>>);
   const known = new Set<string>(campaigns.map((c) => c.campaign));
   const slugs = new Map(Object.entries(file.links ?? {}).map(([slug, e]) => [`${e.campaign}:${e.channel}`, slug]));

@@ -3,7 +3,7 @@
  *
  *   npx tsx --env-file=.env.local scripts/create-campaign.ts \
  *     --payout 5 --fund 500 --retention 600 --ends-in-days 60 \
- *     --destination /demo --channel demo-alice --channel demo-bob
+ *     --destination /demo --channel alice --payee <alice's linked wallet>
  *
  * Options:
  *   --mint <address>     the payout token; without it, a fresh 6-decimal test
@@ -31,29 +31,8 @@
  * the wallet, and at least 0.005 SOL still held when the window closes. Edit
  * the rule there for a real partner. */
 
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { parseArgs } from "node:util";
-import {
-  appendTransactionMessageInstructions,
-  createKeyPairSignerFromBytes,
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  createTransactionMessage,
-  generateKeyPairSigner,
-  getSignatureFromTransaction,
-  pipe,
-  sendAndConfirmTransactionFactory,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-  address,
-  type Address,
-  type Instruction,
-  type KeyPairSigner,
-} from "@solana/kit";
-import { getSetComputeUnitPriceInstruction } from "@solana-program/compute-budget";
+import { address, generateKeyPairSigner, type Address, type Instruction } from "@solana/kit";
 import { getCreateAccountInstruction } from "@solana-program/system";
 import {
   getCreateAssociatedTokenIdempotentInstructionAsync,
@@ -62,7 +41,9 @@ import {
 } from "@solana-program/token";
 import * as eo from "../sdk/index.ts";
 import { fetchXLink } from "../sdk/read.ts";
-import { loadSecrets, type LinkEntry } from "../src/server/links.ts";
+import { SLUG } from "../src/lib/rules.ts";
+import { loadSecrets } from "../src/server/links.ts";
+import { chainFromEnv, explorerTx, loadKeypair, readRegistry, solanaConfig, writeRegistry } from "./lib.ts";
 
 const { values } = parseArgs({
   options: {
@@ -79,48 +60,42 @@ const { values } = parseArgs({
   },
 });
 
-const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
-const rpc = createSolanaRpc(RPC_URL);
-const sendAndConfirm = sendAndConfirmTransactionFactory({
-  rpc,
-  rpcSubscriptions: createSolanaRpcSubscriptions(RPC_URL.replace(/^http/, "ws")),
-});
-const REGISTRY = path.resolve("registry/devnet.json");
+const chain = chainFromEnv();
 const DECIMALS = 6;
 const unit = (s: string) => BigInt(Math.round(Number(s) * 10 ** DECIMALS));
 
-async function send(label: string, ixs: Instruction[], payer: KeyPairSigner) {
-  const { value: blockhash } = await rpc.getLatestBlockhash().send();
-  const tx = await signTransactionMessageWithSigners(
-    pipe(
-      createTransactionMessage({ version: 0 }),
-      (m) => setTransactionMessageFeePayerSigner(payer, m),
-      (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-      (m) => appendTransactionMessageInstructions([getSetComputeUnitPriceInstruction({ microLamports: 20_000n }), ...ixs], m),
-    ),
-  );
-  await sendAndConfirm(tx as any, { commitment: "confirmed" });
-  console.log(`  ${label.padEnd(18)} https://explorer.solana.com/tx/${getSignatureFromTransaction(tx)}?cluster=devnet`);
+async function send(label: string, ...args: Parameters<typeof chain.send>) {
+  console.log(`  ${label.padEnd(18)} ${explorerTx(await chain.send(...args))}`);
 }
 
 async function main() {
   const slugs = values.channel as string[];
+  const payees = values.payee as string[];
   if (!slugs.length) throw new Error("Give at least one --channel <slug>");
-  const file = JSON.parse(fs.readFileSync(REGISTRY, "utf8")) as {
-    campaigns: Record<string, unknown>;
-    links: Record<string, LinkEntry>;
-  };
-  const registry = file.links;
+  if (payees.length !== slugs.length)
+    throw new Error("Give one --payee per --channel: every channel is a verified person");
+  const file = readRegistry();
   for (const s of slugs) {
-    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(s)) throw new Error(`Bad slug: ${s}`);
-    if (Object.hasOwn(registry, s) && !values["replace-slugs"]) throw new Error(`Slug already registered: ${s} (use --replace-slugs)`);
+    if (!SLUG.test(s)) throw new Error(`Bad slug: ${s}`);
+    if (Object.hasOwn(file.links, s) && !values["replace-slugs"])
+      throw new Error(`Slug already registered: ${s} (use --replace-slugs)`);
   }
 
   const { identityAddress } = await loadSecrets();
-  const wallet = await createKeyPairSignerFromBytes(
-    Uint8Array.from(JSON.parse(fs.readFileSync(path.join(os.homedir(), ".config/solana/id.json"), "utf8"))),
-  );
-  const walletAta = async (mint: Address) => eo.ataAddress(wallet.address, mint);
+  const wallet = await loadKeypair(solanaConfig());
+  const walletAta = (mint: Address) => eo.ataAddress(wallet.address, mint);
+
+  // Every payee is checked before anything is sent, so a wrong one costs nothing.
+  const links = await Promise.all(payees.map((p) => fetchXLink(chain.rpc, identityAddress, address(p))));
+  const xIds = links.map((link, i) => {
+    if (!link || !link.current) {
+      throw new Error(
+        `${payees[i]} has not linked an X account under ${identityAddress}; they sign in at earnout.dev/influencers first`,
+      );
+    }
+    console.log(`  ${slugs[i]} is @${link.handle}`);
+    return link.xId;
+  });
 
   let mint: Address;
   if (values.mint) {
@@ -134,7 +109,7 @@ async function main() {
         getCreateAccountInstruction({
           payer: wallet,
           newAccount: m,
-          lamports: await rpc.getMinimumBalanceForRentExemption(82n).send(),
+          lamports: await chain.rpc.getMinimumBalanceForRentExemption(82n).send(),
           space: 82,
           programAddress: eo.TOKEN_PROGRAM,
         }),
@@ -170,20 +145,22 @@ async function main() {
     wallet,
   );
 
-  const payees = values.payee as string[];
-  if (payees.length !== slugs.length) throw new Error("Give one --payee per --channel: every channel is a verified person");
-  const channels: Instruction[] = [];
-  for (let i = 0; i < slugs.length; i++) {
-    const payee = address(payees[i]);
-    const link = await fetchXLink(rpc, identityAddress, payee);
-    if (!link || !link.current) throw new Error(`${payee} has not linked an X account under ${identityAddress}; they sign in at earnout.dev/influencers first`);
-    console.log(`  ${slugs[i]} is @${link.handle}`);
-    channels.push(await eo.addChannelIx({ advertiser: wallet, campaign, identity: identityAddress, index: i, payee, xId: link.xId }));
-  }
+  const channels: Instruction[] = await Promise.all(
+    xIds.map((xId, i) =>
+      eo.addChannelIx({
+        advertiser: wallet,
+        campaign,
+        identity: identityAddress,
+        index: i,
+        payee: address(payees[i]),
+        xId,
+      }),
+    ),
+  );
   await send(`${slugs.length} channel(s)`, channels, wallet);
 
   slugs.forEach((slug, channel) => {
-    registry[slug] = { campaign, channel, destination: values.destination!, label: slug };
+    file.links[slug] = { campaign, channel, destination: values.destination!, label: slug };
   });
   file.campaigns[campaign] = {
     name: slugs[0],
@@ -192,7 +169,7 @@ async function main() {
     attributionWindowSecs: 7 * 86_400,
     sybil: { maxWalletsPerFunder: 3 },
   };
-  fs.writeFileSync(REGISTRY, JSON.stringify(file, null, 2) + "\n");
+  writeRegistry(file);
 
   console.log(`\nCampaign  ${campaign}`);
   console.log(`Mint      ${mint}`);

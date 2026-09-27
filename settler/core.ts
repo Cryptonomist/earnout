@@ -81,7 +81,13 @@ export type Ledger = {
   batches: Batch[];
 };
 
-export const emptyLedger = (campaign: string): Ledger => ({ campaign, cursor: null, records: {}, pending: {}, batches: [] });
+export const emptyLedger = (campaign: string): Ledger => ({
+  campaign,
+  cursor: null,
+  records: {},
+  pending: {},
+  batches: [],
+});
 
 export type RetentionFacts = { stayed: boolean; funder: string | null; funderBusy: boolean };
 
@@ -121,7 +127,8 @@ export async function screen(
   });
 
   if (tag.identity !== v.identity) return reject("wrong identity");
-  if (!(await verifiedReferences(v.identity, tx.memos.join(";"))).includes(tag.reference)) return reject("memo not signed");
+  if (!(await verifiedReferences(v.identity, tx.memos.join(";"))).includes(tag.reference))
+    return reject("memo not signed");
   const opened = openReference(keys, tag.reference);
   if (!opened) return reject("reference not ours");
 
@@ -185,7 +192,8 @@ export function applyRetention(
   }
   for (const group of byFunder.values()) {
     if (group.length <= cfg.sybil.maxWalletsPerFunder) continue;
-    for (const r of group) if (r.status === "qualified") Object.assign(r, { status: "rejected", reason: "wallet cluster" });
+    for (const r of group)
+      if (r.status === "qualified") Object.assign(r, { status: "rejected", reason: "wallet cluster" });
   }
 }
 
@@ -255,7 +263,9 @@ export function receipts(ledger: Ledger, v: CampaignView): Receipt[] {
       waiting: count((r) => r.status === "waiting"),
       gone: count((r) => r.reason === "left before retention"),
       flagged: count((r) => !!r.reason && FLAGGED.has(r.reason)),
-      otherRejected: count((r) => r.status === "rejected" && r.reason !== "left before retention" && !FLAGGED.has(r.reason!)),
+      otherRejected: count(
+        (r) => r.status === "rejected" && r.reason !== "left before retention" && !FLAGGED.has(r.reason!),
+      ),
       qualified: count((r) => r.status === "qualified"),
       settled,
       paid: BigInt(settled) * v.payout,

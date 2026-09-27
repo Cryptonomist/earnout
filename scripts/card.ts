@@ -35,7 +35,8 @@ const PAID_SOFT = "#e3efe8";
 const UNPAID = "#a9412b";
 
 // The mark, as scripts/brand.ts draws it.
-const SLIP = "M5.5 2h13A1.5 1.5 0 0 1 20 3.5V22l-2.67-1.6L14.67 22 12 20.4 9.33 22l-2.66-1.6L4 22V3.5A1.5 1.5 0 0 1 5.5 2Z";
+const SLIP =
+  "M5.5 2h13A1.5 1.5 0 0 1 20 3.5V22l-2.67-1.6L14.67 22 12 20.4 9.33 22l-2.66-1.6L4 22V3.5A1.5 1.5 0 0 1 5.5 2Z";
 const TICK = "m8.25 11.25 2.5 2.5 5-5";
 
 type Font = opentype.Font;
@@ -107,7 +108,9 @@ function receipt(x: number, y: number, w: number, tilt: number): string {
   row("x $4.00 per user", "");
   // The green bar: what the influencer was paid.
   const barY = cy - 30;
-  rows.push(`<rect x="${left - 8}" y="${barY}" width="${right - left + 16}" height="${lh + 2}" rx="4" fill="${PAID_SOFT}"/>`);
+  rows.push(
+    `<rect x="${left - 8}" y="${barY}" width="${right - left + 16}" height="${lh + 2}" rx="4" fill="${PAID_SOFT}"/>`,
+  );
   cy += 6;
   row("Paid out", "$584.00", PAID, monoBold, PAID);
   row("Not paid: 266", "$1,064.00", UNPAID, mono, UNPAID);
@@ -125,7 +128,13 @@ function receipt(x: number, y: number, w: number, tilt: number): string {
 
 /** The headline at the largest size, up to `max`, at which every line fits
  * in `maxWidth`. Returns the paths and the height used. */
-function headline(x: number, y: number, max: number, maxWidth: number, lines: string[]): { svg: string; height: number } {
+function headline(
+  x: number,
+  y: number,
+  max: number,
+  maxWidth: number,
+  lines: string[],
+): { svg: string; height: number } {
   const size = Math.floor(Math.min(max, ...lines.map((l) => (max * maxWidth) / width(semi, l, max, -0.03))));
   const svg = lines.map((l, i) => text(semi, l, x, y + i * size * 1.02, size, INK, -0.03)).join("");
   return { svg, height: size * 1.02 * lines.length };
@@ -205,7 +214,9 @@ async function main() {
   ];
   for (const [name, svg] of files) {
     fs.writeFileSync(path.join(OUT, `${name}.svg`), svg);
-    await sharp(Buffer.from(svg)).png().toFile(path.join(OUT, `${name}.png`));
+    await sharp(Buffer.from(svg))
+      .png()
+      .toFile(path.join(OUT, `${name}.png`));
     console.log(`wrote public/brand/${name}.png`);
   }
 }

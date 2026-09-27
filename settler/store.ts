@@ -1,14 +1,16 @@
 /* Where the settler keeps its ledger and publishes its report.
  *
  * With SUPABASE_URL and SUPABASE_SECRET_KEY set, both live in the earnout
- * Supabase project: `ledgers` (private, service role only) and `reports`
- * (public read, counts only). Saving a ledger is conditional on the version
- * it was read at, so two settler runs cannot overwrite each other; the
- * loser's pass fails and the next one starts from the winner's state.
+ * Supabase project: `ledgers` (private, secret key only) and `reports`
+ * (public read, counts only); supabase/migrations has the schema and the
+ * `save_ledger` function. Saving a ledger is conditional on the version it
+ * was read at, so two settler runs cannot overwrite each other: the loser's
+ * pass fails and the next one starts from the winner's state.
  *
  * Without them, the ledger is a file under var/settler and the report goes
- * nowhere, which is how the settler first ran. A ledger that exists only as
- * a file is picked up by the database store on its first load. */
+ * nowhere, which is how the settler first ran. The file store keeps the
+ * same rule with a version file beside the ledger. A ledger that exists
+ * only as a file is picked up by the database store on its first load. */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -21,7 +23,8 @@ export type Loaded = { ledger: Ledger; version: number };
 export interface LedgerStore {
   readonly kind: string;
   load(campaign: string): Promise<Loaded>;
-  /** Returns the version now stored. */
+  /** Returns the version now stored; throws if `version` is not the one
+   * stored, because another run saved in between. */
   save(ledger: Ledger, version: number): Promise<number>;
   publish(report: PublicReport): Promise<void>;
 }
@@ -31,17 +34,30 @@ function readFile(dir: string, campaign: string): Ledger | null {
   return fs.existsSync(p) ? (JSON.parse(fs.readFileSync(p, "utf8")) as Ledger) : null;
 }
 
+function readVersion(dir: string, campaign: string): number {
+  const p = path.join(dir, `${campaign}.version`);
+  return fs.existsSync(p) ? Number(fs.readFileSync(p, "utf8")) || 0 : 0;
+}
+
 export function fileStore(dir: string): LedgerStore {
   return {
     kind: `file (${dir})`,
     async load(campaign) {
-      return { ledger: readFile(dir, campaign) ?? emptyLedger(campaign), version: 0 };
+      const ledger = readFile(dir, campaign);
+      return { ledger: ledger ?? emptyLedger(campaign), version: ledger ? readVersion(dir, campaign) : 0 };
     },
     async save(ledger, version) {
+      const stored = readVersion(dir, ledger.campaign);
+      if (stored !== version) {
+        throw new Error(
+          `ledger for ${ledger.campaign} changed since it was read (version ${stored}, expected ${version})`,
+        );
+      }
       fs.mkdirSync(dir, { recursive: true });
       const p = path.join(dir, `${ledger.campaign}.json`);
       fs.writeFileSync(`${p}.tmp`, JSON.stringify(ledger, null, 2) + "\n");
       fs.renameSync(`${p}.tmp`, p);
+      fs.writeFileSync(path.join(dir, `${ledger.campaign}.version`), `${version + 1}\n`);
       return version + 1;
     },
     async publish() {},
@@ -69,9 +85,13 @@ export function supabaseStore(url: string, secretKey: string, cluster: string, l
       return data as number;
     },
     async publish(report) {
-      const { error } = await db
-        .from("reports")
-        .upsert({ campaign: report.campaign, cluster: report.cluster, name: report.name, data: report, updated_at: report.updatedAt });
+      const { error } = await db.from("reports").upsert({
+        campaign: report.campaign,
+        cluster: report.cluster,
+        name: report.name,
+        data: report,
+        updated_at: report.updatedAt,
+      });
       if (error) throw new Error(`publish report: ${error.message}`);
     },
   };

@@ -3,7 +3,7 @@
 
 import { expect } from "chai";
 import { randomBytes } from "node:crypto";
-import { address, generateKeyPairSigner, getAddressFromPublicKey } from "@solana/kit";
+import { address, generateKeyPairSigner } from "@solana/kit";
 import { decodeTagToken, verifyTag } from "../sdk/identity.ts";
 import { captureTag, pendingTag } from "../sdk/client.ts";
 import { openReference, referenceKeys } from "../sdk/reference.ts";
@@ -71,7 +71,16 @@ describe("links", () => {
   });
 
   it("knows nothing but registered slugs", async () => {
-    for (const slug of ["nope", "", "Demo-Alice", "../demo-alice", "__proto__", "constructor", "toString", "a".repeat(80)]) {
+    for (const slug of [
+      "nope",
+      "",
+      "Demo-Alice",
+      "../demo-alice",
+      "__proto__",
+      "constructor",
+      "toString",
+      "a".repeat(80),
+    ]) {
       expect(await resolve(slug), slug).to.deep.equal({ status: 404 });
     }
   });
@@ -143,7 +152,9 @@ describe("registry file", () => {
   it("rejects a bad address or channel", async () => {
     const { parseRegistry } = await import("../src/server/registry.ts");
     expect(() => parseRegistry({ x: { campaign: "nope", channel: 0, destination: "/demo" } })).to.throw();
-    expect(() => parseRegistry({ x: { campaign: CAMPAIGN, channel: -1, destination: "/demo" } })).to.throw("bad channel");
+    expect(() => parseRegistry({ x: { campaign: CAMPAIGN, channel: -1, destination: "/demo" } })).to.throw(
+      "bad channel",
+    );
   });
 });
 
@@ -190,7 +201,9 @@ describe("partner client", () => {
     const store = memory();
     const good = captureTag({ url: `${ORIGIN}/?eo=${await token()}`, store, now: NOW, replaceUrl: noop });
     let shown = "";
-    expect(captureTag({ url: `${ORIGIN}/?eo=garbage&x=1`, store, now: NOW, replaceUrl: (u) => (shown = u) })).to.equal(null);
+    expect(captureTag({ url: `${ORIGIN}/?eo=garbage&x=1`, store, now: NOW, replaceUrl: (u) => (shown = u) })).to.equal(
+      null,
+    );
     expect(shown).to.equal(`${ORIGIN}/?x=1`);
     expect(pendingTag({ store, now: NOW })?.reference).to.equal(good?.reference);
   });

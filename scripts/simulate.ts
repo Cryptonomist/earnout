@@ -20,89 +20,42 @@
  * Nothing is settled here: the scheduled settler does that once the
  * campaign's retention window has passed. */
 
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { parseArgs } from "node:util";
-import {
-  address,
-  appendTransactionMessageInstructions,
-  createKeyPairSignerFromBytes,
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-  createTransactionMessage,
-  generateKeyPairSigner,
-  getSignatureFromTransaction,
-  lamports,
-  pipe,
-  sendAndConfirmTransactionFactory,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-  type Address,
-  type Instruction,
-  type KeyPairSigner,
-} from "@solana/kit";
+import { address, generateKeyPairSigner, lamports, type Address, type KeyPairSigner } from "@solana/kit";
 import { getTransferSolInstruction } from "@solana-program/system";
-import { decodeTagToken, tagInstructions, TAG_PARAM } from "../sdk/index.ts";
-import { withRetry } from "../settler/chain.ts";
+import { tagInstructions } from "../sdk/index.ts";
+import { chainFromEnv, clickLink, loadKeypair, readRegistry, short, sleep, solanaConfig } from "./lib.ts";
 
 const { values } = parseArgs({ options: { base: { type: "string", default: "https://earnout.dev" } } });
 
-const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
-const rpc = createSolanaRpc(RPC_URL);
-const sendAndConfirm = sendAndConfirmTransactionFactory({
-  rpc,
-  rpcSubscriptions: createSolanaRpcSubscriptions(RPC_URL.replace(/^http/, "ws")),
-});
+const chain = chainFromEnv();
 const SOL = 1_000_000_000n;
-const home = (f: string) => path.join(os.homedir(), ".config/solana", f);
-const keyFrom = async (file: string) =>
-  createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(fs.readFileSync(file, "utf8"))));
-const short = (a: string) => `${a.slice(0, 4)}...${a.slice(-4)}`;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function send(label: string, ixs: Instruction[], payer: KeyPairSigner): Promise<string> {
-  return withRetry(async () => {
-    const { value: blockhash } = await rpc.getLatestBlockhash({ commitment: "confirmed" }).send();
-    const tx = await signTransactionMessageWithSigners(
-      pipe(
-        createTransactionMessage({ version: 0 }),
-        (m) => setTransactionMessageFeePayerSigner(payer, m),
-        (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-        (m) => appendTransactionMessageInstructions(ixs, m),
-      ),
-    );
-    await sendAndConfirm(tx as any, { commitment: "confirmed" });
-    const sig = getSignatureFromTransaction(tx);
-    console.log(`  ${label.padEnd(34)} ${short(sig)}`);
-    return sig;
-  });
-}
+const plain = { priority: false };
 
 const transfer = (from: KeyPairSigner, to: Address, amount: bigint) =>
   getTransferSolInstruction({ source: from, destination: to, amount: lamports(amount) });
 
-/** Click the live link, as a person would, and keep the token it hands out. */
-async function click(slug: string) {
-  const res = await fetch(`${values.base}/r/${slug}/go`, { redirect: "manual" });
-  const location = res.headers.get("location");
-  if (res.status !== 302 || !location) throw new Error(`/r/${slug} answered ${res.status}`);
-  const tag = decodeTagToken(new URL(location).searchParams.get(TAG_PARAM) ?? "");
-  if (!tag) throw new Error(`/r/${slug} redirected without a tag; is the link service configured?`);
-  return tag;
+async function send(label: string, ...args: Parameters<typeof chain.send>) {
+  const signature = await chain.send(...args);
+  console.log(`  ${label.padEnd(34)} ${short(signature)}`);
+  return signature;
 }
 
 type Person = { slug: string; kind: "stays" | "leaves" | "farm"; key: KeyPairSigner };
 
 async function main() {
-  const registry = JSON.parse(fs.readFileSync(path.resolve("registry/devnet.json"), "utf8"));
-  const [campaignAddress, campaign] = Object.entries(registry.campaigns)[0] as [string, any];
+  // The demo campaign is whichever one demo-alice's link points at.
+  const registry = readRegistry();
+  const link = registry.links["demo-alice"];
+  if (!link) throw new Error("No demo-alice link in registry/devnet.json");
+  const campaign = registry.campaigns[link.campaign];
+  if (campaign.conversion.kind !== "sol-transfer" || !campaign.conversion.to)
+    throw new Error("The demo campaign must pay for a SOL deposit");
   const treasury = address(campaign.conversion.to);
-  const deposit = BigInt(campaign.conversion.minLamports);
+  const deposit = BigInt(campaign.conversion.minLamports ?? "0");
 
-  const deployWallet = await keyFrom(home("id.json"));
-  const faucet = await keyFrom(home("earnout-faucet-devnet.json"));
+  const deployWallet = await loadKeypair(solanaConfig());
+  const faucet = await loadKeypair(solanaConfig("earnout-faucet-devnet.json"));
   const farmer = await generateKeyPairSigner();
 
   const people: Person[] = [];
@@ -114,29 +67,52 @@ async function main() {
   await add("demo-bob", "stays", 1);
   await add("demo-bob", "farm", 4);
 
-  console.log(`Campaign ${campaignAddress}, via ${values.base}`);
+  console.log(`Campaign ${link.campaign}, via ${values.base}`);
   console.log(`Treasury ${short(treasury)}, deposit ${Number(deposit) / 1e9} SOL\n`);
 
   // Funding: people from the faucet, the farm from one new wallet.
   const grant = SOL / 50n; // 0.02
-  await send("faucet funds 7 people", people.filter((p) => p.kind !== "farm").map((p) => transfer(faucet, p.key.address, grant)), faucet);
-  await send("deploy wallet funds the farmer", [transfer(deployWallet, farmer.address, SOL / 10n)], deployWallet);
-  await send("farmer funds 4 wallets", people.filter((p) => p.kind === "farm").map((p) => transfer(farmer, p.key.address, grant)), farmer);
+  const crowd = people.filter((p) => p.kind !== "farm");
+  const farm = people.filter((p) => p.kind === "farm");
+  await send(
+    "faucet funds 7 people",
+    crowd.map((p) => transfer(faucet, p.key.address, grant)),
+    faucet,
+    plain,
+  );
+  await send(
+    "deploy wallet funds the farmer",
+    [transfer(deployWallet, farmer.address, SOL / 10n)],
+    deployWallet,
+    plain,
+  );
+  await send(
+    "farmer funds 4 wallets",
+    farm.map((p) => transfer(farmer, p.key.address, grant)),
+    farmer,
+    plain,
+  );
 
   // Everyone clicks, then deposits with the tag.
   for (const p of people) {
-    const tag = await click(p.slug);
-    await send(`${p.slug} ${p.kind.padEnd(6)} ${short(p.key.address)} deposits`, [transfer(p.key, treasury, deposit), ...tagInstructions(tag)], p.key);
+    const tag = await clickLink(values.base!, p.slug);
+    const ixs = [transfer(p.key, treasury, deposit), ...tagInstructions(tag)];
+    await send(`${p.slug} ${p.kind.padEnd(6)} ${short(p.key.address)} deposits`, ixs, p.key, plain);
     await sleep(400);
   }
 
   // The leavers take their money back out before the window closes.
   for (const p of people.filter((p) => p.kind === "leaves")) {
-    await send(`${p.slug} leaver ${short(p.key.address)} withdraws`, [transfer(p.key, faucet.address, (grant - deposit) - 1_000_000n)], p.key);
+    await send(
+      `${p.slug} leaver ${short(p.key.address)} withdraws`,
+      [transfer(p.key, faucet.address, grant - deposit - 1_000_000n)],
+      p.key,
+      plain,
+    );
   }
 
   console.log(`\nDone. The settler judges these once the ${campaign.name} window (10 minutes) has passed.`);
-  console.log(`Watch ${values.base}/dashboard/${campaignAddress}`);
+  console.log(`Watch ${values.base}/dashboard/${link.campaign}`);
 }
 
 main().catch((e) => {
