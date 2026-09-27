@@ -14,28 +14,29 @@ import { heroReceipt } from "@/server/hero";
 /* Each step shows the real screen it happens on: crops of the live site,
  * captured at 2x (public/shots, made by the Playwright script in the
  * repo's history), so the page shows the product and not a description. */
+/* The same four steps as FLOW, shown on the screens where they happen. */
 const STEPS = [
   {
-    title: "Set the deal",
-    body: "Say an influencer earns $5 for each new user still active after 7 days. Lock the budget in a Solana program.",
+    title: "The deal, on the form",
+    body: "The project types a price and a stay period, funds the budget, and the rules are locked on Solana in one transaction.",
     image: "/shots/step-1.png",
     alt: "The money step of the new campaign form: an influencer earns $5 per user who stays, fund now $100.",
   },
   {
-    title: "Give each influencer a link",
-    body: "Every link tells the visitor who is paid, and for what, before they continue.",
+    title: "The influencer's link",
+    body: "Each influencer gets their own link, ready to copy from their page. Their X account proves it is theirs.",
     image: "/shots/step-2.png",
     alt: "An influencer page with their link, earnout.dev/r/hub-test-crypt0nomist, and a copy button.",
   },
   {
-    title: "The user's first deposit carries the tag",
-    body: "That is how Earnout knows which influencer sent them. The tag can never break the deposit.",
+    title: "What the user sees",
+    body: "Who sent them, and that the influencer is paid only if they stay. Nothing is hidden, and the tag can never break their deposit.",
     image: "/shots/step-3.png",
     alt: "The disclosure page a visitor sees: @CRYPT0NOMIST sent you here, paid only if you stay.",
   },
   {
-    title: "Pay only for who stayed",
-    body: "After 7 days, Earnout checks who is still active and pays their influencers on-chain. Unspent budget comes back to you.",
+    title: "The project's dashboard",
+    body: "Users sent, users who stayed, what was paid, what came back. Every number is backed by a Solana transaction.",
     image: "/shots/step-4.png",
     alt: "A campaign dashboard: 13 users sent, 7 stayed and paid for.",
   },
@@ -49,20 +50,40 @@ const GUARANTEES = [
   "No admin key. No fee. Open source.",
 ];
 
-const ROLES: { who: string; text: string; cta?: { href: string; label: string } }[] = [
+/* The whole mechanism in one look, right under the headline: who does
+ * what, in order, and the fork at the end that the rest of the page is
+ * about. The roles are defined here and nowhere else. */
+const FLOW: {
+  who: string;
+  head: string;
+  text?: string;
+  outcomes?: { paid: boolean; text: string }[];
+  cta?: { href: string; label: string };
+}[] = [
   {
     who: "Project",
-    text: "An app on Solana that wants more real users: a game, a DEX, a wallet. It sets the deal and locks the budget.",
+    head: "Locks a budget",
+    text: "An app on Solana that wants real users. It names a price, say $5 for each new user still active after 7 days, and the money sits in a Solana program.",
     cta: { href: "/dashboard/new", label: "Start a campaign" },
   },
   {
     who: "Influencer",
-    text: "In crypto, a KOL. A trader with a following, a newsletter writer, a community lead. They share their link and get paid for the users who stay.",
+    head: "Shares their link",
+    text: "In crypto, a KOL: anyone whose audience brings users. Every link says who is paid, and for what, before anyone continues.",
     cta: { href: "/influencers", label: "Link your X account" },
   },
   {
     who: "User",
-    text: "A person who clicks the link and joins the project's app. Counted, never paid, never named.",
+    head: "Joins through the link",
+    text: "A regular person, never paid, never named. Their first transaction carries the influencer's tag, so the chain knows who sent them.",
+  },
+  {
+    who: "Earnout",
+    head: "Checks 7 days later",
+    outcomes: [
+      { paid: true, text: "Still active: the influencer is paid $5, automatically." },
+      { paid: false, text: "Left, or a bot: nothing is paid, and the money goes back to the project." },
+    ],
   },
 ];
 
@@ -108,7 +129,7 @@ export default async function Home() {
       <SiteHeader />
       <main id="content">
         <Hero live={live} />
-        <WhoIsWho />
+        <Flow />
         <LiveNow />
         <Stats />
         <Problem />
@@ -128,15 +149,15 @@ export default async function Home() {
 
 function Hero({ live }: { live: LiveReceipt | null }) {
   return (
-    <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 md:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
+    <section id="top" className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-14 sm:px-6 md:pt-20 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
         <p className="rise font-mono text-xs tracking-[0.2em] text-muted">RESULTS-DRIVEN INFLUENCER MARKETING ON SOLANA</p>
         <h1 className="rise rise-2 mt-5 text-5xl leading-[1.02] font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
           Pay influencers for users <span className="font-serif font-normal italic">who stay.</span>
         </h1>
         <p className="rise rise-3 mt-6 max-w-xl text-lg leading-8 text-muted">
-          Think of it as a sales commission. An influencer shares a link to your project. When someone comes through it and is
-          still active a week later, the influencer gets paid. Nothing for clicks. Nothing for people who leave.
+          Think of it as a sales commission. Influencers are paid only for the users they bring who are still active a week
+          later. Nothing for clicks. Nothing for people who leave.
         </p>
         <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
           <a href="/r/demo-alice" className="rounded-full bg-ink px-6 py-3 font-medium text-paper transition-opacity hover:opacity-90">
@@ -147,7 +168,7 @@ function Hero({ live }: { live: LiveReceipt | null }) {
           </a>
         </div>
         <p className="rise rise-4 mt-4 text-sm text-muted">
-          {live ? "The receipt on the right is live on Solana devnet. Three clicks to make your own, no wallet needed." : "Live on Solana devnet. Three clicks, no wallet needed."}
+          {live ? "This receipt is live on Solana devnet. Three clicks to make your own, no wallet needed." : "Live on Solana devnet. Three clicks, no wallet needed."}
         </p>
       </div>
       <div className="rise rise-3 lift">
@@ -157,23 +178,49 @@ function Hero({ live }: { live: LiveReceipt | null }) {
   );
 }
 
-/* The three people in every sentence on this site, named once. */
-function WhoIsWho() {
+/* Four boxes, three arrows, one fork: the premise without reading. */
+function Flow() {
   return (
-    <section aria-label="Who is who" className="reveal mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-      <div className="grid gap-6 rounded-2xl border border-line bg-card p-6 sm:grid-cols-3 sm:p-8">
-        {ROLES.map((r) => (
-          <div key={r.who} className="flex flex-col">
-            <div className="font-mono text-xs tracking-[0.2em] text-muted uppercase">{r.who}</div>
-            <p className="mt-2 text-[15px] leading-7">{r.text}</p>
-            {r.cta && (
-              <a href={r.cta.href} className="mt-4 inline-block self-start rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-paper">
-                {r.cta.label}
-              </a>
+    <section aria-label="How it works, in one look" className="reveal mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <p className="mb-4 font-mono text-xs tracking-[0.2em] text-muted uppercase">In one look</p>
+      <ol className="grid gap-2 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] md:gap-0">
+        {FLOW.map((n, i) => (
+          <Fragment key={n.who}>
+            <li className="flex flex-col rounded-2xl border border-line bg-card p-5">
+              <div className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-muted uppercase">
+                <span className="flex size-5 items-center justify-center rounded-full bg-ink text-[10px] text-paper">{i + 1}</span>
+                {n.who}
+              </div>
+              <h2 className="mt-3 text-lg font-semibold tracking-tight">{n.head}</h2>
+              {n.text && <p className="mt-2 text-sm leading-6 text-muted">{n.text}</p>}
+              {n.outcomes && (
+                <ul className="mt-3 space-y-2 text-sm leading-6">
+                  {n.outcomes.map((o) => (
+                    <li key={o.text} className={`flex gap-2 ${o.paid ? "text-paid" : "text-unpaid"}`}>
+                      <span className="font-mono" aria-hidden="true">
+                        {o.paid ? "✓" : "✗"}
+                      </span>
+                      <span>{o.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {n.cta && (
+                <a href={n.cta.href} className="mt-4 inline-block self-start rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-paper">
+                  {n.cta.label}
+                </a>
+              )}
+            </li>
+            {i < FLOW.length - 1 && (
+              <li aria-hidden="true" className="flex items-center justify-center py-1 text-muted md:px-2 md:py-0">
+                <svg viewBox="0 0 24 24" className="size-5 rotate-90 md:rotate-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </li>
             )}
-          </div>
+          </Fragment>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
@@ -215,7 +262,7 @@ function Problem() {
 
 function HowItWorks() {
   return (
-    <Section id="how" eyebrow="How it works" title="Four steps. One rule: no stay, no pay.">
+    <Section id="how" eyebrow="In the product" title="The same four steps, on screen.">
       <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (
           <li key={s.title} className="flex flex-col rounded-xl border border-line bg-card p-6">
