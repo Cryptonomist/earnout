@@ -26,7 +26,11 @@ async function accountData(rpc: Rpc, a: Address): Promise<Uint8Array | null> {
 /** The wallet's X link as `identity` vouched for it, if the X account still
  * belongs to this wallet. A link whose account has moved to another wallet
  * is reported with `current: false`. */
-export async function fetchXLink(rpc: Rpc, identity: Address, wallet: Address): Promise<(XLink & { current: boolean }) | null> {
+export async function fetchXLink(
+  rpc: Rpc,
+  identity: Address,
+  wallet: Address,
+): Promise<(XLink & { current: boolean }) | null> {
   const data = await accountData(rpc, await xlinkAddress(identity, wallet));
   if (!data) return null;
   const link = decodeXLink(data);

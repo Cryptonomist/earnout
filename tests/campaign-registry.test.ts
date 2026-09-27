@@ -7,7 +7,13 @@ import { address, generateKeyPairSigner, type Address } from "@solana/kit";
 import type { Campaign } from "../sdk/program.ts";
 import type { ParsedTx } from "../settler/parse.ts";
 import { linkMemo, rulesHash, rulesMemo, validateRules, type Rules } from "../src/lib/rules.ts";
-import { registerCampaign, registerLink, type CampaignRow, type LinkRow, type RegistryDeps } from "../src/server/campaign-registry.ts";
+import {
+  registerCampaign,
+  registerLink,
+  type CampaignRow,
+  type LinkRow,
+  type RegistryDeps,
+} from "../src/server/campaign-registry.ts";
 
 const newAddress = async () => (await generateKeyPairSigner()).address;
 const SIG = "5".repeat(88);
@@ -40,7 +46,9 @@ describe("campaign registry", () => {
   let deps: RegistryDeps;
 
   before(async () => {
-    [identity, advertiser, stranger, campaign, other, treasury] = await Promise.all(Array.from({ length: 6 }, newAddress));
+    [identity, advertiser, stranger, campaign, other, treasury] = await Promise.all(
+      Array.from({ length: 6 }, newAddress),
+    );
     rules = validateRules({
       name: "Stonk Wars",
       description: "",
@@ -88,20 +96,30 @@ describe("campaign registry", () => {
         const row = links.get(slug);
         return row ? { campaign: row.campaign, channel: row.channel } : null;
       },
-      findChannelLink: async (c, ch) => [...links.values()].find((l) => l.campaign === c && l.channel === ch)?.slug ?? null,
+      findChannelLink: async (c, ch) =>
+        [...links.values()].find((l) => l.campaign === c && l.channel === ch)?.slug ?? null,
       insertCampaign: async (row) => void campaigns.set(row.campaign, row),
       insertLink: async (row) => void links.set(row.slug, row),
     };
   });
 
-  const create = (patch: Record<string, unknown> = {}) => registerCampaign({ signature: SIG, campaign, rules, ...patch }, deps);
+  const create = (patch: Record<string, unknown> = {}) =>
+    registerCampaign({ signature: SIG, campaign, rules, ...patch }, deps);
 
   describe("a campaign", () => {
     it("is recorded from the transaction that created it, once", async () => {
       const r = await create();
       expect(r.ok && r.created).to.equal(true);
       const row = campaigns.get(campaign)!;
-      expect(row).to.include({ campaign, cluster: "devnet", advertiser, name: "Stonk Wars", destination: "https://stonkwars.fun/new", rules_hash: hash, rules_tx: SIG });
+      expect(row).to.include({
+        campaign,
+        cluster: "devnet",
+        advertiser,
+        name: "Stonk Wars",
+        destination: "https://stonkwars.fun/new",
+        rules_hash: hash,
+        rules_tx: SIG,
+      });
       expect(row.description).to.equal(null);
       expect(row.rules).to.deep.equal(rules);
 
@@ -172,14 +190,22 @@ describe("campaign registry", () => {
     it("is recorded from the advertiser's memo, once", async () => {
       const r = await name([linkMemo(campaign, 1, "stonk-wars-alice")]);
       expect(r.ok && r.created).to.equal(true);
-      expect(links.get("stonk-wars-alice")).to.deep.equal({ slug: "stonk-wars-alice", campaign, channel: 1, link_tx: OTHER_SIG });
+      expect(links.get("stonk-wars-alice")).to.deep.equal({
+        slug: "stonk-wars-alice",
+        campaign,
+        channel: 1,
+        link_tx: OTHER_SIG,
+      });
       const again = await name([linkMemo(campaign, 1, "stonk-wars-alice")]);
       expect(again.ok && !again.created).to.equal(true);
     });
 
     it("needs exactly one link memo", async () => {
       expect(await name([])).to.deep.include({ ok: false, status: 400 });
-      expect(await name([linkMemo(campaign, 0, "a"), linkMemo(campaign, 1, "b")])).to.deep.include({ ok: false, status: 400 });
+      expect(await name([linkMemo(campaign, 0, "a"), linkMemo(campaign, 1, "b")])).to.deep.include({
+        ok: false,
+        status: 400,
+      });
     });
 
     it("refuses a channel that does not exist yet", async () => {

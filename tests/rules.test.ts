@@ -65,7 +65,8 @@ describe("rules", () => {
   });
 
   it("refuses what an advertiser has to fix, with a sentence", () => {
-    const bad = (patch: Record<string, unknown>, message: string | RegExp) => expect(() => validateRules({ ...demo, ...patch })).to.throw(message);
+    const bad = (patch: Record<string, unknown>, message: string | RegExp) =>
+      expect(() => validateRules({ ...demo, ...patch })).to.throw(message);
     bad({ name: "" }, "name must be 1 to 48");
     bad({ name: "x".repeat(49) }, "name must be 1 to 48");
     bad({ description: "x".repeat(401) }, "at most 400");

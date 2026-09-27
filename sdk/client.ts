@@ -42,12 +42,14 @@ const nowSecs = () => Math.floor(Date.now() / 1000);
 
 /** Keep the tag from the current URL, if it has a valid one, and remove it
  * from the address bar. Returns the tag it kept, or null. */
-export function captureTag(opts: {
-  url?: string | URL;
-  store?: TagStore | null;
-  now?: number;
-  replaceUrl?: (url: string) => void;
-} = {}): Tag | null {
+export function captureTag(
+  opts: {
+    url?: string | URL;
+    store?: TagStore | null;
+    now?: number;
+    replaceUrl?: (url: string) => void;
+  } = {},
+): Tag | null {
   try {
     const href = opts.url ?? (typeof location === "undefined" ? null : location.href);
     if (!href) return null;

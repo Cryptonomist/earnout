@@ -29,14 +29,50 @@ describe("scorecards", () => {
   it("groups channels by X account across campaigns and wallets, and follows the person", () => {
     const facts: ChannelFacts[] = [
       base,
-      { ...base, campaign: "camp2", campaignName: "Campaign two", slug: "alice-2", payee: "walletB", stayed: 1n, earned: 5_000_000n, claimed: 0n, tagged: 3, gone: 0, flagged: 2, handle: "alice_new" },
-      { ...base, campaign: "camp2", slug: "bob", index: 1, xId: "2002", handle: "bob", payee: "walletC", stayed: 0n, earned: 0n, claimed: 0n, tagged: 4, gone: 0, flagged: 4 },
+      {
+        ...base,
+        campaign: "camp2",
+        campaignName: "Campaign two",
+        slug: "alice-2",
+        payee: "walletB",
+        stayed: 1n,
+        earned: 5_000_000n,
+        claimed: 0n,
+        tagged: 3,
+        gone: 0,
+        flagged: 2,
+        handle: "alice_new",
+      },
+      {
+        ...base,
+        campaign: "camp2",
+        slug: "bob",
+        index: 1,
+        xId: "2002",
+        handle: "bob",
+        payee: "walletC",
+        stayed: 0n,
+        earned: 0n,
+        claimed: 0n,
+        tagged: 4,
+        gone: 0,
+        flagged: 4,
+      },
     ];
     const cards = buildScorecards(facts);
     expect(cards.map((c) => c.handle)).to.deep.equal(["alice_new", "bob"]);
 
     const alice = cards[0];
-    expect(alice).to.include({ xId: "1001", campaigns: 2, tagged: 9, stayed: 5, gone: 2, flagged: 2, otherRejected: 0, pending: 0 });
+    expect(alice).to.include({
+      xId: "1001",
+      campaigns: 2,
+      tagged: 9,
+      stayed: 5,
+      gone: 2,
+      flagged: 2,
+      otherRejected: 0,
+      pending: 0,
+    });
     expect(alice.payees).to.deep.equal(["walletB", "walletA"]);
     expect(alice.stayRate).to.be.closeTo(5 / 9, 1e-9);
     expect(alice.flagRate).to.be.closeTo(2 / 9, 1e-9);
@@ -49,7 +85,9 @@ describe("scorecards", () => {
   });
 
   it("has no rate until a window has closed, and no total across different tokens", () => {
-    const [fresh] = buildScorecards([{ ...base, stayed: 0n, earned: 0n, claimed: 0n, tagged: 3, waiting: 3, gone: 0, reported: true }]);
+    const [fresh] = buildScorecards([
+      { ...base, stayed: 0n, earned: 0n, claimed: 0n, tagged: 3, waiting: 3, gone: 0, reported: true },
+    ]);
     expect(fresh.stayRate).to.equal(null);
     expect(fresh.pending).to.equal(3);
     const [mixed] = buildScorecards([base, { ...base, campaign: "camp2", decimals: 9 }]);

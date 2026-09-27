@@ -15,9 +15,7 @@
       "attributionWindowSecs": 604800,
       "sybil": {
         "maxWalletsPerFunder": 3,
-        "ignoreFunders": [
-          "EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK"
-        ]
+        "ignoreFunders": ["EpYsqPa4wdJ4sUPcwAn9VNhyxvWCoJV8pCVTwNydzRSK"]
       }
     }
   },

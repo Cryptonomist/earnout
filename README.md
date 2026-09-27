@@ -1,5 +1,8 @@
 # Earnout
 
+[![ci](https://github.com/Cryptonomist/earnout/actions/workflows/ci.yml/badge.svg)](https://github.com/Cryptonomist/earnout/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
+
 Marketing budgets that pay out only for users who stay.
 
 Crypto projects spend on influencers, newsletters, quests and partner apps with
@@ -9,6 +12,23 @@ provably sent that are still around when the retention window closes.
 
 Live on Solana devnet at **[earnout.dev](https://earnout.dev)**. Built for
 the Colosseum Crypto World's Fair, September to October 2026.
+
+## Words
+
+The site speaks to people and the code speaks to the chain, so two
+vocabularies meet here:
+
+| On the site            | In the code                | Meaning                                                                        |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| project                | `advertiser`               | Whoever funds a campaign and gets the refund                                   |
+| influencer             | `channel`                  | Whoever is paid for the users their link sends: a person, a newsletter, an app |
+| user joins             | `conversion`               | The transaction that counts, tagged with the link's reference                  |
+| stay period            | `retention_secs`, "window" | How long a user must still be active before the influencer is paid             |
+| Earnout checks         | `settler`                  | The service that screens conversions and settles batches on chain              |
+| `earnout.dev/r/<slug>` | `LinkEntry`, `registry`    | An influencer's link; `/c/<slug>` is their page, `/r/<slug>` the disclosure    |
+
+"Creator" was the site's earlier word for influencer; it survives only in
+the `/creators` redirects that keep old links working.
 
 ## Try it in three minutes
 
@@ -30,7 +50,7 @@ before the window closed, and a four-wallet farm flagged as one cluster, none
 of them paid for.
 
 To become an influencer yourself: **[earnout.dev/influencers](https://earnout.dev/influencers)**,
-sign in with X, link a wallet. Every channel is a verified X account, and a
+sign in with X, link a wallet. Every channel is a verified X account, and an
 influencer's record follows that account whatever wallet it pays to.
 
 To run a campaign yourself: **[earnout.dev/dashboard/new](https://earnout.dev/dashboard/new)**.
@@ -72,14 +92,23 @@ advertiser gets the full evidence and can check every entry against the chain.
 - A settlement pays exactly `conversions * payout` and never more than the
   campaign has left uncommitted.
 - Batches are numbered per channel, so none can be recorded twice.
-- Nothing is settled after the deadline, and nothing is refunded before it.
+- Nothing is settled before the first wallet could have stayed the whole
+  window, nor after the deadline; nothing is refunded before the deadline.
 - Tokens leave the vault only to a channel's payee (`claim`) or back to the
-  advertiser (`refund`). No admin, no fee, no sweep.
+  advertiser (`refund`). No admin, no fee, no sweep. A refund is counted
+  from the vault's balance, so tokens that reached the vault by hand come
+  back too instead of being locked.
+- A Token-2022 mint with a permanent delegate, a transfer hook or the
+  non-transferable extension is refused when the campaign is made, so no
+  channel has to vet the mint.
 - `tag` reads and writes nothing, so a stale link can never break a user's
   transaction.
 
 The settler is trusted to count honestly; the program holds it to the budget
-and the evidence makes overcounting detectable.
+and the evidence makes overcounting detectable. The one power above the
+instruction set is the program's upgrade authority: on devnet the deploy
+wallet; a mainnet deployment would hand it to a multisig, and give it up
+once the program has been audited.
 
 ## Every channel is a verified person
 
@@ -95,8 +124,9 @@ The X account is written onto the channel for good (`ChannelIdentity`). The
 payout wallet can move (`set_payee`), but only to a wallet linked to the same
 account, and one X account is one wallet at a time (`XClaim`), so an influencer's
 record follows them and a bad one cannot be shed by changing wallets.
-Channels made before verification existed have no identity and are shown as
-unverified.
+The program has required this since before the first hub campaign; the two
+demo channels (`demo-alice`, `demo-bob`) predate it, have no identity, and
+are shown as unverified. Nothing made since can be.
 
 Influencers link at `/influencers`: sign in with X (read-only, PKCE, nothing
 stored on a server; the profile rides in a cookie the server signs for
@@ -138,9 +168,9 @@ plays the partner.
 ```ts
 import { captureTag, pendingTag, tagInstructions, clearTag } from "./earnout/sdk";
 
-captureTag();                 // on page load: keeps ?eo=, cleans the URL
+captureTag(); // on page load: keeps ?eo=, cleans the URL
 
-const tag = pendingTag();     // when the user deposits
+const tag = pendingTag(); // when the user deposits
 const ixs = [...yourInstructions, ...(tag ? tagInstructions(tag) : [])];
 // send, confirm, then
 clearTag();
@@ -162,12 +192,13 @@ signature, as the settler will.
 
 Copy `.env.example` to `.env.local` and fill it in. To create a pilot
 campaign from the command line, with the Earnout identity, and register its
-slugs in the file:
+slugs in the file (one `--payee` per `--channel`, each a wallet that has
+linked its X account at `/influencers`):
 
 ```bash
 npx tsx --env-file=.env.local scripts/create-campaign.ts \
   --payout 5 --fund 500 --retention 600 --ends-in-days 60 \
-  --destination /demo --channel demo-alice --channel demo-bob
+  --destination /demo --channel alice --payee <alice's linked wallet>
 ```
 
 ## Campaigns from the dashboard
@@ -195,10 +226,11 @@ read-only and says so. Test dollars come from `/api/faucet/usd`, minted by
 the faucet key, which holds the test token's mint authority.
 
 To send a few test users through a link (fresh wallets, funded by the demo
-faucet key, clicking the live link and depositing with the tag):
+faucet key, clicking the live link and depositing with the tag), give it the
+slug from the influencer's page on that campaign:
 
 ```bash
-npx tsx --env-file=.env.local scripts/convert.ts --slug hub-test-crypt0nomist --stay 2 --leave 1
+npx tsx --env-file=.env.local scripts/convert.ts --slug <slug> --stay 2 --leave 1
 ```
 
 ## Settler
@@ -225,15 +257,26 @@ pass, for every campaign in the registry (the file and the dashboard's rows):
 
 Settling is exactly once: a batch is recorded as pending before it is sent,
 the program refuses a batch number twice, and the next pass reads the
-channel's batch count to see whether it landed. State lives in
-`var/settler/<cluster>/<campaign>.json`, gitignored, because which wallet came
-through which channel is exactly what the chain is kept from knowing.
+channel's batch count to see whether it landed. Whether a failed send was
+refused (drop the batch, replan) or is unknown (keep it pending for the
+chain to say) is decided from kit's error codes, never from message text.
+A node that is a few slots behind is asked again before a transaction is
+believed missing, and one wallet the RPC will not answer for waits for the
+next pass without holding up the rest.
+
+The ledger, which wallet came through which channel, is exactly what the
+chain is kept from knowing. It lives in the earnout Supabase project's
+private `ledgers` table, saved under a version so two overlapping passes
+cannot overwrite each other (`supabase/migrations` has the schema and the
+`save_ledger` function); without `SUPABASE_SECRET_KEY` it is a file under
+`var/settler/`, gitignored, with the same versioning.
 
 In production the settler runs from GitHub Actions every ten minutes
-(`.github/workflows/settle.yml`), one pass at a time, with three repository
-secrets: a dedicated settler key that holds a little devnet SOL for fees and
-can do nothing but settle, the reference secret, and the Supabase secret key.
-It never gets the Earnout identity or the deploy wallet.
+(`.github/workflows/settle.yml`, kicked on time by a pg_cron job in the same
+Supabase project), one pass at a time, with three repository secrets: a
+dedicated settler key that holds a little devnet SOL for fees and can do
+nothing but settle, the reference secret, and the Supabase secret key. It
+never gets the Earnout identity or the deploy wallet.
 
 ```bash
 npx tsx --env-file=.env.local scripts/settle.ts --dry-run   # decide, send nothing
@@ -267,36 +310,55 @@ mark's geometry and the wordmark (Geist SemiBold, converted to paths).
 
 ## Layout
 
-| Path | What |
-| --- | --- |
-| `programs/earnout` | The Anchor program (Anchor 1.2.0) |
-| `sdk/` | TypeScript SDK on `@solana/kit`: instruction builders, account decoders, the Action Identity memo, tag tokens |
-| `sdk/reference.ts` | The reference cipher (server only) |
-| `sdk/client.ts` | The partner's browser helper: capture, keep and clear a tag |
-| `src/app` | The site: landing page, `/r/[slug]` links, `/demo` partner page, the dashboard and the advertiser hub |
-| `src/lib/rules.ts` | A campaign's rules: validation, the canonical form that is hashed, the memo formats |
-| `src/server` | Link resolution, the registry (file plus database), registering campaigns from their transactions |
-| `registry/` | Per cluster: the pilots' slugs and settler rules; dashboard campaigns live in Supabase |
-| `settler/` | Parsing, screening, retention and cluster checks, batch planning, evidence |
-| `scripts/` | Create a campaign, settle, claim, move a payee, the devnet smoke test |
-| `tests/` | LiteSVM tests against the built binary, and SDK tests checked against `@solana/actions` |
+| Path                  | What                                                                                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `programs/earnout`    | The Anchor program (Anchor 1.2.0)                                                                                                                                |
+| `sdk/`                | TypeScript SDK on `@solana/kit`: instruction builders, account decoders, the Action Identity memo, tag tokens                                                    |
+| `sdk/reference.ts`    | The reference cipher (server only)                                                                                                                               |
+| `sdk/client.ts`       | The partner's browser helper: capture, keep and clear a tag                                                                                                      |
+| `src/app`             | The site: landing page, `/r/[slug]` links, `/demo` partner page, the dashboard, the advertiser hub, the influencer hub                                           |
+| `src/lib/rules.ts`    | A campaign's rules: validation, the canonical form that is hashed, the memo formats                                                                              |
+| `src/server`          | Link resolution, the registry (file plus database), registering campaigns from their transactions, the faucets                                                   |
+| `registry/`           | Per cluster: the pilots' slugs and settler rules; dashboard campaigns live in Supabase                                                                           |
+| `settler/`            | Parsing, screening, retention and cluster checks, batch planning, evidence, the ledger store                                                                     |
+| `scripts/`            | `settle`, `create-campaign`, `add-channel`, `set-payee`, `claim`, `convert`, `simulate`, `devnet-smoke`, `gen-sdk`, `brand`, `card`; `lib.ts` is what they share |
+| `supabase/migrations` | The database: the ledger and its `save_ledger` function, the public report, the registry tables, the settler ticker                                              |
+| `tests/`              | 119 tests: the program in LiteSVM against the built binary, the SDK against `@solana/actions`, the settler with the chain faked                                  |
+| `.github/workflows`   | `ci.yml` (every push: build, lint, format, test) and `settle.yml` (the settler, every ten minutes)                                                               |
 
 ## Build and test
+
+You need Node 24, Rust 1.89 (rust-toolchain.toml installs it through
+rustup), the Solana CLI 3.1.10 and Anchor 1.2.0, the versions Anchor.toml
+pins and CI uses.
 
 ```bash
 npm install
 npm run build:program   # anchor build --arch v0, then regenerate sdk/generated.ts
-npm test
+npm test                # 119 tests, most of them against the freshly built binary in LiteSVM
+npm run check           # typecheck, lint, format check and the tests, as CI runs them
 ```
 
 `build:program` targets SBPF v0 because Anchor 1.2 defaults to v3, which
-devnet does not accept yet.
+devnet does not accept yet. The suite refuses to run against a stale binary
+or a stale `sdk/generated.ts` and says which command to run.
+
+## Security
+
+Every key, what it can do and where it lives is in
+[Trust boundaries](docs/ARCHITECTURE.md#trust-boundaries); what the program
+enforces and what it cannot, in
+[What the program guarantees, and what it cannot](docs/ARCHITECTURE.md#what-the-program-guarantees-and-what-it-cannot).
+The site's own attack surface (the RPC relay, the faucets, sign-in with X,
+the registry writes) is described where each lives, in the header comment of
+the file. To report something, open an issue or write to the contact on the
+site.
 
 ## Deployed
 
-| Cluster | Program |
-| --- | --- |
-| devnet | [`EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU`](https://explorer.solana.com/address/EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU?cluster=devnet) |
+| Cluster | Program                                                                                                                                           |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| devnet  | [`EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU`](https://explorer.solana.com/address/EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU?cluster=devnet) |
 
 `npx tsx scripts/devnet-smoke.ts` runs one whole campaign against it: a test
 token, create, fund, a channel, a real tagged transaction found by its
@@ -309,6 +371,13 @@ Built for the Colosseum Crypto World's Fair hackathon (September to October
 an influencer added by X handle, a click on their link, a tagged deposit on
 `/demo`, the retention window, a settlement on chain, the influencer's claim and
 the advertiser's refund.
+
+Next, in order: a real pilot with Stonk Wars, a live Solana app, paying
+its influencers from a hub campaign; a `close_campaign` instruction so rent
+comes back once a campaign is settled and claimed; a per-batch settlement
+account, so every evidence root is readable from an account and not only
+from its transaction; an audit, then mainnet with USDC and the upgrade
+authority behind a multisig.
 
 ## License
 

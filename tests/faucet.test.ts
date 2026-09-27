@@ -12,7 +12,9 @@ describe("demo faucet", () => {
     sent = [];
   });
 
-  const deps = (o: Partial<{ balance: bigint; walletSigs: string[]; faucetSigs: string[]; faucetBalance: bigint }> = {}): FaucetDeps => ({
+  const deps = (
+    o: Partial<{ balance: bigint; walletSigs: string[]; faucetSigs: string[]; faucetBalance: bigint }> = {},
+  ): FaucetDeps => ({
     balance: async () => o.balance ?? 0n,
     walletSignatures: async () => o.walletSigs ?? [],
     faucetSignatures: async () => o.faucetSigs ?? ["f1", "f2"],
@@ -32,7 +34,9 @@ describe("demo faucet", () => {
   it("refuses bad addresses, wallets with enough, and wallets it already funded", async () => {
     expect(await grant("nope", "ip", deps(), new Map())).to.include({ ok: false, reason: "bad address" });
     expect(await grant(wallet, "ip", deps({ balance: ENOUGH }), new Map())).to.include({ reason: "has enough" });
-    expect(await grant(wallet, "ip", deps({ walletSigs: ["x", "f2"] }), new Map())).to.include({ reason: "already granted" });
+    expect(await grant(wallet, "ip", deps({ walletSigs: ["x", "f2"] }), new Map())).to.include({
+      reason: "already granted",
+    });
     expect(await grant(wallet, "ip", deps({ faucetBalance: GRANT }), new Map())).to.include({ reason: "faucet empty" });
     expect(sent).to.deep.equal([]);
   });
@@ -40,10 +44,13 @@ describe("demo faucet", () => {
   it("allows three grants per IP an hour", async () => {
     const limiter: Limiter = new Map();
     const t0 = 1_800_000_000_000;
-    for (let i = 0; i < 3; i++) expect((await grant((await generateKeyPairSigner()).address, "ip", deps(), limiter, t0 + i)).ok).to.equal(true);
+    for (let i = 0; i < 3; i++)
+      expect((await grant((await generateKeyPairSigner()).address, "ip", deps(), limiter, t0 + i)).ok).to.equal(true);
     expect(await grant(wallet, "ip", deps(), limiter, t0 + 10)).to.include({ reason: "rate limited" });
     expect((await grant(wallet, "other-ip", deps(), limiter, t0 + 10)).ok).to.equal(true);
-    expect((await grant((await generateKeyPairSigner()).address, "ip", deps(), limiter, t0 + 3_600_001)).ok).to.equal(true);
+    expect((await grant((await generateKeyPairSigner()).address, "ip", deps(), limiter, t0 + 3_600_001)).ok).to.equal(
+      true,
+    );
   });
 
   it("does not spend the limit on a refusal", async () => {

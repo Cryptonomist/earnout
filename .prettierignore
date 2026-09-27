@@ -1,7 +1,9 @@
 .anchor
-.DS_Store
-target
+.next
 node_modules
-dist
-build
+target
 test-ledger
+var
+public
+sdk/generated.ts
+package-lock.json

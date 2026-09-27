@@ -17,14 +17,20 @@ class KitLikeError extends Error {
 
 describe("describeError", () => {
   it("reads a preflight failure for an unfunded wallet out of the error context", () => {
-    const e = new KitLikeError("Solana error #-32002; Decode this error by running `npx @solana/errors decode -- -32002 'X19...'`", {
-      __code: -32002,
-      __serverMessage: "Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.",
-      accounts: null,
-      logs: [],
-    });
+    const e = new KitLikeError(
+      "Solana error #-32002; Decode this error by running `npx @solana/errors decode -- -32002 'X19...'`",
+      {
+        __code: -32002,
+        __serverMessage:
+          "Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.",
+        accounts: null,
+        logs: [],
+      },
+    );
     expect(describeError(e)).to.equal("This wallet does not have enough devnet SOL for the rent and fee.");
-    expect(describeError(new KitLikeError("Solana error #-32002", { err: "AccountNotFound" }))).to.include("devnet SOL");
+    expect(describeError(new KitLikeError("Solana error #-32002", { err: "AccountNotFound" }))).to.include(
+      "devnet SOL",
+    );
   });
 
   it("still recognises a wallet's refusal and an expired blockhash", () => {

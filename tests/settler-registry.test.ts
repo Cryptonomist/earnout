@@ -33,7 +33,11 @@ describe("settler registry", () => {
       {
         campaigns: [
           { campaign: dbCampaign, rules, rules_hash: await rulesHash(rules) },
-          { campaign: tampered, rules: { ...rules, name: "Changed after the fact" }, rules_hash: await rulesHash(rules) },
+          {
+            campaign: tampered,
+            rules: { ...rules, name: "Changed after the fact" },
+            rules_hash: await rulesHash(rules),
+          },
           { campaign: fileCampaign, rules, rules_hash: await rulesHash(rules) },
         ],
         links: [

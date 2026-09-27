@@ -1,0 +1,75 @@
+# Every push and pull request: the program formats and lints clean and
+# builds; the committed SDK tables match the build; the TypeScript
+# typechecks, lints and is formatted; and the whole suite passes against
+# the freshly built binary in LiteSVM.
+#
+# The first run compiles the Anchor CLI (about ten minutes); the cache
+# keeps it, the Solana platform tools and the program's build for the runs
+# after, which take a few minutes.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # npm install, as Vercel and the settler use: the runner's npm wants
+      # optional peers in the lockfile that a local npm leaves out.
+      - run: npm install --no-audit --no-fund
+
+      - name: Rust toolchain, as rust-toolchain.toml pins it
+        run: rustup show
+
+      - name: Cache the Anchor CLI, the Solana platform tools and the build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/anchor
+            ~/.cache/solana
+            ~/.local/share/solana
+            target
+          key: earnout-${{ runner.os }}-anchor-1.2.0-solana-3.1.10-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: earnout-${{ runner.os }}-anchor-1.2.0-solana-3.1.10-
+
+      - name: Solana CLI 3.1.10
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/v3.1.10/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Anchor CLI 1.2.0
+        run: command -v anchor >/dev/null || cargo install --locked anchor-cli@1.2.0
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy -p earnout --no-deps -- -D warnings
+      - run: npm run build:program
+      - name: The committed SDK tables match the program
+        run: git diff --exit-code sdk/generated.ts
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
