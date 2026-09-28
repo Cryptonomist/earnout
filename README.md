@@ -368,10 +368,25 @@ report something, open an issue or write to hello@earnout.dev.
 token, create, fund, a channel, a real tagged transaction found by its
 reference and verified, then settle and claim.
 
-To upgrade it: `anchor deploy --provider.cluster devnet --no-idl` (the
-deploy wallet is the upgrade authority and needs about 1.9 devnet SOL free
-for the upload buffer, returned afterwards), then the IDL on its own, since
-Anchor's own upload step fails against the metadata account on devnet:
+The deployed bytes are a verified build: anyone can rebuild them from this
+repository at the recorded commit and get the same hash, and OtterSec's
+devnet verifier has done so. To upgrade it, build the binary the way the
+verifier does (Docker and
+[solana-verify](https://github.com/Ellipsis-Labs/solana-verifiable-build);
+`anchor build` embeds local paths, so its output never matches a
+verifier's), deploy it with Anchor's IDL step skipped, verify against the
+pushed commit, and ask the devnet verifier to confirm:
+
+```bash
+solana-verify build --library-name earnout
+anchor deploy --provider.cluster devnet --no-idl
+solana-verify verify-from-repo -u https://api.devnet.solana.com --program-id EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU https://github.com/Cryptonomist/earnout --library-name earnout --commit-hash $(git rev-parse HEAD) -k ~/.config/solana/id.json
+solana-verify remote submit-job --program-id EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU --uploader HoYb6BCszJUY89WhKt2itTpxtLHMJKuoEwXwQPdbhtVu -u https://api.devnet.solana.com
+```
+
+The deploy wallet is the upgrade authority and needs about 1.9 devnet SOL
+free for the upload buffer, returned afterwards. Then the IDL on its own,
+since Anchor's own upload step fails against the metadata account on devnet:
 
 ```bash
 npx @solana-program/program-metadata write idl EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU target/idl/earnout.json -k ~/.config/solana/id.json --rpc https://api.devnet.solana.com

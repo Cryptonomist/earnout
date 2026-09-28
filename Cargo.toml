@@ -8,6 +8,11 @@ resolver = "2"
 edition = "2021"
 rust-version = "1.89.0"
 
+# The Solana CLI this program is built and deployed with; solana-verify
+# picks its build image from it, so a verified build uses the same one.
+[workspace.metadata.cli]
+solana = "3.1.10"
+
 [profile.release]
 overflow-checks = true
 lto = "fat"
