@@ -351,8 +351,10 @@ enforces and what it cannot, in
 [What the program guarantees, and what it cannot](docs/ARCHITECTURE.md#what-the-program-guarantees-and-what-it-cannot).
 The site's own attack surface (the RPC relay, the faucets, sign-in with X,
 the registry writes) is described where each lives, in the header comment of
-the file. To report something, open an issue or write to the contact on the
-site.
+the file. The program carries a
+[security.txt](https://github.com/neodyme-labs/solana-security-txt) with the
+same contacts, readable from the binary on chain. To report something, open
+an issue or write to hello@earnout.dev.
 
 ## Deployed
 
@@ -363,6 +365,15 @@ site.
 `npx tsx scripts/devnet-smoke.ts` runs one whole campaign against it: a test
 token, create, fund, a channel, a real tagged transaction found by its
 reference and verified, then settle and claim.
+
+To upgrade it: `anchor deploy --provider.cluster devnet --no-idl` (the
+deploy wallet is the upgrade authority and needs about 1.9 devnet SOL free
+for the upload buffer, returned afterwards), then the IDL on its own, since
+Anchor's own upload step fails against the metadata account on devnet:
+
+```bash
+npx @solana-program/program-metadata write idl EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU target/idl/earnout.json -k ~/.config/solana/id.json --rpc https://api.devnet.solana.com
+```
 
 ## Status
 

@@ -93,6 +93,19 @@ use state::*;
 
 declare_id!("EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU");
 
+// Who to tell about a vulnerability, readable from the binary on chain
+// (explorers show it). Left out of CPI builds, which carry no entrypoint.
+#[cfg(not(feature = "no-entrypoint"))]
+solana_security_txt::security_txt! {
+    name: "Earnout",
+    project_url: "https://earnout.dev",
+    contacts: "email:hello@earnout.dev,link:https://github.com/Cryptonomist/earnout/issues,twitter:@CRYPT0NOMIST",
+    policy: "https://github.com/Cryptonomist/earnout/blob/main/docs/ARCHITECTURE.md#trust-boundaries",
+    preferred_languages: "en",
+    source_code: "https://github.com/Cryptonomist/earnout",
+    auditors: "None"
+}
+
 #[program]
 pub mod earnout {
     use super::*;
