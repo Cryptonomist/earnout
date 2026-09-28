@@ -353,8 +353,10 @@ The site's own attack surface (the RPC relay, the faucets, sign-in with X,
 the registry writes) is described where each lives, in the header comment of
 the file. The program carries a
 [security.txt](https://github.com/neodyme-labs/solana-security-txt) with the
-same contacts, readable from the binary on chain. To report something, open
-an issue or write to hello@earnout.dev.
+same contacts, readable from the binary on chain, and the same record is
+published as the program's `security` metadata account from
+`programs/earnout/security.json`, which is what explorers read first. To
+report something, open an issue or write to hello@earnout.dev.
 
 ## Deployed
 
@@ -374,6 +376,10 @@ Anchor's own upload step fails against the metadata account on devnet:
 ```bash
 npx @solana-program/program-metadata write idl EKcSH6aEQiKhULjqixHqaReodxh61tMKRZ8Vsg4Vz8dU target/idl/earnout.json -k ~/.config/solana/id.json --rpc https://api.devnet.solana.com
 ```
+
+After changing `programs/earnout/security.json` (put the new commit in
+`source_revision`), publish it the same way with `write security` in place
+of `write idl` and the JSON file in place of the IDL.
 
 ## Status
 

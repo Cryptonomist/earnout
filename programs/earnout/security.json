@@ -1,0 +1,17 @@
+{
+  "name": "Earnout",
+  "logo": "https://earnout.dev/brand/icon-1024.png",
+  "description": "Marketing budgets that pay out only for users who stay: campaign budgets locked on Solana, influencers paid per user who is still active after the stay period, unspent budget refunded.",
+  "project_url": "https://earnout.dev",
+  "sdk": "https://github.com/Cryptonomist/earnout/tree/main/sdk",
+  "contacts": [
+    "email:hello@earnout.dev",
+    "link:https://github.com/Cryptonomist/earnout/issues",
+    "twitter:@CRYPT0NOMIST"
+  ],
+  "policy": "https://github.com/Cryptonomist/earnout/blob/main/docs/ARCHITECTURE.md#trust-boundaries",
+  "preferred_languages": ["en"],
+  "source_code": "https://github.com/Cryptonomist/earnout",
+  "source_revision": "8036ccb80199e7a3f34c3ab417706a2287111c0d",
+  "version": "0.1.0"
+}
