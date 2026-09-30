@@ -87,14 +87,16 @@ export async function mintDecimals(client: BrowserRpc, mint: Address): Promise<n
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const sol = (lamports: bigint) => (Number(lamports) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 4 });
 
-/** Poll until confirmed, for about a minute. */
+/** Poll until confirmed or finalized, for about a minute. Devnet finalizes
+ * a transaction well under a second after it is sent (Alpenglow), so the
+ * polling is brisk: the button should settle as fast as the chain does. */
 export async function confirmSignature(client: BrowserRpc, signature: string): Promise<void> {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 150; i++) {
     const { value } = await client.getSignatureStatuses([signature as Signature]).send();
     const status = value[0];
     if (status?.err) throw new Error("The transaction failed on chain.");
     if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") return;
-    await sleep(1_500);
+    await sleep(400);
   }
   throw new Error("Not confirmed after a minute. It may still land; check the explorer.");
 }

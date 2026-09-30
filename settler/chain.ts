@@ -1,6 +1,12 @@
 /* Everything the settler asks the chain, with retries, because the public
  * devnet endpoint answers 429 to anything brisk, and because a node a few
- * slots behind answers "no such transaction" for one that exists. */
+ * slots behind answers "no such transaction" for one that exists.
+ *
+ * Every read is at finalized commitment: a conversion the settler has
+ * screened, or a balance it has judged, can never be rolled back under it.
+ * With Alpenglow, finality on devnet arrives well under a second after a
+ * transaction, so this costs nothing; under the old consensus it would add
+ * the thirteen seconds a ten-minute pass can well afford. */
 
 import {
   getBase64Encoder,
@@ -79,11 +85,14 @@ const inFamily = (code: number, base: number) => code >= base && code < base + 1
 
 // ── reads ────────────────────────────────────────────────────────────────────
 
+/** The commitment every read here asks for; see the header. */
+const READ = "finalized" as const;
+
 const bytes = (b64: string) => getBase64Encoder().encode(b64) as Uint8Array;
 
 export async function loadCampaignView(rpc: Rpc, campaign: Address): Promise<CampaignView> {
   const { value } = await withRetry(() =>
-    rpc.getAccountInfo(campaign, { encoding: "base64", commitment: "confirmed" }).send(),
+    rpc.getAccountInfo(campaign, { encoding: "base64", commitment: READ }).send(),
   );
   if (!value) throw new Error(`No campaign account at ${campaign}`);
   const c = decodeCampaign(bytes(value.data[0]));
@@ -92,9 +101,7 @@ export async function loadCampaignView(rpc: Rpc, campaign: Address): Promise<Cam
   const channels: CampaignView["channels"] = [];
   for (let i = 0; i < addresses.length; i += 100) {
     const chunk = addresses.slice(i, i + 100);
-    const res = await withRetry(() =>
-      rpc.getMultipleAccounts(chunk, { encoding: "base64", commitment: "confirmed" }).send(),
-    );
+    const res = await withRetry(() => rpc.getMultipleAccounts(chunk, { encoding: "base64", commitment: READ }).send());
     res.value.forEach((acc, j) => {
       if (!acc) throw new Error(`Missing channel ${i + j}`);
       const ch = decodeChannel(bytes(acc.data[0]));
@@ -128,7 +135,7 @@ export async function signaturesSince(rpc: Rpc, addr: Address, until: string | n
     const page = await withRetry(() =>
       rpc
         .getSignaturesForAddress(addr, {
-          commitment: "confirmed",
+          commitment: READ,
           limit: 1000,
           ...(before ? { before: before as Signature } : {}),
           ...(until ? { until: until as Signature } : {}),
@@ -154,7 +161,7 @@ export async function fetchParsed(rpc: Rpc, signature: string, tries = 7): Promi
         .getTransaction(signature as Signature, {
           encoding: "json",
           maxSupportedTransactionVersion: 0,
-          commitment: "confirmed",
+          commitment: READ,
         })
         .send();
       if (!r) throw new Transient(`${signature} is not on this node yet`);
@@ -175,7 +182,7 @@ export async function firstUse(rpc: Rpc, reference: Address): Promise<string | n
     const list = await withRetry(() =>
       rpc
         .getSignaturesForAddress(reference, {
-          commitment: "confirmed",
+          commitment: READ,
           limit: 1000,
           ...(before ? { before: before as Signature } : {}),
         })
@@ -198,7 +205,7 @@ export async function funderOf(rpc: Rpc, wallet: Address): Promise<string | null
     const list = await withRetry(() =>
       rpc
         .getSignaturesForAddress(wallet, {
-          commitment: "confirmed",
+          commitment: READ,
           limit: 1000,
           ...(before ? { before: before as Signature } : {}),
         })
@@ -219,7 +226,7 @@ export async function funderOf(rpc: Rpc, wallet: Address): Promise<string | null
  * or an app, and wallets sharing it prove nothing. */
 export async function isBusy(rpc: Rpc, addr: string): Promise<boolean> {
   const list = await withRetry(() =>
-    rpc.getSignaturesForAddress(addr as Address, { limit: 1000, commitment: "confirmed" }).send(),
+    rpc.getSignaturesForAddress(addr as Address, { limit: 1000, commitment: READ }).send(),
   );
   return list.length >= 1000;
 }
@@ -245,7 +252,7 @@ export async function programActivity(
       rpc
         .getSignaturesForAddress(wallet, {
           limit: 1000,
-          commitment: "confirmed",
+          commitment: READ,
           ...(before ? { before: before as Signature } : {}),
         })
         .send(),
@@ -290,7 +297,7 @@ export async function retentionFacts(
   const wallet = r.wallet as Address;
   let stayed: boolean;
   if (cfg.retention.kind === "sol-balance") {
-    const { value } = await withRetry(() => rpc.getBalance(wallet, { commitment: "confirmed" }).send());
+    const { value } = await withRetry(() => rpc.getBalance(wallet, { commitment: READ }).send());
     stayed = value >= cfg.retention.minLamports;
   } else if (cfg.retention.kind === "program-activity") {
     const { programId, minTransactions } = cfg.retention;
@@ -299,7 +306,7 @@ export async function retentionFacts(
   } else {
     const mint = cfg.retention.mint;
     const { value } = await withRetry(() =>
-      rpc.getTokenAccountsByOwner(wallet, { mint }, { encoding: "jsonParsed", commitment: "confirmed" }).send(),
+      rpc.getTokenAccountsByOwner(wallet, { mint }, { encoding: "jsonParsed", commitment: READ }).send(),
     );
     const held = value.reduce((n, a) => {
       const data = a.account.data as unknown;

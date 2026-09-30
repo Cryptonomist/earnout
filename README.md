@@ -262,7 +262,10 @@ refused (drop the batch, replan) or is unknown (keep it pending for the
 chain to say) is decided from kit's error codes, never from message text.
 A node that is a few slots behind is asked again before a transaction is
 believed missing, and one wallet the RPC will not answer for waits for the
-next pass without holding up the rest.
+next pass without holding up the rest. Every read the settler makes is at
+finalized commitment, so nothing it has judged can be rolled back under
+it; with Alpenglow, devnet finalizes a transaction in under a second, so
+that guarantee is free.
 
 The ledger, which wallet came through which channel, is exactly what the
 chain is kept from knowing. It lives in the earnout Supabase project's

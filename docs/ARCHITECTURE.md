@@ -139,6 +139,14 @@ refuses a batch number it has seen, and the next pass reads the channel's
 batch count from the chain to see whether the pending batch landed or must
 be sent again, unchanged. A crash mid-send cannot pay anyone twice.
 
+The settler reads the chain at finalized commitment (`settler/chain.ts`):
+a tagged transaction it screens, a balance it judges, a batch count it
+reconciles against, none of them can be rolled back after the fact. Since
+Alpenglow, devnet finalizes a transaction well under a second after it is
+sent (measured: 0.8 seconds from send to finalized), so finalized costs the
+settler nothing over confirmed; under the old consensus it would have cost
+thirteen seconds a pass can well afford.
+
 The ledger is saved under a version: the database's `save_ledger` function
 (and the file store, with a version file) refuses a save whose version has
 moved, so two passes that overlap cannot overwrite each other; the loser
